@@ -108,12 +108,16 @@ export default defineStore({
       this.channel.on("file_uploaded", (file) => {
         console.log("[file uploaded]", file);
       });
+      console.log("---this.channel", this.channel);
       this.channel
         .join()
         .receive("ok", (resp) => {
           console.log("[Ready] join socket channel", resp);
         })
-        .receive("error", console.error);
+        .receive("error", (err) => {
+          console.log("websockt-channel-error---", err);
+          console.error(err);
+        });
     },
   },
 });

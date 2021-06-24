@@ -43,6 +43,9 @@
           <DownOutlined class="align-middle" />
         </a-button>
       </a-dropdown>
+      <a-button class="ml-2" @click="onRefreshTableData"
+        >刷新列表(临时用)</a-button
+      >
     </div>
     <TableFiles
       rowKey="id"
@@ -60,9 +63,11 @@
           {{ record.fullName[0] }}
         </a-button>
       </template>
-      <template #action>
+      <template #action="{ record }">
         <a-button-group size="small">
-          <a-button>{{ $t("metanet.downloadButton") }}</a-button>
+          <a-button @click="onDownload(record)">{{
+            $t("metanet.downloadButton")
+          }}</a-button>
           <a-button type="danger">{{ $t("metanet.delButton") }}</a-button>
         </a-button-group>
       </template>
@@ -76,11 +81,17 @@ import { DownOutlined, UploadOutlined } from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
 import { AppFileTypeIcon } from "@/components";
 import { useI18n } from "vue-i18n";
-import { apiQueryFileByDir, apiUploadSingle, TFileList } from "@/apollo/api";
+import {
+  apiQueryFileByDir,
+  apiUploadSingle,
+  TFileItem,
+  TFileList,
+} from "@/apollo/api";
 import dayjs from "dayjs";
 import { assign } from "lodash-es";
 import { message } from "ant-design-vue";
 import { useUserStore } from "@/store";
+import { useDelay } from "@/hooks";
 
 export default defineComponent({
   components: {
@@ -122,7 +133,8 @@ export default defineComponent({
         const fileName = file.name;
         // TODO 上传完后清除?
         const [res, err] = await apiUploadSingle({
-          File: new Uint8Array(await file.arrayBuffer()),
+          // File: new Uint8Array(await file.arrayBuffer()),
+          SourceFile: file,
           // TODO 要带上路径吗
           FullName: [fileName],
           FileSize: file.size,
@@ -132,11 +144,18 @@ export default defineComponent({
           Action: "drive",
         });
         input.value = ""; //释放input 资源
+        if (res?.data.startsWith("秒传成功")) {
+          message.success(t("metanet.uploadSuccess"));
+          if (getAndSetTableDataFn) getAndSetTableDataFn();
+          return;
+        }
+        // 处理秒传
         // 同步添加新的事件监听 然后解除监听
         const hide = message.loading("上传成功,等待websocket 返回确认信息", 0);
         let timer: number;
         const { channel } = useUserStore();
         if (!channel) throw Error("no channel");
+        console.log("channel", channel);
         let removeListener = channel.on(
           "file_uploaded",
           (fileUploadInfo: {
@@ -149,23 +168,28 @@ export default defineComponent({
             id: string;
             space: number;
           }) => {
+            console.log("包括remove的listen", fileUploadInfo);
             // TODO 应该用hash 判断
             if (fileUploadInfo.full_name[0] === fileName) {
-              clearTimeout(timer);
-              message.success("上传成功");
-              if (getAndSetTableDataFn) getAndSetTableDataFn();
-              console.log("getAndSetTableDataFn", getAndSetTableDataFn);
-              channel.off("file_uploaded", removeListener);
-              hide();
+              useDelay().then(() => {
+                clearTimeout(timer);
+                message.success(t("metanet.uploadSuccess"));
+                if (getAndSetTableDataFn) getAndSetTableDataFn();
+                console.log("getAndSetTableDataFn", getAndSetTableDataFn);
+                channel.off("file_uploaded", removeListener);
+                hide();
+              });
             }
           }
         );
         // 设置超时
         timer = window.setTimeout(() => {
           hide();
-          message.warn("等待websocket 确认信息 超时");
           channel.off("file_uploaded", removeListener);
           clearTimeout(timer);
+          // TODO 国际化提示
+          message.warn(t("metanet.errorUpload"));
+          if (getAndSetTableDataFn) getAndSetTableDataFn();
         }, 60000);
         // 重新刷新数据?
         if (err) console.error(err);
@@ -255,8 +279,23 @@ export default defineComponent({
         });
       };
       getAndSetTableDataFn();
-
+      const onRefreshTableData = () => {
+        getAndSetTableDataFn && getAndSetTableDataFn();
+      };
+      const onDownload = ({ user, space, id, fullName }: TFileItem) => {
+        // TODO
+        // Content-Disposition: attachment
+        // window.fetch(
+        //   `https://drive-s.owaf.io/download/${
+        //     user.id
+        //   }/${space.toLowerCase()}/${id}/${fullName.slice(-1)[0]}?token=${
+        //     useUserStore().token
+        //   }`
+        // );
+      };
       return {
+        onRefreshTableData,
+        onDownload,
         columns,
         tableData,
         tableLoading,

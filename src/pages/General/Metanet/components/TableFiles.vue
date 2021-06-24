@@ -49,7 +49,7 @@ export default defineComponent({
   setup(props) {
     function useData() {
       // 不能通过props 传递个ref 然后 .value = 赋值改了的话就没有响应式了 , 需要toRef 改成响应父组件的的
-      const { loading, data } = toRefs(props);
+      const { loading } = toRefs(props);
       const { rowKey, columns } = props;
       // 从 column 里面算出要slot 的
       const slots = columns
@@ -73,7 +73,6 @@ export default defineComponent({
         rowKey,
         columns,
         rowSelection,
-        data,
         loading,
       };
     }

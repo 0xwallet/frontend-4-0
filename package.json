@@ -16,6 +16,7 @@
     "@vueuse/core": "^5.0.3",
     "ant-design-vue": "2.1.6",
     "core-js": "^3.6.5",
+    "crypto-js": "^4.0.0",
     "dayjs": "^1.10.5",
     "graphql": "^15.5.0",
     "graphql-tag": "^2.12.4",
@@ -31,6 +32,7 @@
     "vue-simple-password-meter": "^1.0.3"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.0.1",
     "@types/jest": "^24.0.19",
     "@types/lodash-es": "^4.17.4",
     "@types/phoenix": "^1.5.1",

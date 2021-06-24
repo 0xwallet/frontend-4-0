@@ -281,5 +281,7 @@ export default {
     createShare: "创建链接",
     noLoginTips: "未登录账号，请登录",
     loginOut: "登出",
+    uploadSuccess: "上传成功",
+    errorUpload: "出现异常，文件可能未成功上传",
   },
 };

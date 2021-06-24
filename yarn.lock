@@ -1359,6 +1359,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/crypto-js@^4.0.1":
+  version "4.0.1"
+  resolved "https://registry.nlark.com/@types/crypto-js/download/@types/crypto-js-4.0.1.tgz#3a4bd24518b0e6c5940da4e2659eeb2ef0806963"
+  integrity sha1-OkvSRRiw5sWUDaTiZZ7rLvCAaWM=
+
 "@types/express-serve-static-core@*", "@types/express-serve-static-core@^4.17.18":
   version "4.17.21"
   resolved "https://registry.nlark.com/@types/express-serve-static-core/download/@types/express-serve-static-core-4.17.21.tgz?cache=0&sync_timestamp=1622673130736&other_urls=https%3A%2F%2Fregistry.nlark.com%2F%40types%2Fexpress-serve-static-core%2Fdownload%2F%40types%2Fexpress-serve-static-core-4.17.21.tgz#a427278e106bca77b83ad85221eae709a3414d42"
@@ -3896,6 +3901,11 @@ crypto-js@^3.1.9-1:
   version "3.3.0"
   resolved "https://registry.npm.taobao.org/crypto-js/download/crypto-js-3.3.0.tgz#846dd1cce2f68aacfa156c8578f926a609b7976b"
   integrity sha1-hG3RzOL2iqz6FWyFePkmpgm3l2s=
+
+crypto-js@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.npm.taobao.org/crypto-js/download/crypto-js-4.0.0.tgz#2904ab2677a9d042856a2ea2ef80de92e4a36dcc"
+  integrity sha1-KQSrJnep0EKFai6i74DekuSjbcw=
 
 css-color-names@0.0.4, css-color-names@^0.0.4:
   version "0.0.4"

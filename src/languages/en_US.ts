@@ -283,5 +283,8 @@ export default {
     noLoginTips: "Not logged in, please log in",
     linkValidTime: "Link Valid Time",
     loginOut: "Login Out",
+    uploadSuccess: "Uploaded successfully",
+    errorUpload:
+      "An exception occurred, the file may not be uploaded successfully",
   },
 };

@@ -1,3 +1,4 @@
+import CryptoJS from "crypto-js";
 import { Session } from "../@types/apolloType";
 import { encode } from "@msgpack/msgpack";
 import { useUserStore } from "@/store";
@@ -264,7 +265,9 @@ export const apiQueryFileByDir: TApiFn<
 
 type ParamsUploadSingle = {
   // file: File;
-  File: Uint8Array;
+  // File: Uint8Array;
+  SourceFile?: File;
+  File?: Uint8Array;
   FullName: string[];
   FileSize: number;
   UserId: string;
@@ -278,11 +281,27 @@ type ResponseUploadSingle = {
 /** 上传单个文件 */
 export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
   async (params) => {
-    if (!params) return [undefined, Error("noparams")];
+    if (!params || !params.SourceFile) return [undefined, Error("noparams")];
+    // 1. 先调秒传
+    const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
+      SourceFile: params.SourceFile,
+      FullName: params.FullName,
+    });
+    console.log("---先调秒传---", resSecondUpload, errSecondUpload);
+    if (resSecondUpload)
+      return [
+        // { data: `id is ${resSecondUpload.data.driveUploadByHash.id}` },
+        { data: `秒传成功-${resSecondUpload.data.driveUploadByHash.id}` },
+        errSecondUpload,
+      ];
+    // 2. 秒传失败则调session
     // const { file } = params;
+
     const clientSession = await getClientSession();
     if (!clientSession) return [undefined, Error("no clientSession")];
-
+    if (params.SourceFile)
+      params.File = new Uint8Array(await params.SourceFile.arrayBuffer());
+    delete params.SourceFile;
     const writeChunkSize = 1024;
     const encoded: Uint8Array = encode(params);
     // 写入头部信息
@@ -326,6 +345,45 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
       );
     } catch (error) {
       console.error(error);
+      err = error;
+    }
+    return [res, err];
+  };
+
+type ParamsSecondUpload = {
+  SourceFile: File;
+  FullName: string[];
+};
+type ResponseSecondUpload = {
+  data: {
+    driveUploadByHash: {
+      // id: "qDQt2b8Di1nZeDhN5cPWXE"
+      id: string;
+    };
+  };
+};
+/** 秒传接口 */
+export const apiSecondUpload: TApiFn<ParamsSecondUpload, ResponseSecondUpload> =
+  async (params) => {
+    if (!params) return [undefined, Error("noparams")];
+    let res, err;
+    try {
+      // create hash
+      const data = await params.SourceFile.arrayBuffer();
+      const wordArray = CryptoJS.lib.WordArray.create(
+        data as unknown as number[]
+      );
+      const hash = CryptoJS.SHA256(wordArray).toString();
+
+      res = await useApollo<ResponseSecondUpload>({
+        mode: "mutate",
+        gql: Basic.Hash,
+        variables: {
+          hash,
+          fullName: params.FullName,
+        },
+      });
+    } catch (error) {
       err = error;
     }
     return [res, err];
