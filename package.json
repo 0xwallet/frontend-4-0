@@ -18,6 +18,8 @@
     "core-js": "^3.6.5",
     "crypto-js": "^4.0.0",
     "dayjs": "^1.10.5",
+    "filereader-stream": "2.0.0",
+    "from2": "^2.3.0",
     "graphql": "^15.5.0",
     "graphql-tag": "^2.12.4",
     "gridjs": "^5.0.2",
@@ -29,10 +31,13 @@
     "vue": "^3.1.1",
     "vue-i18n": "^9.1.6",
     "vue-router": "4.0.9",
-    "vue-simple-password-meter": "^1.0.3"
+    "vue-simple-password-meter": "^1.0.3",
+    "web-streams-node": "0.4.0",
+    "web-streams-polyfill": "2.0.6"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.0.1",
+    "@types/from2": "^2.3.0",
     "@types/jest": "^24.0.19",
     "@types/lodash-es": "^4.17.4",
     "@types/phoenix": "^1.5.1",

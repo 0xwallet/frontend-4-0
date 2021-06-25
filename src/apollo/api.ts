@@ -14,7 +14,15 @@ import {
   signUp,
   Basic,
 } from "./document";
-
+import { TSession } from "nkn";
+// temp
+// require("web-streams-polyfill");
+// const webStreams = require("web-streams-node");
+// const fileReaderStream = require("filereader-stream");
+import "web-streams-polyfill";
+import * as webStreams from "web-streams-node";
+import fileReaderStream from "filereader-stream";
+//
 export type CommonRes<T> = Promise<
   [res: T | undefined, err: Error | undefined]
 >;
@@ -301,38 +309,88 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     if (!clientSession) return [undefined, Error("no clientSession")];
     if (params.SourceFile)
       params.File = new Uint8Array(await params.SourceFile.arrayBuffer());
-    delete params.SourceFile;
+    // delete params.SourceFile;
+
     const writeChunkSize = 1024;
-    const encoded: Uint8Array = encode(params);
-    // 写入头部信息
+    // const encoded: Uint8Array = encode(params);
+    // // 写入头部信息
+    // const buffer = new ArrayBuffer(4);
+    // const dv = new DataView(buffer);
+    // dv.setUint32(0, encoded.length, true);
+    // await clientSession.write(new Uint8Array(buffer));
+    // //
+    // // 创建 ReadableStream
+    // const uploadStream = new ReadableStream({
+    //   start(controller) {
+    //     let buf!: Uint8Array;
+    //     for (let n = 0; n < encoded.length; n += buf.length) {
+    //       buf = new Uint8Array(Math.min(encoded.length - n, writeChunkSize));
+    //       for (let i = 0; i < buf.length; i++) {
+    //         buf[i] = encoded[i + n];
+    //       }
+    //       controller.enqueue(buf);
+    //     }
+    //     controller.close();
+    //   },
+    //   cancel() {
+    //     console.log("cancel");
+    //   },
+    // });
+
+    // clientSession.setLinger(-1);
+    // console.log(
+    //   clientSession.localAddr,
+    //   "dialed a clientSession to",
+    //   clientSession.remoteAddr
+    // );
+    // const fileNameEncoded = new TextEncoder().encode(params.SourceFile.name);
+    // await writeUint32(clientSession, fileNameEncoded.length);
+    // await clientSession.write(fileNameEncoded);
+    // await writeUint32(clientSession, params.SourceFile.size);
+    // delete params.SourceFile
+    // const encoded: Uint8Array = encode(params);
+    // const uploadStream = webStreams.toWebReadableStream(
+    //   // fileReaderStream(params.SourceFile)
+    //   fileReaderStream(
+    //     encoded as unknown as File
+    //   )
+    // );
+
+    // console.log(
+    //   `Start sending ${params.FullName[0]} (${params.FileSize} bytes) to ${clientSession.remoteAddr}`
+    // );
+    // async function writeUint32(session: TSession, n: number) {
+    //   const buffer = new ArrayBuffer(4);
+    //   const dv = new DataView(buffer);
+    //   dv.setUint32(0, n, true);
+    //   await session.write(new Uint8Array(buffer));
+    // }
+    // 第一步，发长度，长度表示接下来的 msgpack 的长度
+    const encoded: Uint8Array = encode({
+      File: "",
+      FullName: params.FullName,
+      FileSize: params.FileSize,
+      UserId: params.UserId,
+      Space: params.Space,
+      Description: params.Description,
+      Action: params.Action,
+    });
     const buffer = new ArrayBuffer(4);
     const dv = new DataView(buffer);
     dv.setUint32(0, encoded.length, true);
     await clientSession.write(new Uint8Array(buffer));
-    //
-    // 创建 ReadableStream
-    const uploadStream = new ReadableStream({
-      start(controller) {
-        let buf!: Uint8Array;
-        for (let n = 0; n < encoded.length; n += buf.length) {
-          buf = new Uint8Array(Math.min(encoded.length - n, writeChunkSize));
-          for (let i = 0; i < buf.length; i++) {
-            buf[i] = encoded[i + n];
-          }
-          controller.enqueue(buf);
-        }
-        controller.close();
-      },
-      cancel() {
-        console.log("cancel");
-      },
-    });
+    // 第二步，发 msgpack
+    await clientSession.write(encoded);
+    // 第三步，发文件
+    const uploadStream = webStreams.toWebReadableStream(
+      fileReaderStream(params.SourceFile)
+    );
+
+    const sessionStream = clientSession.getWritableStream(true);
+    const timeStart = Date.now();
     console.log(
       `Start sending ${params.FullName[0]} (${params.FileSize} bytes) to ${clientSession.remoteAddr}`
     );
-    const sessionStream = clientSession.getWritableStream(true);
-    const timeStart = Date.now();
-
     let res, err;
     try {
       res = (await uploadStream.pipeTo(

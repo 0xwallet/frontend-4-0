@@ -128,9 +128,11 @@ declare module "nkn" {
   }
   export type TSession = {
     isClosed: boolean;
+    localAddr:string;
     remoteAddr: string;
     write(ArrayBuffer): Promise<void>;
     getWritableStream(boolean): WritableStream;
+    setLinger(number):void;
   };
   type Tnkn = {
     // setPRNG: string;
