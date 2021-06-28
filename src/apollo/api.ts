@@ -2,7 +2,7 @@ import CryptoJS from "crypto-js";
 import { Session } from "../@types/apolloType";
 import { encode } from "@msgpack/msgpack";
 import { useUserStore } from "@/store";
-import { getClientSession } from "./nknData";
+import { getClientSession } from "./nknConfig";
 import { useApollo } from "./action";
 import {
   me,
@@ -22,6 +22,7 @@ import { TSession } from "nkn";
 import "web-streams-polyfill";
 import * as webStreams from "web-streams-node";
 import fileReaderStream from "filereader-stream";
+import { REMOTE_ADDR } from "@/const";
 //
 export type CommonRes<T> = Promise<
   [res: T | undefined, err: Error | undefined]
@@ -305,13 +306,17 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     // 2. 秒传失败则调session
     // const { file } = params;
 
-    const clientSession = await getClientSession();
+    // const clientSession = await getClientSession();
+    const { multiClient } = useUserStore();
+    console.time("[性能 client.dial 时间]");
+    const clientSession = await multiClient?.dial(REMOTE_ADDR);
+    console.timeEnd("[性能 client.dial 时间]");
     if (!clientSession) return [undefined, Error("no clientSession")];
     if (params.SourceFile)
       params.File = new Uint8Array(await params.SourceFile.arrayBuffer());
     // delete params.SourceFile;
 
-    const writeChunkSize = 1024;
+    // const writeChunkSize = 1024;
     // const encoded: Uint8Array = encode(params);
     // // 写入头部信息
     // const buffer = new ArrayBuffer(4);

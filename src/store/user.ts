@@ -2,7 +2,7 @@ import { useLocalStorage } from "@vueuse/core";
 import { Wallet, ClassWallet, classMultiClient } from "nkn";
 import { pick, assign } from "lodash-es";
 import { defineStore } from "pinia";
-import { getMultiClient } from "@/apollo/nknData";
+import { getMultiClient } from "@/apollo/nknConfig";
 import { toRaw } from "vue";
 import { apiNknOnline, CommonRes } from "@/apollo/api";
 import { Channel, Socket } from "phoenix";
