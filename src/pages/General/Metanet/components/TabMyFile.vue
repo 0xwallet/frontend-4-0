@@ -2,50 +2,45 @@
   <div>
     <!-- 功能区 -->
     <div class="flex items-center mb-4">
-      <a-button type="primary" @click="onClickUploadSingle">
-        <UploadOutlined class="align-middle pb-1" />
-        {{ $t("metanet.uploadButton") }}
-      </a-button>
+      <!-- 这个为隐藏的作为选择文件用的 -->
       <input
         class="hidden"
         type="file"
         id="singleInput"
         @change="onChangeSingleUploadFile"
       />
-
-      <!-- <a-upload
-        name="file"
-        v-model:file-list="fileList"
-        :headers="headers"
-        :beforeUpload="onBeforeUploadSingle"
-        :showUploadList="false"
-        @change="handleChange"
-      >
-        <a-button type="primary">
-          <uploadOutlined />
-          {{ $t("metanet.uploadButton") }}
-        </a-button>
-      </a-upload> -->
-
-      <a-button class="ml-2" type="primary">
-        <UploadOutlined class="align-middle pb-1" />
-        {{ $t("metanet.uploadBatchButton") }}
-      </a-button>
+      <!-- 下拉 - 新建 -->
       <a-dropdown class="ml-2">
         <template #overlay>
-          <a-menu @click="onCreate">
+          <a-menu @click="onClickDropDownMenuCreate">
+            <a-menu-item key="file">{{ $t("metanet.file") }}</a-menu-item>
+            <a-menu-item key="folder">{{ $t("metanet.folder") }}</a-menu-item>
+            <a-menu-item key="import">{{ $t("metanet.import") }}</a-menu-item>
+          </a-menu>
+        </template>
+        <a-button type="primary">
+          {{ $t("metanet.create") }}
+          <DownOutlined />
+        </a-button>
+      </a-dropdown>
+      <!-- 下拉 - 上传 -->
+      <a-dropdown class="ml-2">
+        <template #overlay>
+          <a-menu @click="onClickDropDownMenuUpload">
             <a-menu-item key="file">{{ $t("metanet.file") }}</a-menu-item>
             <a-menu-item key="folder">{{ $t("metanet.folder") }}</a-menu-item>
           </a-menu>
         </template>
-        <a-button>
-          {{ $t("metanet.create") }}
-          <DownOutlined class="align-middle" />
+        <a-button type="primary">
+          {{ $t("metanet.uploadButton") }}
+          <DownOutlined />
         </a-button>
       </a-dropdown>
-      <a-button class="ml-2" @click="onRefreshTableData"
-        >刷新列表(临时用)</a-button
-      >
+      <!-- 刷新按钮 -->
+      <a-button type="primary" class="ml-2" @click="onRefreshTableData"
+        >{{ $t("metanet.refresh") }}
+        <SyncOutlined />
+      </a-button>
     </div>
     <TableFiles
       rowKey="id"
@@ -67,9 +62,9 @@
       </template>
       <template #action="{ record }">
         <a-button-group size="small">
-          <a-button @click="onDownload(record)">{{
-            $t("metanet.downloadButton")
-          }}</a-button>
+          <a-button @click="onDownload(record)">
+            {{ $t("metanet.downloadButton") }}
+          </a-button>
           <a-button type="danger">{{ $t("metanet.delButton") }}</a-button>
         </a-button-group>
       </template>
@@ -79,7 +74,11 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import { DownOutlined, UploadOutlined } from "@ant-design/icons-vue";
+import {
+  DownOutlined,
+  UploadOutlined,
+  SyncOutlined,
+} from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
 import { XFileTypeIcon } from "@/components";
 import { useI18n } from "vue-i18n";
@@ -102,7 +101,8 @@ export default defineComponent({
   components: {
     // icon
     DownOutlined,
-    UploadOutlined,
+    // UploadOutlined,
+    SyncOutlined,
     //
     TableFiles,
     XFileTypeIcon,
@@ -111,19 +111,28 @@ export default defineComponent({
   setup() {
     const { t } = useI18n();
     function useTool() {
-      const onCreate = () => {
-        console.log("onCreate");
+      const onClickDropDownMenuCreate = ({
+        key,
+      }: {
+        key: "file" | "folder";
+      }) => {
+        console.log("onClickDropDownMenuCreate", key);
       };
-      return {
-        onCreate,
+      const onClickDropDownMenuUpload = ({
+        key,
+      }: {
+        key: "file" | "folder";
+      }) => {
+        console.log("onClickDropDownMenuUpload", key);
+        // 点击文件
+        if (key === "file") {
+          document.getElementById("singleInput")?.click();
+        } else {
+          // 点击文件夹
+        }
       };
-    }
-    let getAndSetTableDataFn: () => void;
-    function useUploadSingle() {
       // TODO input 上传成功后清除文件?
-      const onClickUploadSingle = () => {
-        document.getElementById("singleInput")?.click();
-      };
+      // 文件对话框选完文件后就会触发这个函数
       const onChangeSingleUploadFile = async (e: Event) => {
         const input = e.target as HTMLInputElement;
         if (!input.files?.length) return;
@@ -207,10 +216,14 @@ export default defineComponent({
         console.log("writestream---", res, input);
       };
       return {
-        onClickUploadSingle,
+        onClickDropDownMenuCreate,
+        onClickDropDownMenuUpload,
         onChangeSingleUploadFile,
       };
     }
+
+    let getAndSetTableDataFn: () => void;
+
     function useTableData() {
       const columns = [
         {
@@ -273,7 +286,7 @@ export default defineComponent({
           dirId: "root",
         }).then(([res, err]) => {
           if (err || !res?.data.driveListFiles) return;
-          console.log("网盘文件获取", res);
+          // console.log("网盘文件获取", res);
           const notNullList = res.data.driveListFiles
             .filter((i) => i !== null && i.id !== "root")
             .sort((a) => {
@@ -287,13 +300,13 @@ export default defineComponent({
               if (obj.isDir) assign(obj, { fileType: "folder" });
               else {
                 const arr = obj.fullName[0].split(".");
-                if (arr.length) obj.fileType = arr.pop()?.toLowerCase();
-                else obj.fileType = "blank";
+                if (arr.length > 1) obj.fileType = arr.pop()?.toLowerCase();
+                else obj.fileType = "file";
               }
               return obj;
             }
           });
-          console.log("tabledData", tableData);
+          // console.log("tabledData", tableData);
           tableLoading.value = false;
         });
       };
@@ -321,7 +334,6 @@ export default defineComponent({
       };
     }
     return {
-      ...useUploadSingle(),
       ...useTool(),
       ...useTableData(),
     };

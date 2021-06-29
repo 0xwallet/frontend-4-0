@@ -22,7 +22,8 @@ import xls from "../assets/svg/fileType/xls.svg";
 // fileType=folder doc docx xls xlsx mp3
 function getIcon(fileType: string | undefined) {
   const e = fileType;
-  if (!e) return defaultFile;
+  // console.log("e", e);
+  if (!e || e === "file") return defaultFile;
   if (/folder$/g.test(e)) return folder;
   if (/\docx?$/g.test(e)) return doc;
   if (/xlsx?$/g.test(e)) return xls;

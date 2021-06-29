@@ -61,79 +61,128 @@
         </a-menu>
       </a-layout-sider>
       <a-layout prefixCls="ant-layout">
-        <a-layout-header class="flex items-center bg-white px-0 h-12">
-          <menu-unfold-outlined
-            v-if="collapsed"
-            class="trigger"
-            @click="() => (collapsed = !collapsed)"
-          />
-          <menu-fold-outlined
-            v-else
-            class="trigger"
-            @click="() => (collapsed = !collapsed)"
-          />
-          <!-- 面包屑 sub/item -->
-          <a-breadcrumb class="inline-block">
-            <a-breadcrumb-item>
-              <a href="javascript:void(0)">{{
-                $t(`common.${computedBreadcrumpObj.subKey}`)
-              }}</a>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item
-                    v-for="item in computedBreadcrumpObj.subMenuItems"
-                    :key="item.path"
-                  >
-                    <router-link :to="item.path">{{
-                      $t(`common.${item.meta.title}`)
-                    }}</router-link>
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-breadcrumb-item>
-            <a-breadcrumb-item>{{
-              $t(`common.${computedBreadcrumpObj.curRouteTitle}`)
-            }}</a-breadcrumb-item>
-          </a-breadcrumb>
-          <!-- 撑开中间 -->
-          <div class="flex-1"></div>
-          <div class="flex items-center h-full px-4">
-            <XLocaleSwither class="text-base text-gray-600 localeSwitcher" />
-          </div>
-          <!-- <div class="px-2 mr-4 h-full flex items-center cursor-pointer"> -->
-          <!-- </div> -->
+        <a-layout-header class="">
+          <div class="bg-white flex items-center px-0 h-12">
+            <menu-unfold-outlined
+              v-if="collapsed"
+              class="trigger"
+              @click="() => (collapsed = !collapsed)"
+            />
+            <menu-fold-outlined
+              v-else
+              class="trigger"
+              @click="() => (collapsed = !collapsed)"
+            />
+            <!-- 面包屑 sub/item -->
+            <a-breadcrumb class="inline-block">
+              <a-breadcrumb-item>
+                <a href="javascript:void(0)">{{
+                  $t(`common.${computedBreadcrumpObj.subKey}`)
+                }}</a>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item
+                      v-for="item in computedBreadcrumpObj.subMenuItems"
+                      :key="item.path"
+                    >
+                      <router-link :to="item.path">{{
+                        $t(`common.${item.meta.title}`)
+                      }}</router-link>
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-breadcrumb-item>
+              <a-breadcrumb-item>{{
+                $t(`common.${computedBreadcrumpObj.curRouteTitle}`)
+              }}</a-breadcrumb-item>
+            </a-breadcrumb>
+            <!-- 撑开中间 -->
+            <div class="flex-1"></div>
+            <div class="flex items-center h-full px-4">
+              <XLocaleSwither class="text-base text-gray-600 localeSwitcher" />
+            </div>
+            <!-- <div class="px-2 mr-4 h-full flex items-center cursor-pointer"> -->
+            <!-- </div> -->
 
-          <!-- 头像 用户名 -->
-          <!-- <a-avatar :size="24" class="leading-8">
+            <!-- 头像 用户名 -->
+            <!-- <a-avatar :size="24" class="leading-8">
               <template #icon><UserOutlined /></template>
             </a-avatar>
             <span class="pl-2">{{ username }}</span> -->
 
-          <a-dropdown placement="bottomRight">
+            <a-dropdown placement="bottomRight">
+              <div
+                class="
+                  px-2
+                  mr-4
+                  h-full
+                  flex
+                  items-center
+                  cursor-pointer
+                  hover:bg-gray-100
+                "
+              >
+                <a-avatar :size="24" class="leading-8">
+                  <template #icon><UserOutlined /></template>
+                </a-avatar>
+                <span class="pl-2">{{ username }}</span>
+              </div>
+              <template #overlay>
+                <a-menu @click="onAvatarDropdownMenuClick">
+                  <a-menu-item class="flex items-center">
+                    <LogoutOutlined />{{ $t("common.dropdownItemLoginOut") }}
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
+          <!-- tabbar -->
+          <nav
+            class="border-t border-gray-100 bg-white px-6 h-9 flex items-center"
+          >
+            <!-- 激活状态 hover 状态  关闭按钮(hover放大) -->
             <div
+              v-for="item in navList"
+              :key="item.routeName"
+              @click="onClickNavTab"
               class="
-                px-2
-                mr-4
-                h-full
-                flex
-                items-center
+                navTabBox
+                border-solid border
+                rounded-sm
+                py-px
+                pl-3
+                pr-1
                 cursor-pointer
-                hover:bg-gray-100
+                mr-2
               "
+              :class="{
+                'border-transparent': activeNavKey === item.title,
+                'bg-blue-700': activeNavKey === item.title,
+                'text-white': activeNavKey === item.title,
+                'border-gray-200': activeNavKey !== item.title,
+              }"
             >
-              <a-avatar :size="24" class="leading-8">
-                <template #icon><UserOutlined /></template>
-              </a-avatar>
-              <span class="pl-2">{{ username }}</span>
+              <span class="text-xs">
+                {{ $t(`common.${item.title}`) }}
+              </span>
+              <!-- 当只有一个的时候不能关闭 -->
+              <!-- 预留个15.15的box -->
+              <span class="inline-block w-3.5 h-3.5">
+                <!-- && activeNavKey === item -->
+                <CloseOutlined
+                  v-if="navList.length > 1"
+                  @click.stop="onCloseNavItem(item.title)"
+                  class="
+                    navItemClose
+                    text-xs
+                    transform
+                    scale-75
+                    hover:scale-100
+                  "
+                />
+              </span>
             </div>
-            <template #overlay>
-              <a-menu @click="onAvatarDropdownMenuClick">
-                <a-menu-item class="flex items-center">
-                  <LogoutOutlined />{{ $t("common.dropdownItemLoginOut") }}
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
+          </nav>
         </a-layout-header>
         <a-layout-content
           class="bg-white mx-4 my-6"
@@ -148,16 +197,25 @@
   </div>
 </template>
 <script lang="ts">
-import { computed, createVNode, defineComponent, ref, watch } from "vue";
+import {
+  computed,
+  createVNode,
+  defineComponent,
+  reactive,
+  Ref,
+  ref,
+  watch,
+} from "vue";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   AppstoreAddOutlined,
   UserOutlined,
   LogoutOutlined,
+  CloseOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
-import { pick } from "lodash-es";
+import { pick, remove } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
 import { PRODUCT_NAME } from "@/constants";
 import { useSvgWhiteLogo } from "@/hooks";
@@ -193,6 +251,7 @@ export default defineComponent({
     MenuUnfoldOutlined,
     UserOutlined,
     LogoutOutlined,
+    CloseOutlined,
     // ExclamationCircleOutlined,
     //
     XLocaleSwither,
@@ -245,27 +304,42 @@ export default defineComponent({
       const selectedKeys = ref([""]);
       // 观察路由path 改变菜单
       watch(
-        () => route.path,
-        (pathStr) => {
+        () => route,
+        (newRoute) => {
+          const pathStr = newRoute.path;
           // console.log("pathStr", pathStr);
           // /general/account
           const [s, subKey, itemKey] = pathStr.split("/");
           openKeys.value = [subKey];
           selectedKeys.value = [itemKey];
+          // 控制tab 栏
+          const newRouteTitle = newRoute.meta.title as string;
+          activeNavKey.value = newRouteTitle;
+          if (!navList.some((v) => v.title === newRouteTitle)) {
+            navList.push({
+              routeName: newRoute.name as string,
+              title: newRouteTitle,
+            });
+          }
         },
         {
           immediate: true,
+          deep: true,
         }
       );
       const collapsed = ref(false);
-      const onMenuSelect = ({ key, keyPath }: TMenuSelect) => {
+      const onMenuSelect = ({ item, key, keyPath }: TMenuSelect) => {
         // key: "account"
         // keyPath: (2) ["account", "general"]
         // console.log("选中的菜单key", key, keyPath);
+        // console.log("route", route);
         const toRoute = "/" + keyPath.reverse().join("/");
-        // /general/account
-        // router.push 会自动判断与当前页面是否重复
-        router.push(toRoute);
+        if (toRoute !== route.path) {
+          // console.log("router.push", item);
+          // /general/account
+          // router.push 会自动判断与当前页面是否重复
+          router.push(toRoute);
+        }
       };
       return { openKeys, selectedKeys, collapsed, onMenuSelect };
     }
@@ -284,8 +358,52 @@ export default defineComponent({
         onAvatarDropdownMenuClick,
       };
     }
+    let activeNavKey: Ref<string>;
+    let navList: { routeName: string; title: string }[];
+    /** nav tab栏 */
+    function useNavTabs() {
+      // console.log("route", route);
+      // activeNavKey = ref(route.meta.title as string);
+      // navList = reactive([route.meta.title as string]);
+      activeNavKey = ref("");
+      navList = reactive([]);
+      const onClickNavTab = () => {
+        // router.push()
+        // console.log("onClickNavTab");
+      };
+      const onCloseNavItem = (itemTitle: string) => {
+        // console.log("onCloseNavItem", itemTitle, activeNavKey.value);
+        // 1 如果关闭的是当前,路由到上一个且数组移除
+        // 2 如果关闭的是其他,直接数组移除
+        if (itemTitle === activeNavKey.value) {
+          // router.push;
+          if (navList.length > 1) {
+            const foundIndex = navList.findIndex((v) => v.title === itemTitle);
+            remove(navList, (v) => v.title === itemTitle);
+            const toPushRouteName =
+              foundIndex > 0
+                ? // 代表有前一项,push 到前一项
+                  navList[foundIndex - 1].routeName
+                : // 没有前一项,push用下一项(也就是删除后的foundIndex的位置)
+                  navList[foundIndex].routeName;
+            router.push({
+              name: toPushRouteName,
+            });
+          }
+        } else {
+          remove(navList, (v) => v.title === itemTitle);
+        }
+      };
+      return {
+        activeNavKey,
+        navList,
+        onClickNavTab,
+        onCloseNavItem,
+      };
+    }
     return {
       ...useBreadcrumb(),
+      ...useNavTabs(),
       ...useLayoutMenu(),
       ...useSvgLogo(),
       ...useUserDetailInfo(),
@@ -336,6 +454,14 @@ export default defineComponent({
 :deep(.ant-breadcrumb-overlay-link) {
   .anticon-down {
     vertical-align: middle;
+  }
+}
+.navItemClose {
+  display: none;
+}
+.navTabBox:hover {
+  .navItemClose {
+    display: inline-block;
   }
 }
 </style>
