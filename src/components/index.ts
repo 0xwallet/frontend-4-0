@@ -1,3 +1,3 @@
-export { default as AppLocaleSwither } from "./AppLocaleSwither.vue";
-export { default as AppQrCode } from "./AppQrCode.vue";
-export { default as AppFileTypeIcon } from "./AppFileTypeIcon.vue";
+export { default as XLocaleSwither } from "./XLocaleSwither.vue";
+export { default as XQrCode } from "./XQrCode.vue";
+export { default as XFileTypeIcon } from "./XFileTypeIcon.vue";

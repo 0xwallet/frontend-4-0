@@ -1,7 +1,7 @@
 <template>
   <div class="login-left relative w-full h-full px-4">
     <!-- 上面的栏 -->
-    <AppLocaleSwither
+    <XLocaleSwither
       class="absolute top-4 right-4 enter-x text-lg text-gray-600"
     />
     <!-- 中间页面 -->
@@ -95,7 +95,7 @@
 <script lang="ts">
 import { computed, defineComponent, ref } from "vue";
 import { PRODUCT_NAME } from "@/const";
-import { AppLocaleSwither } from "@/components";
+import { XLocaleSwither } from "@/components";
 import FormEmail from "./components/FormEmail.vue";
 import FormSignup from "./components/FormSignup.vue";
 import FormForget from "./components/FormForget.vue";
@@ -111,7 +111,7 @@ export type ICurrentFormKey =
 import { useSvgWhiteLogo } from "@/hooks";
 export default defineComponent({
   components: {
-    AppLocaleSwither,
+    XLocaleSwither,
     FormEmail,
     FormSignup,
     FormForget,

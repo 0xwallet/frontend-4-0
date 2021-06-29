@@ -7,7 +7,7 @@
   <!--  -->
   <a-form :label-col="{ span: 0 }" :wrapper-col="{ span: 24 }">
     <a-form-item>
-      <AppQrCode :url="QR_CODE_URL" :width="280" />
+      <XQrCode :url="QR_CODE_URL" :width="280" />
     </a-form-item>
     <a-divider
       ><span class="text-xs text-gray-500">{{
@@ -25,11 +25,11 @@
 <script lang="ts">
 import { QR_CODE_URL } from "@/const";
 import { defineComponent } from "vue";
-import { AppQrCode } from "@/components";
+import { XQrCode } from "@/components";
 export default defineComponent({
   emits: ["setKey"],
   components: {
-    AppQrCode,
+    XQrCode,
   },
   setup() {
     return {

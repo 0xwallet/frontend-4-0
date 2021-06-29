@@ -101,6 +101,20 @@ export default defineComponent({
 </script>
 
 <style lang="less">
+@import url("~tailwindcss/tailwind.css");
+// fix tailwindcss-antd conflict bug
+// tailwindcss 中用了vertical-align : middle 导致antd 库的很多图标文字不能居中
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  vertical-align: baseline;
+}
+
 html,
 body,
 #app {
@@ -113,18 +127,5 @@ body,
 }
 .ant-color-blue {
   color: #1890ff;
-}
-
-// tailwindcss 中用了vertical-align : middle 导致antd 库的很多图标文字不能居中
-img,
-svg,
-video,
-canvas,
-audio,
-iframe,
-embed,
-object {
-  vertical-align: baseline !important;
-  // vertical-align: baseline !important;
 }
 </style>

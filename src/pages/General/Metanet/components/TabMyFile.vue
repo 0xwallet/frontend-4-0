@@ -55,13 +55,15 @@
     >
       <template #name="{ record }">
         <!-- 空白就是blank 文件夹就是folder -->
-        <AppFileTypeIcon
-          class="text-3xl align-bottom"
-          :type="record.fileType"
-        />
-        <a-button type="link">
+        <XFileTypeIcon class="w-6 h-6" :type="record.fileType" />
+        <a href="javascript:void(0)" class="ml-2" :title="record.fullName[0]">
+          <!-- <a-tooltip :title="record.fullName[0]"> -->
           {{ record.fullName[0] }}
-        </a-button>
+          <!-- </a-tooltip> -->
+        </a>
+      </template>
+      <template #hash="{ record }">
+        <TdHash v-if="record && record.hash" :hash="record.hash" />
       </template>
       <template #action="{ record }">
         <a-button-group size="small">
@@ -79,7 +81,7 @@
 import { defineComponent, ref } from "vue";
 import { DownOutlined, UploadOutlined } from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
-import { AppFileTypeIcon } from "@/components";
+import { XFileTypeIcon } from "@/components";
 import { useI18n } from "vue-i18n";
 import {
   apiQueryFileByDir,
@@ -92,6 +94,8 @@ import { assign } from "lodash-es";
 import { message } from "ant-design-vue";
 import { useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
+import { formatBytes } from "@/utils";
+import TdHash from "./TdHash.vue";
 
 export default defineComponent({
   components: {
@@ -100,7 +104,8 @@ export default defineComponent({
     UploadOutlined,
     //
     TableFiles,
-    AppFileTypeIcon,
+    XFileTypeIcon,
+    TdHash,
   },
   setup() {
     const { t } = useI18n();
@@ -205,7 +210,8 @@ export default defineComponent({
         {
           title: t("metanet.name"),
           slots: { customRender: "name" },
-          width: 300,
+          width: 100,
+          ellipsis: true,
         },
         {
           title: t("metanet.data"),
@@ -229,15 +235,22 @@ export default defineComponent({
             text,
           }: {
             record: { isDir: boolean };
-            text: string;
+            text: number;
           }) => {
-            return record.isDir ? "" : text;
+            return record.isDir ? "" : formatBytes(text);
           },
         },
-        // {
-        //   title: t("metanet.type"),
-        //   // width: "100px",
-        // },
+        {
+          title: t("metanet.type"),
+          width: "100px",
+          customRender: ({
+            record,
+          }: {
+            record: { isDir: boolean; fileType: string };
+          }) => {
+            return record.isDir ? "" : record.fileType;
+          },
+        },
         {
           title: t("metanet.action"),
           fixed: "right",

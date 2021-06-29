@@ -98,7 +98,7 @@
           <!-- 撑开中间 -->
           <div class="flex-1"></div>
           <div class="flex items-center h-full px-4">
-            <AppLocaleSwither class="text-base text-gray-600 localeSwitcher" />
+            <XLocaleSwither class="text-base text-gray-600 localeSwitcher" />
           </div>
           <!-- <div class="px-2 mr-4 h-full flex items-center cursor-pointer"> -->
           <!-- </div> -->
@@ -161,7 +161,7 @@ import { pick } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
 import { PRODUCT_NAME } from "@/const";
 import { useSvgWhiteLogo } from "@/hooks";
-import { AppLocaleSwither } from "@/components";
+import { XLocaleSwither } from "@/components";
 import { useUserStore } from "@/store";
 import { Modal } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
@@ -195,7 +195,7 @@ export default defineComponent({
     LogoutOutlined,
     // ExclamationCircleOutlined,
     //
-    AppLocaleSwither,
+    XLocaleSwither,
   },
   setup() {
     const router = useRouter();

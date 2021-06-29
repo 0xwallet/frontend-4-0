@@ -3,7 +3,6 @@ import App from "./App.vue";
 import router from "./router";
 // import store from "./store";
 import { createPinia } from "pinia";
-import "tailwindcss/tailwind.css";
 import languages from "./languages";
 import { useLocalStorage } from "@vueuse/core";
 const app = createApp(App);
