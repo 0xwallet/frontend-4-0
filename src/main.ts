@@ -12,7 +12,7 @@ app.config.globalProperties.$log = console.log;
 
 // 国际化 --start
 import { createI18n } from "vue-i18n";
-import { DEFAULT_LANG } from "./const";
+import { DEFAULT_LANG } from "./constants";
 // 注意 是响应式的
 const storageLocale = useLocalStorage("locale", DEFAULT_LANG);
 export const i18n = createI18n({

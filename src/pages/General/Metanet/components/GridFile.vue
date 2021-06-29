@@ -137,7 +137,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-::v-deep .gridjs-wrapper {
+:deep(.gridjs-wrapper) {
   border-radius: 0px;
   box-shadow: none;
   border: 1px solid #f0f0f0;

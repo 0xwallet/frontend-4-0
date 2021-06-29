@@ -1,7 +1,7 @@
 import { useTitle } from "@vueuse/core";
 import { i18n } from "../main";
 import { message } from "ant-design-vue";
-import { PRODUCT_NAME } from "../const/index";
+import { PRODUCT_NAME } from "../constants/index";
 import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import { useUserStore } from "../store";
 // vue 文件

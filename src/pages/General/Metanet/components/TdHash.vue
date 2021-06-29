@@ -44,7 +44,7 @@ export default defineComponent({
         props.type === "SHA256"
           ? props.hash
           : `${window.location.origin}/#/p?txid=${props.hash}`;
-      copy(text).then(() => message.success(t("copySuccess")));
+      copy(text).then(() => message.success(t("metanet.copySuccess")));
     };
     const colors = chunk([...props.hash], Math.floor(props.hash.length / 6))
       .slice(0, 6)

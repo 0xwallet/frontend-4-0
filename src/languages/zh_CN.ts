@@ -283,5 +283,6 @@ export default {
     loginOut: "登出",
     uploadSuccess: "上传成功",
     errorUpload: "出现异常，文件可能未成功上传",
+    errorUploadSizeLimit: "只能上传不超过20MB的文件",
   },
 };

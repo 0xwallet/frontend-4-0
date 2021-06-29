@@ -159,7 +159,7 @@ import {
 } from "@ant-design/icons-vue";
 import { pick } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
-import { PRODUCT_NAME } from "@/const";
+import { PRODUCT_NAME } from "@/constants";
 import { useSvgWhiteLogo } from "@/hooks";
 import { XLocaleSwither } from "@/components";
 import { useUserStore } from "@/store";
@@ -333,7 +333,7 @@ export default defineComponent({
 }
 
 // 面包屑下箭头图标垂直居中
-::v-deep .ant-breadcrumb-overlay-link {
+:deep(.ant-breadcrumb-overlay-link) {
   .anticon-down {
     vertical-align: middle;
   }

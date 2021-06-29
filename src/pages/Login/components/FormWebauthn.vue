@@ -23,7 +23,7 @@
 </template>
 
 <script lang="ts">
-import { QR_CODE_URL } from "@/const";
+import { QR_CODE_URL } from "@/constants";
 import { defineComponent } from "vue";
 import { XQrCode } from "@/components";
 export default defineComponent({

@@ -94,7 +94,7 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref } from "vue";
-import { PRODUCT_NAME } from "@/const";
+import { PRODUCT_NAME } from "@/constants";
 import { XLocaleSwither } from "@/components";
 import FormEmail from "./components/FormEmail.vue";
 import FormSignup from "./components/FormSignup.vue";

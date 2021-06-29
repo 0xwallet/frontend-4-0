@@ -286,5 +286,6 @@ export default {
     uploadSuccess: "Uploaded successfully",
     errorUpload:
       "An exception occurred, the file may not be uploaded successfully",
+    errorUploadSizeLimit: "You can only upload files of up to 20MB",
   },
 };

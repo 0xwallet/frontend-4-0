@@ -1,4 +1,3 @@
-import CryptoJS from "crypto-js";
 import { Session } from "../@types/apolloType";
 import { encode } from "@msgpack/msgpack";
 import { useUserStore } from "@/store";
@@ -22,7 +21,8 @@ import { TSession } from "nkn";
 import "web-streams-polyfill";
 import * as webStreams from "web-streams-node";
 import fileReaderStream from "filereader-stream";
-import { REMOTE_ADDR } from "@/const";
+import { REMOTE_ADDR } from "@/constants";
+import { getFileSHA256 } from "@/utils";
 //
 export type CommonRes<T> = Promise<
   [res: T | undefined, err: Error | undefined]
@@ -432,11 +432,7 @@ export const apiSecondUpload: TApiFn<ParamsSecondUpload, ResponseSecondUpload> =
     let res, err;
     try {
       // create hash
-      const data = await params.SourceFile.arrayBuffer();
-      const wordArray = CryptoJS.lib.WordArray.create(
-        data as unknown as number[]
-      );
-      const hash = CryptoJS.SHA256(wordArray).toString();
+      const hash = await getFileSHA256(params.SourceFile);
 
       res = await useApollo<ResponseSecondUpload>({
         mode: "mutate",

@@ -96,6 +96,7 @@ import { useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
 import { formatBytes } from "@/utils";
 import TdHash from "./TdHash.vue";
+import { MAX_UPLOAD_SIZE } from "@/constants";
 
 export default defineComponent({
   components: {
@@ -127,6 +128,11 @@ export default defineComponent({
         const input = e.target as HTMLInputElement;
         if (!input.files?.length) return;
         const file = input.files[0];
+        if (file.size > MAX_UPLOAD_SIZE) {
+          message.warning(t("metanet.errorUploadSizeLimit"));
+          input.value = "";
+          return;
+        }
         // input.files[0] =>file
         // lastModified: 1623572088894
         // lastModifiedDate: Sun Jun 13 2021 16:14:48 GMT+0800 (中国标准时间) {}
@@ -210,7 +216,7 @@ export default defineComponent({
         {
           title: t("metanet.name"),
           slots: { customRender: "name" },
-          width: 100,
+          // width: 100,
           ellipsis: true,
         },
         {
@@ -218,13 +224,13 @@ export default defineComponent({
           dataIndex: "updatedAt",
           customRender: ({ text }: { text: string }) =>
             dayjs(text).format("YYYY-MM-DD"),
-          width: 200,
+          width: 180,
         },
         {
           title: "Hash",
           dataIndex: "hash",
           slots: { customRender: "hash" },
-          width: 200,
+          width: 180,
         },
         {
           title: t("metanet.size"),
@@ -242,7 +248,7 @@ export default defineComponent({
         },
         {
           title: t("metanet.type"),
-          width: "100px",
+          width: 100,
           customRender: ({
             record,
           }: {
