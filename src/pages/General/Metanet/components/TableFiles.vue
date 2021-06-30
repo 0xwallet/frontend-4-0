@@ -1,12 +1,13 @@
 <template>
   <a-table
-    :row-selection="rowSelection"
     size="middle"
     :rowKey="rowKey"
     :loading="loading"
     :columns="columns"
     :data-source="data"
     :scroll="{ x: true }"
+    :row-selection="rowSelection"
+    :pagination="false"
   >
     <!-- slot="header" 是插入别人的插槽 -->
     <template v-for="slotName in slots" :key="slotName" #[slotName]="data">
@@ -34,6 +35,7 @@ type DataType = {
   address: string;
 };
 export default defineComponent({
+  emits: ["select"],
   props: {
     rowKey: String,
     data: {
@@ -46,7 +48,7 @@ export default defineComponent({
       type: Boolean,
     },
   },
-  setup(props) {
+  setup(props, { emit }) {
     function useData() {
       // 不能通过props 传递个ref 然后 .value = 赋值改了的话就没有响应式了 , 需要toRef 改成响应父组件的的
       const { loading } = toRefs(props);
@@ -62,6 +64,7 @@ export default defineComponent({
             "selectedRows: ",
             selectedRows
           );
+          emit("select", selectedRowKeys, selectedRows);
         },
         getCheckboxProps: (record: DataType) => ({
           disabled: record.name === "Disabled User", // Column configuration not to be checked

@@ -173,6 +173,7 @@ export default {
     delSelect: "Delete Select",
     createFile: "New File",
     createFolder: "New Folder",
+    createByImport: "Import",
     refresh: "Refresh",
     root: "Root",
     fileName: "File Name",
@@ -197,6 +198,8 @@ export default {
     status: "Status",
     uploading: "Uploading",
     reUpload: "ReUpload Files",
+    uploadFile: "upload file",
+    uploadFolder: "upload folder",
     create: "Create",
     folder: "Folder",
     text: "Text",
@@ -287,5 +290,8 @@ export default {
     errorUpload:
       "An exception occurred, the file may not be uploaded successfully",
     errorUploadSizeLimit: "You can only upload files of up to 20MB",
+    errorPleaseSelect: "Please select item",
+    errorDeleteFail: "删除失败",
+    errorDeletePartFail: "部分删除失败",
   },
 };

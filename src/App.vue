@@ -101,6 +101,14 @@ export default defineComponent({
 </script>
 
 <style lang="less">
+// font
+// dm Mono use for hash
+// font-weight : 300 400 500
+@import url("~@fontsource/dm-mono/400.css");
+// font-family: "DM Mono";
+.font-dmmono {
+  font-family: "DM Mono";
+}
 @import url("~tailwindcss/tailwind.css");
 // fix tailwindcss-antd conflict bug
 // tailwindcss 中用了vertical-align : middle 导致antd 库的很多图标文字不能居中

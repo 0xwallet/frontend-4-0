@@ -447,3 +447,29 @@ export const apiSecondUpload: TApiFn<ParamsSecondUpload, ResponseSecondUpload> =
     }
     return [res, err];
   };
+
+type ParamsBatchDelete = {
+  ids: string[];
+  space: "PRIVATE" | "PUBLIC";
+};
+type ResponseBatchDelete = {
+  data: {
+    driveDeleteFiles: number; // 实际服务器删除的数量
+  };
+};
+/** 删除文件/文件夹 */
+export const apiBatchDelete: TApiFn<ParamsBatchDelete, ResponseBatchDelete> =
+  async (params) => {
+    if (!params) return [undefined, Error("noparams")];
+    let res, err;
+    try {
+      res = await useApollo<ResponseBatchDelete>({
+        mode: "mutate",
+        gql: Basic.DeleteFiles,
+        variables: params,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };

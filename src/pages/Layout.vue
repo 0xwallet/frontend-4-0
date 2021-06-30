@@ -144,7 +144,7 @@
             <div
               v-for="item in navList"
               :key="item.routeName"
-              @click="onClickNavTab"
+              @click="onClickNavTab(item)"
               class="
                 navTabBox
                 border-solid border
@@ -157,7 +157,7 @@
               "
               :class="{
                 'border-transparent': activeNavKey === item.title,
-                'bg-blue-700': activeNavKey === item.title,
+                'bg-blue-600': activeNavKey === item.title,
                 'text-white': activeNavKey === item.title,
                 'border-gray-200': activeNavKey !== item.title,
               }"
@@ -243,6 +243,8 @@ type TBreadcrumb = {
     title: string;
   };
 };
+type TNavItem = { routeName: string; title: string };
+
 export default defineComponent({
   components: {
     // icon
@@ -359,7 +361,7 @@ export default defineComponent({
       };
     }
     let activeNavKey: Ref<string>;
-    let navList: { routeName: string; title: string }[];
+    let navList: TNavItem[];
     /** nav tab栏 */
     function useNavTabs() {
       // console.log("route", route);
@@ -367,9 +369,15 @@ export default defineComponent({
       // navList = reactive([route.meta.title as string]);
       activeNavKey = ref("");
       navList = reactive([]);
-      const onClickNavTab = () => {
+      const onClickNavTab = (item: TNavItem) => {
         // router.push()
-        // console.log("onClickNavTab");
+        // console.log("onClickNavTab", item);
+        // 如果不是当前的路由的tab , 就跳转
+        if (item.title !== route.meta.title) {
+          router.push({
+            name: item.routeName,
+          });
+        }
       };
       const onCloseNavItem = (itemTitle: string) => {
         // console.log("onCloseNavItem", itemTitle, activeNavKey.value);

@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 功能区 -->
-    <div class="flex items-center mb-4">
+    <div class="flex items-center mb-3">
       <!-- 这个为隐藏的作为选择文件用的 -->
       <input
         class="hidden"
@@ -9,49 +9,84 @@
         id="singleInput"
         @change="onChangeSingleUploadFile"
       />
-      <!-- 下拉 - 新建 -->
-      <a-dropdown class="ml-2">
-        <template #overlay>
-          <a-menu @click="onClickDropDownMenuCreate">
-            <a-menu-item key="file">{{ $t("metanet.file") }}</a-menu-item>
-            <a-menu-item key="folder">{{ $t("metanet.folder") }}</a-menu-item>
-            <a-menu-item key="import">{{ $t("metanet.import") }}</a-menu-item>
-          </a-menu>
-        </template>
-        <a-button type="primary">
-          {{ $t("metanet.create") }}
-          <DownOutlined />
-        </a-button>
-      </a-dropdown>
       <!-- 下拉 - 上传 -->
-      <a-dropdown class="ml-2">
+      <a-dropdown class="mr-2">
         <template #overlay>
           <a-menu @click="onClickDropDownMenuUpload">
-            <a-menu-item key="file">{{ $t("metanet.file") }}</a-menu-item>
-            <a-menu-item key="folder">{{ $t("metanet.folder") }}</a-menu-item>
+            <a-menu-item key="file">{{ $t("metanet.uploadFile") }}</a-menu-item>
+            <a-menu-item key="folder">{{
+              $t("metanet.uploadFolder")
+            }}</a-menu-item>
           </a-menu>
         </template>
         <a-button type="primary">
+          <CloudUploadOutlined />
           {{ $t("metanet.uploadButton") }}
-          <DownOutlined />
         </a-button>
       </a-dropdown>
+      <!-- 下拉 - 新建 -->
+      <a-dropdown class="mr-2">
+        <template #overlay>
+          <a-menu @click="onClickDropDownMenuCreate">
+            <a-menu-item key="file">{{ $t("metanet.createFile") }}</a-menu-item>
+            <a-menu-item key="folder">{{
+              $t("metanet.createFolder")
+            }}</a-menu-item>
+            <a-menu-item key="import">{{
+              $t("metanet.createByImport")
+            }}</a-menu-item>
+          </a-menu>
+        </template>
+        <a-button type="primary">
+          <FolderAddOutlined />
+          {{ $t("metanet.create") }}
+        </a-button>
+      </a-dropdown>
+      <!-- 批量删除按钮 -->
+      <a-button type="danger" class="mr-2" @click="onBatchDelete">
+        <DeleteOutlined />
+        {{ $t("metanet.batchDelete") }}
+      </a-button>
       <!-- 刷新按钮 -->
-      <a-button type="primary" class="ml-2" @click="onRefreshTableData"
-        >{{ $t("metanet.refresh") }}
-        <SyncOutlined />
+      <a-button class="mr-2" @click="onRefreshTableData">
+        <SyncOutlined :spin="tableLoading" />
+        {{ $t("metanet.refresh") }}
       </a-button>
     </div>
+    <a-breadcrumb>
+      <template #separator>></template>
+      <template v-if="historyDir.length > 1">
+        <a-breadcrumb-item
+          v-for="hItem in historyDir.slice(0, -1)"
+          :key="hItem.id"
+        >
+          <a
+            @click="onClickHistoryDirUpperLevel(hItem)"
+            style="color: #1890ff"
+            >{{ hItem.name }}</a
+          >
+        </a-breadcrumb-item>
+      </template>
+      <a-breadcrumb-item>{{
+        historyDir[historyDir.length - 1].name
+      }}</a-breadcrumb-item>
+    </a-breadcrumb>
     <TableFiles
       rowKey="id"
       :columns="columns"
       :loading="tableLoading"
       :data="tableData"
+      @select="onTableSelect"
     >
       <template #name="{ record }">
         <!-- 空白就是blank 文件夹就是folder -->
         <XFileTypeIcon class="w-6 h-6" :type="record.fileType" />
-        <a href="javascript:void(0)" class="ml-2" :title="record.fullName[0]">
+        <a
+          href="javascript:void(0)"
+          class="ml-2"
+          :title="record.fullName[0]"
+          @click="onClickTableItemName(record)"
+        >
           <!-- <a-tooltip :title="record.fullName[0]"> -->
           {{ record.fullName[0] }}
           <!-- </a-tooltip> -->
@@ -61,28 +96,89 @@
         <TdHash v-if="record && record.hash" :hash="record.hash" />
       </template>
       <template #action="{ record }">
-        <a-button-group size="small">
+        <!-- <a-button-group size="small">
           <a-button @click="onDownload(record)">
             {{ $t("metanet.downloadButton") }}
           </a-button>
           <a-button type="danger">{{ $t("metanet.delButton") }}</a-button>
-        </a-button-group>
+        </a-button-group> -->
+        <a-dropdown placement="bottomRight">
+          <div class="text-center">
+            <a href="javascript:void(0)" class="ant-color-blue">...</a>
+          </div>
+          <template #overlay>
+            <a-menu>
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.shareButton") }}
+              </a-menu-item>
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.publish") }}
+              </a-menu-item>
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.send") }}
+              </a-menu-item>
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.downloadButton") }}
+              </a-menu-item>
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.moveButton") }}
+              </a-menu-item>
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.copyButton") }}
+              </a-menu-item>
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.rename") }}
+              </a-menu-item>
+              <a-menu-item
+                class="px-4 flex items-center text-red-500"
+                @click="onRecordShare(record)"
+              >
+                {{ $t("metanet.delButton") }}
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
       </template>
     </TableFiles>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent, ref, createVNode, computed } from "vue";
 import {
   DownOutlined,
-  UploadOutlined,
+  CloudUploadOutlined,
   SyncOutlined,
+  FolderAddOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
 import { XFileTypeIcon } from "@/components";
 import { useI18n } from "vue-i18n";
 import {
+  apiBatchDelete,
   apiQueryFileByDir,
   apiUploadSingle,
   TFileItem,
@@ -90,19 +186,26 @@ import {
 } from "@/apollo/api";
 import dayjs from "dayjs";
 import { assign } from "lodash-es";
-import { message } from "ant-design-vue";
+import { message, Modal } from "ant-design-vue";
 import { useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
 import { formatBytes } from "@/utils";
 import TdHash from "./TdHash.vue";
-import { MAX_UPLOAD_SIZE } from "@/constants";
+import { FILE_TYPE_MAP, MAX_UPLOAD_SIZE } from "@/constants";
+
+type THistoryDirItem = {
+  id: string;
+  name: string;
+};
 
 export default defineComponent({
   components: {
     // icon
-    DownOutlined,
-    // UploadOutlined,
+    // DownOutlined,
+    CloudUploadOutlined,
     SyncOutlined,
+    FolderAddOutlined,
+    DeleteOutlined,
     //
     TableFiles,
     XFileTypeIcon,
@@ -110,7 +213,8 @@ export default defineComponent({
   },
   setup() {
     const { t } = useI18n();
-    function useTool() {
+    /** 按钮功能集合 */
+    function useToolSet() {
       const onClickDropDownMenuCreate = ({
         key,
       }: {
@@ -130,6 +234,50 @@ export default defineComponent({
         } else {
           // 点击文件夹
         }
+      };
+      // 批量删除
+      const onBatchDelete = () => {
+        const len = selectedRows.value.length;
+        if (!len) {
+          message.warning(t("metanet.errorPleaseSelect"));
+          return;
+        }
+        Modal.confirm({
+          // title: "Do you Want to delete these items?",
+          title: `${t("metanet.delContent1")} ${len} ${t("metanet.items")} ${t(
+            "metanet.delContent2"
+          )}?`,
+          icon: createVNode(ExclamationCircleOutlined),
+          // content: createVNode(
+          //   "div",
+          //   { style: "color:red;" },
+          //   "Some descriptions"
+          // ),
+          onOk: async () => {
+            const [res, err] = await apiBatchDelete({
+              ids: selectedRows.value.map((i) => i.id),
+              space: "PRIVATE",
+            });
+            if (err || !res) return;
+            const { driveDeleteFiles: deletedCount } = res.data;
+            if (deletedCount === len) {
+              // 全部删除成功
+              message.success(t("metanet.deleted"));
+            } else if (deletedCount > 0) {
+              // 选中的其中部分删除失败
+              message.error(t("metanet.errorDeletePartFail"));
+            } else {
+              // 选中的全部删除失败
+              message.error(t("metanet.errorDeleteFail"));
+            }
+            clearSelectData();
+            getAndSetTableDataFn(curFolderId.value);
+          },
+          onCancel() {
+            console.log("Cancel");
+          },
+          // class: 'test',
+        });
       };
       // TODO input 上传成功后清除文件?
       // 文件对话框选完文件后就会触发这个函数
@@ -166,7 +314,7 @@ export default defineComponent({
         input.value = ""; //释放input 资源
         if (res?.data.startsWith("秒传成功")) {
           message.success(t("metanet.uploadSuccess"));
-          if (getAndSetTableDataFn) getAndSetTableDataFn();
+          getAndSetTableDataFn(curFolderId.value);
           return;
         }
         // 处理秒传
@@ -175,7 +323,7 @@ export default defineComponent({
         let timer: number;
         const { channel } = useUserStore();
         if (!channel) throw Error("no channel");
-        console.log("channel", channel);
+        // console.log("channel", channel);
         let removeListener = channel.on(
           "file_uploaded",
           (fileUploadInfo: {
@@ -188,14 +336,14 @@ export default defineComponent({
             id: string;
             space: number;
           }) => {
-            console.log("包括remove的listen", fileUploadInfo);
+            // console.log("包括remove的listen", fileUploadInfo);
             // TODO 应该用hash 判断
             if (fileUploadInfo.full_name[0] === fileName) {
               useDelay().then(() => {
                 clearTimeout(timer);
                 message.success(t("metanet.uploadSuccess"));
-                if (getAndSetTableDataFn) getAndSetTableDataFn();
-                console.log("getAndSetTableDataFn", getAndSetTableDataFn);
+                getAndSetTableDataFn(curFolderId.value);
+                // console.log("getAndSetTableDataFn", getAndSetTableDataFn);
                 channel.off("file_uploaded", removeListener);
                 hide();
               });
@@ -209,22 +357,103 @@ export default defineComponent({
           clearTimeout(timer);
           // TODO 国际化提示
           message.warn(t("metanet.errorUpload"));
-          if (getAndSetTableDataFn) getAndSetTableDataFn();
+          getAndSetTableDataFn(curFolderId.value);
         }, 60000);
         // 重新刷新数据?
         if (err) console.error(err);
-        console.log("writestream---", res, input);
+        // console.log("writestream---", res, input);
       };
       return {
         onClickDropDownMenuCreate,
         onClickDropDownMenuUpload,
+        onBatchDelete,
         onChangeSingleUploadFile,
       };
     }
-
-    let getAndSetTableDataFn: () => void;
+    /** action 里对record的操作 */
+    function useActions() {
+      const onRecordShare = () => {
+        console.log("share");
+      };
+      // const onRecordShare = () => {};
+      // const onRecordShare = () => {};
+      // const onRecordShare = () => {};
+      // const onRecordShare = () => {};
+      // const onRecordShare = () => {};
+      // const onRecordShare = () => {};
+      // const onRecordShare = () => {};
+      return { onRecordShare };
+    }
+    let getAndSetTableDataFn: (dirId: string) => void;
+    let selectedRowKeys = ref<string[]>([]);
+    let selectedRows = ref<TFileItem[]>([]);
+    const clearSelectData = () => {
+      selectedRows.value.length = 0;
+      selectedRowKeys.value.length = 0;
+    };
+    // 记录目录
+    const historyDir = ref<THistoryDirItem[]>([
+      {
+        id: "root",
+        name: "root",
+      },
+    ]);
+    // 当前目录
+    const curFolderId = computed(() => {
+      const dirArr = historyDir.value;
+      return dirArr[dirArr.length - 1].id;
+    });
 
     function useTableData() {
+      /** 选中数据 */
+      const onTableSelect = (keys: string[], rows: TFileItem[]) => {
+        selectedRowKeys.value = keys;
+        selectedRows.value = rows;
+      };
+      /** 点击目录历史的面包屑 */
+      const onClickHistoryDirUpperLevel = ({ id, name }: THistoryDirItem) => {
+        // 删除后面的
+        historyDir.value.splice(
+          historyDir.value.findIndex((v) => v.id === id) + 1
+        );
+        // console.log("history", historyDir);
+        onRefreshTableData();
+      };
+      /** 表格里每一行的名字的点击事件 */
+      const onClickTableItemName = ({
+        fileType: e,
+        id,
+        fullName,
+      }: TFileItem) => {
+        if (!e) return;
+        // console.log("点击的当前record", e, id);
+        // 原来的处理有 : 文件夹 / 图片 / md txt json文本 / pdf
+        if (e === "folder") {
+          const foundIndex = historyDir.value.findIndex((v) => v.id === id);
+          if (foundIndex !== -1) {
+            historyDir.value.splice(foundIndex + 1);
+          } else {
+            historyDir.value.push({
+              id,
+              name: fullName[fullName.length - 1],
+            });
+          }
+          onRefreshTableData();
+        } else if (FILE_TYPE_MAP.image.includes(e)) {
+          console.log("todo type-image");
+        } else if (FILE_TYPE_MAP.text.includes(e)) {
+          console.log("todo type-text");
+        } else if (FILE_TYPE_MAP.archive.includes(e)) {
+          console.log("todo type-archive");
+        } else if (FILE_TYPE_MAP.audio.includes(e)) {
+          console.log("todo type-audio");
+        } else if (FILE_TYPE_MAP.video.includes(e)) {
+          console.log("todo type-video");
+        } else {
+          console.log("else unknown types");
+          // type not found
+        }
+      };
       const columns = [
         {
           title: t("metanet.name"),
@@ -235,8 +464,9 @@ export default defineComponent({
         {
           title: t("metanet.data"),
           dataIndex: "updatedAt",
-          customRender: ({ text }: { text: string }) =>
-            dayjs(text).format("YYYY-MM-DD"),
+          customRender: ({ text }: { text: string }) => {
+            return text ? dayjs(text).format("YYYY-MM-DD") : "";
+          },
           width: 180,
         },
         {
@@ -273,30 +503,36 @@ export default defineComponent({
         {
           title: t("metanet.action"),
           fixed: "right",
-          width: 100,
+          width: 60,
           slots: { customRender: "action" },
         },
       ];
       const tableLoading = ref(false);
       const tableData = ref<TFileList>([]);
       // 提供一个函数给外部
-      getAndSetTableDataFn = () => {
+      getAndSetTableDataFn = (dirId) => {
         tableLoading.value = true;
-        apiQueryFileByDir({
-          dirId: "root",
-        }).then(([res, err]) => {
+        apiQueryFileByDir({ dirId }).then(([res, err]) => {
           if (err || !res?.data.driveListFiles) return;
+          // 如果返回的 fullName 是空数组的话 代表是根目录
+          // 排除null 和 fullName是当前目录的数据(当前目录若不是root , 要加...返回上一级)
           // console.log("网盘文件获取", res);
-          const notNullList = res.data.driveListFiles
-            .filter((i) => i !== null && i.id !== "root")
-            .sort((a) => {
-              if (a) return a.isDir ? -1 : 1;
-              else return 1;
-            });
-          tableData.value = notNullList.map((i) => {
-            if (!i) return i;
-            else {
+          tableData.value = res.data.driveListFiles
+            // 排序 文件夹在前
+            // 加上类型
+            .map((i) => {
+              if (!i) return i;
               const obj = { ...i };
+              // 如果是当前目录, 返回null , 下一步把它去除
+              if (obj.id === dirId) return null;
+              // 如果是父级目录, 变成...
+              const hArr = historyDir.value;
+              if (hArr.length > 1 && obj.id === hArr[hArr.length - 2].id) {
+                obj.fullName = ["..."];
+              } else {
+                // 等于名字最后一项, 因为返回的是 [父级目录,item文件夹名] 所以取最后一个
+                obj.fullName = [obj.fullName[obj.fullName.length - 1]];
+              }
               if (obj.isDir) assign(obj, { fileType: "folder" });
               else {
                 const arr = obj.fullName[0].split(".");
@@ -304,15 +540,20 @@ export default defineComponent({
                 else obj.fileType = "file";
               }
               return obj;
-            }
-          });
+            })
+            // filter 里用类型守卫去除null
+            .filter((i): i is TFileItem => i !== null)
+            // 排序文件夹,上级目录... 到表格最前面
+            .sort((a, b) => (a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1));
           // console.log("tabledData", tableData);
           tableLoading.value = false;
         });
       };
-      getAndSetTableDataFn();
+      getAndSetTableDataFn(curFolderId.value);
+      /** 清除当前组件的select数据, 然后重新获取表格数据 */
       const onRefreshTableData = () => {
-        getAndSetTableDataFn && getAndSetTableDataFn();
+        clearSelectData();
+        getAndSetTableDataFn(curFolderId.value);
       };
       const onDownload = ({ user, space, id, fullName }: TFileItem) => {
         // TODO
@@ -326,6 +567,10 @@ export default defineComponent({
         // );
       };
       return {
+        historyDir,
+        onTableSelect,
+        onClickTableItemName,
+        onClickHistoryDirUpperLevel,
         onRefreshTableData,
         onDownload,
         columns,
@@ -334,9 +579,16 @@ export default defineComponent({
       };
     }
     return {
-      ...useTool(),
+      ...useToolSet(),
+      ...useActions(),
       ...useTableData(),
     };
   },
 });
 </script>
+
+<style lang="less" scoped>
+:deep(.ant-breadcrumb-separator) {
+  margin: 0 3px;
+}
+</style>
