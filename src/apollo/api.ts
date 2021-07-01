@@ -12,6 +12,7 @@ import {
   signIn,
   signUp,
   Basic,
+  Share,
 } from "./document";
 import { TSession } from "nkn";
 // temp
@@ -473,3 +474,56 @@ export const apiBatchDelete: TApiFn<ParamsBatchDelete, ResponseBatchDelete> =
     }
     return [res, err];
   };
+
+type ResponseGetPreviewToken = {
+  data: {
+    drivePreviewToken: string;
+  };
+};
+/** 获取预览token */
+export const apiGetPreviewToken: TApiFn<undefined, ResponseGetPreviewToken> =
+  async () => {
+    let res, err;
+    try {
+      res = await useApollo<ResponseGetPreviewToken>({
+        mode: "mutate",
+        gql: Basic.Token,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };
+
+type ParamsGetShareToken = {
+  uri: string;
+  code: string;
+};
+type ResponseGetShareToken = {
+  data: {
+    driveFindShare: {
+      token: string;
+    };
+  };
+};
+/** 获取分享token */
+export const apiGetShareToken: TApiFn<
+  ParamsGetShareToken,
+  ResponseGetShareToken
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseGetShareToken>({
+      mode: "mutate",
+      gql: Share.Find,
+      variables: {
+        uri: params.uri,
+        code: params.code,
+      },
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};

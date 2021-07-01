@@ -45,22 +45,31 @@ export function initApollo(): TClient | null {
     return forward(operation);
   });
   const error = onError(({ graphQLErrors, networkError }) => {
-    if (graphQLErrors)
-      graphQLErrors.map(({ message, locations, path }) => {
-        switch (message) {
-          case "Please sign in first!":
-            // TODO 有没有授权已过期的情况?
-            router.push({ name: "Login" });
-            break;
-          case "file hash not found":
-            break;
-          default:
-            Modal.error({ content: message });
-            console.log(
-              `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
-            );
-        }
-      });
+    if (graphQLErrors) {
+      if (
+        // 调试中发现 500 报错的返回是有detail 的
+        (graphQLErrors as unknown as { detail: string }).detail ===
+        '"Internal Server Error"'
+      ) {
+        Modal.error({ content: "Internal Server Error" });
+      } else {
+        graphQLErrors.map(({ message, locations, path }) => {
+          switch (message) {
+            case "Please sign in first!":
+              // TODO 有没有授权已过期的情况?
+              router.push({ name: "Login" });
+              break;
+            case "file hash not found":
+              break;
+            default:
+              Modal.error({ content: message });
+              console.log(
+                `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
+              );
+          }
+        });
+      }
+    }
 
     if (networkError) console.log(`[Network error]: ${networkError}`);
   });

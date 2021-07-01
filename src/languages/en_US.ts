@@ -211,6 +211,8 @@ export default {
     copyButton: "Copy",
     batchDelete: "BatchDelete",
     rename: "Rename",
+    buttonCopyTo: "Copy to",
+    buttonMoveTo: "Move to",
     desc: "Description",
     detail: "Details",
     activity: "Activity",

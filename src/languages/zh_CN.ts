@@ -208,6 +208,8 @@ export default {
     copyButton: "复制",
     batchDelete: "批量删除",
     rename: "重命名",
+    buttonCopyTo: "复制到",
+    buttonMoveTo: "移动到",
     desc: "描述",
     detail: "详情",
     activity: "活动",

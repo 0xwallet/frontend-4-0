@@ -1,6 +1,6 @@
 <template>
   <a-table
-    size="middle"
+    size="small"
     :rowKey="rowKey"
     :loading="loading"
     :columns="columns"
@@ -17,8 +17,9 @@
 </template>
 
 <script lang="ts">
-import { toRefs } from "@vueuse/core";
-import { defineComponent, PropType } from "vue";
+import { TFileItem } from "@/apollo/api";
+import { defineComponent, PropType, ref } from "vue";
+
 type TColumn = {
   title: string;
   dataIndex: string;
@@ -28,59 +29,60 @@ type TColumn = {
     customRender: string;
   };
 };
-type DataType = {
-  key: string;
-  name: string;
-  age: number;
-  address: string;
-};
+
 export default defineComponent({
-  emits: ["select"],
   props: {
-    rowKey: String,
+    rowKey: {
+      type: String,
+      required: true,
+    },
     data: {
       type: Array,
+      required: true,
     },
     columns: {
       type: Array as PropType<TColumn[]>,
+      required: true,
     },
     loading: {
       type: Boolean,
     },
+    selectedRows: {
+      type: Array as PropType<TFileItem[]>,
+      default: () => [],
+    },
+    selectedRowKeys: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
   },
+  emits: ["update:selectedRows", "update:selectedRowKeys"],
   setup(props, { emit }) {
-    function useData() {
-      // 不能通过props 传递个ref 然后 .value = 赋值改了的话就没有响应式了 , 需要toRef 改成响应父组件的的
-      const { loading } = toRefs(props);
-      const { rowKey, columns } = props;
-      // 从 column 里面算出要slot 的
-      const slots = columns
-        ?.filter((i) => i.slots)
-        .map((i) => i.slots?.customRender);
-      const rowSelection = {
-        onChange: (selectedRowKeys: string[], selectedRows: DataType[]) => {
-          console.log(
-            `selectedRowKeys: ${selectedRowKeys}`,
-            "selectedRows: ",
-            selectedRows
-          );
-          emit("select", selectedRowKeys, selectedRows);
-        },
-        getCheckboxProps: (record: DataType) => ({
-          disabled: record.name === "Disabled User", // Column configuration not to be checked
-          name: record.name,
-        }),
-      };
-      return {
-        slots,
-        rowKey,
-        columns,
-        rowSelection,
-        loading,
-      };
-    }
+    // 不能通过props 传递个ref 然后 .value = 赋值改了的话就没有响应式了 , 需要toRef 改成响应父组件的的
+    // 从 column 里面算出要slot 的
+    const slots = props.columns
+      .filter((i) => i.slots)
+      .map((i) => i.slots?.customRender);
+    const rowSelection = {
+      onChange: (selectedRowKeys: string[], selectedRows: TFileItem[]) => {
+        // console.log(
+        //   `selectedRowKeys: ${selectedRowKeys}`,
+        //   "selectedRows: ",
+        //   selectedRows
+        // );
+        emit("update:selectedRowKeys", selectedRowKeys);
+        emit("update:selectedRows", selectedRows);
+      },
+      getCheckboxProps: (record: TFileItem) => ({
+        // 禁选上级目录
+        disabled: record.fullName[0] === "...", // Column configuration not to be checked
+        // name: record.name,
+      }),
+    };
+
     return {
-      ...useData(),
+      slots,
+      rowSelection,
     };
   },
 });

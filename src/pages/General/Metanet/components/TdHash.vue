@@ -1,5 +1,6 @@
 <template>
-  <a-tooltip :title="`[${type}]`">
+  <!-- <a-tooltip :title="`[${type}]`"> -->
+  <a-tooltip :title="hash">
     <!-- <span class="font-dmmono cursor-pointer" @click="onCopyHash"
       >{{ hash.slice(0, 2)
       }}<i
