@@ -292,5 +292,10 @@ export default {
     errorPleaseSelect: "请先选择数据",
     errorDeleteFail: "删除失败",
     errorDeletePartFail: "部分删除失败",
+    uploadStatusUploading: "上传中",
+    uploadStatusSuccess: "完成",
+    uploadStatusFailed: "失败",
+    uploadDrawerClearItem: "删除这条记录",
+    uploadDrawerClearAll: "清空记录",
   },
 };

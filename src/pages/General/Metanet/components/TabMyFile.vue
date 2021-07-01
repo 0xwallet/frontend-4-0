@@ -47,6 +47,8 @@
         <SyncOutlined :spin="tableLoading" />
         {{ $t("metanet.refresh") }}
       </a-button>
+      <!-- 临时加的显示进度抽屉的按钮 -->
+      <a-button @click="onToggleIsShowProgressDrawer"> 显示进度 </a-button>
       <!-- 处理选中数据按钮集合 -->
       <!-- TODO 分享多个? -->
       <!-- 下载 删除 重命名 复制到 移动到 -->
@@ -75,7 +77,7 @@
         </a-button>
       </a-button-group>
     </div>
-    <a-breadcrumb>
+    <a-breadcrumb class="pl-2 mb-1">
       <template #separator>></template>
       <template v-if="historyDir.length > 1">
         <a-breadcrumb-item
@@ -185,6 +187,103 @@
         </a-dropdown>
       </template>
     </TableFiles>
+    <!-- 上传进度 抽屉 -->
+    <a-drawer
+      id="uploadDrawer"
+      height="auto"
+      :wrapStyle="{
+        width: '520px',
+        left: 'auto',
+        right: '40px',
+      }"
+      :drawerStyle="{}"
+      :headerStyle="{
+        padding: '8px 12px',
+        'background-color': '#F7F7F8',
+      }"
+      :bodyStyle="{
+        padding: '12px',
+      }"
+      placement="bottom"
+      :closable="true"
+      :mask="false"
+      :visible="isShowProgressDrawer"
+      @close="onCloseProgressDrawer"
+    >
+      <template #title>
+        <!-- <a-button type="primary">fuck u</a-button> -->
+        <!-- 一个circle 总体进度 -->
+        <!-- TODO 根据情况变动背景颜色? -->
+        <div
+          class="
+            inline-block
+            w-16
+            text-center
+            py-1
+            rounded-2xl
+            bg-blue-400
+            text-white
+          "
+          :style="{
+            'background-color': '#1890FF',
+          }"
+        >
+          {{ uploadTaskTotalProgress }}%
+        </div>
+        <span class="ml-2">完成</span>
+        <a-tooltip :title="$t('metanet.uploadDrawerClearAll')">
+          <a-button class="ml-4" shape="circle" size="small">
+            <template #icon><DeleteOutlined /></template>
+          </a-button>
+        </a-tooltip>
+      </template>
+      <div v-for="taskItem in uploadTaskList" :key="taskItem.id">
+        <div class="flex items-center">
+          <!-- icon/name/size/status -->
+          <XFileTypeIcon class="w-6 h-6 mr-2" :type="taskItem.fileType" />
+          <div
+            :style="{
+              'max-width': '275px',
+              'text-overflow': 'ellipsis',
+              overflow: 'hidden',
+              'white-space': 'nowrap',
+            }"
+            :title="taskItem.fileName"
+          >
+            {{ taskItem.fileName }}
+          </div>
+          <div class="flex-1 ml-4 text-xs text-gray-400">
+            | &nbsp; {{ taskItem.fileSize }}
+            <a-tooltip :title="$t('metanet.uploadDrawerClearItem')">
+              <DeleteOutlined @click="$log('he')" />
+            </a-tooltip>
+          </div>
+          <div
+            :class="{
+              'ant-color-uploading': taskItem.status === 'uploading',
+              'ant-color-success': taskItem.status === 'success',
+              'ant-color-failed': taskItem.status === 'failed',
+            }"
+          >
+            {{ transformStatusText(taskItem.status) }}
+          </div>
+        </div>
+        <!-- progress -->
+        <!-- status	状态，可选: success exception normal active -->
+        <a-progress
+          :strokeWidth="3"
+          :showInfo="false"
+          :percent="taskItem.progress"
+          :status="
+            taskItem.status === 'failed'
+              ? 'exception'
+              : taskItem.progress < 100
+              ? 'active'
+              : 'sussecc'
+          "
+        />
+      </div>
+    </a-drawer>
   </div>
 </template>
 
@@ -216,13 +315,21 @@ import { assign } from "lodash-es";
 import { message, Modal } from "ant-design-vue";
 import { useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
-import { formatBytes, getFileSHA256 } from "@/utils";
+import { formatBytes, getFileSHA256, getFileType } from "@/utils";
 import TdHash from "./TdHash.vue";
 import { FILE_TYPE_MAP, MAX_UPLOAD_SIZE } from "@/constants";
 
 type THistoryDirItem = {
   id: string;
   name: string;
+};
+type TUploadTaskItem = {
+  fileHash: string; // 文件的id
+  fileName: string; // 文件名称
+  fileType: string;
+  fileSize: string;
+  progress: number;
+  status: "uploading" | "success" | "failed";
 };
 function sortByDirType(a: TFileItem, b: TFileItem) {
   return a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1;
@@ -235,7 +342,7 @@ export default defineComponent({
     SyncOutlined,
     FolderAddOutlined,
     EllipsisOutlined,
-    // DeleteOutlined,
+    DeleteOutlined,
     // DownloadOutlined,
     //
     TableFiles,
@@ -364,8 +471,23 @@ export default defineComponent({
         // type: ""
         // webkitRelativePath: ""
         console.log("onChangeSingleUploadFile---", input);
+
         const fileName = file.name;
         const fileHash = await getFileSHA256(file);
+        const taskItem: TUploadTaskItem = {
+          fileHash,
+          fileName,
+          fileSize: formatBytes(+file.size),
+          fileType: "filetype",
+          progress: 0,
+          status: "uploading",
+        };
+        const setTaskItemProgress = (v: number) => {
+          console.log("setTaskItemProgress", v);
+          taskItem.progress = v;
+          if (v === 100) taskItem.status = "success";
+        };
+        uploadTaskList.value.push(taskItem);
         // TODO 上传完后清除?
         const [res, err] = await apiUploadSingle({
           // File: new Uint8Array(await file.arrayBuffer()),
@@ -377,8 +499,13 @@ export default defineComponent({
           Space: "PRIVATE",
           Description: "",
           Action: "drive",
+          SetProgress: setTaskItemProgress,
         });
         input.value = ""; //释放input 资源
+        if (err) {
+          taskItem.status = "failed";
+          return;
+        }
         if (res?.data.startsWith("秒传成功")) {
           message.success(t("metanet.uploadSuccess"));
           getAndSetTableDataFn(curFolderId.value);
@@ -457,7 +584,7 @@ export default defineComponent({
     const historyDir = ref<THistoryDirItem[]>([
       {
         id: "root",
-        name: "root",
+        name: t("metanet.allFiles"),
       },
     ]);
     // 当前目录
@@ -518,17 +645,17 @@ export default defineComponent({
           // width: 100,
           ellipsis: true,
         },
-        {
-          title: t("metanet.type"),
-          width: 100,
-          customRender: ({
-            record,
-          }: {
-            record: { isDir: boolean; fileType: string };
-          }) => {
-            return record.isDir ? "" : record.fileType;
-          },
-        },
+        // {
+        //   title: t("metanet.type"),
+        //   width: 100,
+        //   customRender: ({
+        //     record,
+        //   }: {
+        //     record: { isDir: boolean; fileType: string };
+        //   }) => {
+        //     return record.isDir ? "" : record.fileType;
+        //   },
+        // },
         {
           title: t("metanet.size"),
           dataIndex: "info.size",
@@ -590,12 +717,7 @@ export default defineComponent({
                 // 等于名字最后一项, 因为返回的是 [父级目录,item文件夹名] 所以取最后一个
                 obj.fullName = [obj.fullName[obj.fullName.length - 1]];
               }
-              if (obj.isDir) assign(obj, { fileType: "folder" });
-              else {
-                const arr = obj.fullName[0].split(".");
-                if (arr.length > 1) obj.fileType = arr.pop()?.toLowerCase();
-                else obj.fileType = "file";
-              }
+              obj.fileType = getFileType(obj);
               return obj;
             })
             // filter 里用类型守卫去除null
@@ -645,12 +767,60 @@ export default defineComponent({
         tableLoading,
       };
     }
+    const uploadTaskList = ref<TUploadTaskItem[]>([
+      // {
+      //   fileHash: "hey",
+      //   fileName: "那天的鱼2134.jpg",
+      //   fileType: "jpg",
+      //   fileSize: "1.7 MB",
+      //   progress: 0,
+      //   status: "uploading",
+      // },
+      // {
+      //   fileHash: "h2ey",
+      //   fileName: "那天的鱼2134.pdf",
+      //   fileType: "pdf",
+      //   fileSize: "1.7 MB",
+      //   progress: 0,
+      //   status: "uploading",
+      // },
+    ]);
+    const uploadTaskTotalProgress = computed(() => {
+      const taskList = uploadTaskList.value.map((i) => i.progress);
+      if (!taskList.length) return 0;
+      return taskList.reduce((a, b) => a + b);
+    });
+    /** 上传进度抽屉 */
+    function useDrawer() {
+      const isShowProgressDrawer = ref(true);
+      const onCloseProgressDrawer = () => {
+        console.log("onCloseProgressDrawer", onCloseProgressDrawer);
+        isShowProgressDrawer.value = false;
+      };
+      const onToggleIsShowProgressDrawer = () => {
+        isShowProgressDrawer.value = !isShowProgressDrawer.value;
+      };
+      const transformStatusText = (s: TUploadTaskItem["status"]) => {
+        if (s === "uploading") return t("metanet.uploadStatusUploading");
+        if (s === "success") return t("metanet.uploadStatusSuccess");
+        if (s === "failed") return t("metanet.uploadStatusFailed");
+      };
+      return {
+        uploadTaskList,
+        uploadTaskTotalProgress,
+        isShowProgressDrawer,
+        onCloseProgressDrawer,
+        onToggleIsShowProgressDrawer,
+        transformStatusText,
+      };
+    }
     return {
       selectedRows,
       selectedRowKeys,
       ...useToolSet(),
       ...useActions(),
       ...useTableData(),
+      ...useDrawer(),
     };
   },
 });
@@ -659,5 +829,17 @@ export default defineComponent({
 <style lang="less" scoped>
 :deep(.ant-breadcrumb-separator) {
   margin: 0 3px;
+}
+</style>
+
+<style lang="less" >
+#uploadDrawer {
+  .ant-drawer-close {
+    // color: yellow;
+    // 这个 48 根据实测, 关联headerStyle的padding变动
+    width: 47px;
+    height: 47px;
+    line-height: 47px;
+  }
 }
 </style>

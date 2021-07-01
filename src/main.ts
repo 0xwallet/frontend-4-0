@@ -43,6 +43,8 @@ import {
   Tabs,
   Table,
   Upload,
+  Drawer,
+  Progress,
   Layout,
 } from "ant-design-vue";
 app
@@ -64,6 +66,8 @@ app
   .use(Tabs)
   .use(Table)
   .use(Upload)
+  .use(Drawer)
+  .use(Progress)
   .use(Layout);
 // ant-design-vue --end
 

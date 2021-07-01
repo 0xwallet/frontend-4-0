@@ -185,7 +185,7 @@
           </nav>
         </a-layout-header>
         <a-layout-content
-          class="bg-white mx-4 my-6"
+          class="bg-white mx-4 my-4"
           :style="{
             minHeight: '280px',
           }"

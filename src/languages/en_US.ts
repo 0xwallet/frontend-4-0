@@ -295,5 +295,10 @@ export default {
     errorPleaseSelect: "Please select item",
     errorDeleteFail: "删除失败",
     errorDeletePartFail: "部分删除失败",
+    uploadStatusUploading: "uploading",
+    uploadStatusSuccess: "success",
+    uploadStatusFailed: "failed",
+    uploadDrawerClearItem: "delete this record",
+    uploadDrawerClearAll: "clear list",
   },
 };

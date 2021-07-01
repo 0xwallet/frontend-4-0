@@ -1,6 +1,8 @@
 <template>
   <a-table
+    class="TableFiles"
     size="small"
+    :bordered="false"
     :rowKey="rowKey"
     :loading="loading"
     :columns="columns"
@@ -88,8 +90,39 @@ export default defineComponent({
 });
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 .ant-table td {
   white-space: nowrap;
+}
+
+// 覆盖ant 样式
+:deep(.ant-table-thead > tr > th) {
+  // padding: 0.7em 0 !important;
+  background: #f7f7f8;
+  // background: blue;
+  border: none;
+  // border-bottom: 1rem solid #fff;
+}
+:deep(.ant-table-selection-column) {
+  border-radius: 10px 0 0 10px !important;
+}
+:deep(.ant-table-row-cell-last) {
+  border-radius: 0px 10px 10px 0 !important;
+}
+:deep(.ant-table-row > td) {
+  border: none;
+  border-bottom: 1px solid #eff2f9;
+}
+:deep(.ant-table-tbody) {
+  // &::before {
+  //   content: "-";
+  //   display: block;
+  //   line-height: 1em;
+  //   color: transparent;
+  //   background: #eff2f9;
+  // }
+}
+:deep(.ant-table-thead > tr) {
+  border-bottom: 1rem solid blue;
 }
 </style>

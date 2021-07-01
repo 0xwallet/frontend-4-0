@@ -136,4 +136,13 @@ body,
 .ant-color-blue {
   color: #1890ff;
 }
+.ant-color-uploading {
+  color: #faad14;
+}
+.ant-color-success {
+  color: #1890ff;
+}
+.ant-color-failed {
+  color: #ff4d4f;
+}
 </style>

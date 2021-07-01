@@ -1,5 +1,5 @@
 <template>
-  <div class="px-4 pt-2 pb-6">
+  <div class="px-4 pb-6">
     <a-tabs v-model:activeKey="curTabKey">
       <a-tab-pane key="myFile" :tab="$t('metanet.files')" />
       <a-tab-pane key="myShare" :tab="$t('metanet.share')" />

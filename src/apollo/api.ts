@@ -284,6 +284,7 @@ type ParamsUploadSingle = {
   Space: "PRIVATE" | "PUBLIC";
   Description: string;
   Action: "drive";
+  SetProgress?: (v: number) => void;
 };
 type ResponseUploadSingle = {
   data: string;
@@ -297,13 +298,15 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
       SourceFile: params.SourceFile,
       FullName: params.FullName,
     });
-    console.log("---先调秒传---", resSecondUpload, errSecondUpload);
-    if (resSecondUpload)
+    console.log("---先调秒传---", resSecondUpload);
+    if (resSecondUpload) {
+      if (params.SetProgress) params.SetProgress(100);
       return [
         // { data: `id is ${resSecondUpload.data.driveUploadByHash.id}` },
         { data: `秒传成功-${resSecondUpload.data.driveUploadByHash.id}` },
-        errSecondUpload,
+        undefined,
       ];
+    }
     // 2. 秒传失败则调session
     // const { file } = params;
 
