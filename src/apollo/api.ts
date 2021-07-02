@@ -15,15 +15,10 @@ import {
   Share,
 } from "./document";
 import { TSession } from "nkn";
-// temp
-// require("web-streams-polyfill");
-// const webStreams = require("web-streams-node");
-// const fileReaderStream = require("filereader-stream");
-import "web-streams-polyfill";
-import * as webStreams from "web-streams-node";
-import fileReaderStream from "filereader-stream";
-import { REMOTE_ADDR } from "@/constants";
+import { MAX_MTU, REMOTE_ADDR } from "@/constants";
 import { getFileSHA256 } from "@/utils";
+import { chunk } from "lodash-es";
+import pLimit from "p-limit";
 //
 export type CommonRes<T> = Promise<
   [res: T | undefined, err: Error | undefined]
@@ -289,6 +284,7 @@ type ParamsUploadSingle = {
 type ResponseUploadSingle = {
   data: string;
 };
+const limit = pLimit(1);
 /** 上传单个文件 */
 export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
   async (params) => {
@@ -300,7 +296,7 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     });
     console.log("---先调秒传---", resSecondUpload);
     if (resSecondUpload) {
-      if (params.SetProgress) params.SetProgress(100);
+      // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
       return [
         // { data: `id is ${resSecondUpload.data.driveUploadByHash.id}` },
         { data: `秒传成功-${resSecondUpload.data.driveUploadByHash.id}` },
@@ -312,71 +308,18 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
 
     // const clientSession = await getClientSession();
     const { multiClient } = useUserStore();
-    console.time("[性能 client.dial 时间]");
-    const clientSession = await multiClient?.dial(REMOTE_ADDR);
-    console.timeEnd("[性能 client.dial 时间]");
+    console.log("before-multiClient", multiClient);
+    console.time(`[性能 client.dial 时间]${params.SourceFile.name}`);
+    // 多个任务的时候要限制dial 的时间?
+    // const clientSession = await multiClient?.dial(REMOTE_ADDR);
+    const clientSession = await limit(() => multiClient?.dial(REMOTE_ADDR));
+    // console.log("after-client-shakehand");
+    console.timeEnd(`[性能 client.dial 时间]${params.SourceFile.name}`);
     if (!clientSession) return [undefined, Error("no clientSession")];
-    if (params.SourceFile)
-      params.File = new Uint8Array(await params.SourceFile.arrayBuffer());
-    // delete params.SourceFile;
-
-    // const writeChunkSize = 1024;
-    // const encoded: Uint8Array = encode(params);
-    // // 写入头部信息
-    // const buffer = new ArrayBuffer(4);
-    // const dv = new DataView(buffer);
-    // dv.setUint32(0, encoded.length, true);
-    // await clientSession.write(new Uint8Array(buffer));
-    // //
-    // // 创建 ReadableStream
-    // const uploadStream = new ReadableStream({
-    //   start(controller) {
-    //     let buf!: Uint8Array;
-    //     for (let n = 0; n < encoded.length; n += buf.length) {
-    //       buf = new Uint8Array(Math.min(encoded.length - n, writeChunkSize));
-    //       for (let i = 0; i < buf.length; i++) {
-    //         buf[i] = encoded[i + n];
-    //       }
-    //       controller.enqueue(buf);
-    //     }
-    //     controller.close();
-    //   },
-    //   cancel() {
-    //     console.log("cancel");
-    //   },
-    // });
-
-    // clientSession.setLinger(-1);
-    // console.log(
-    //   clientSession.localAddr,
-    //   "dialed a clientSession to",
-    //   clientSession.remoteAddr
-    // );
-    // const fileNameEncoded = new TextEncoder().encode(params.SourceFile.name);
-    // await writeUint32(clientSession, fileNameEncoded.length);
-    // await clientSession.write(fileNameEncoded);
-    // await writeUint32(clientSession, params.SourceFile.size);
-    // delete params.SourceFile
-    // const encoded: Uint8Array = encode(params);
-    // const uploadStream = webStreams.toWebReadableStream(
-    //   // fileReaderStream(params.SourceFile)
-    //   fileReaderStream(
-    //     encoded as unknown as File
-    //   )
-    // );
-
-    // console.log(
-    //   `Start sending ${params.FullName[0]} (${params.FileSize} bytes) to ${clientSession.remoteAddr}`
-    // );
-    // async function writeUint32(session: TSession, n: number) {
-    //   const buffer = new ArrayBuffer(4);
-    //   const dv = new DataView(buffer);
-    //   dv.setUint32(0, n, true);
-    //   await session.write(new Uint8Array(buffer));
-    // }
+    console.log("准备开始发长度");
     // 第一步，发长度，长度表示接下来的 msgpack 的长度
     const encoded: Uint8Array = encode({
-      File: "",
+      File: "", // 需要传空字符串
       FullName: params.FullName,
       FileSize: params.FileSize,
       UserId: params.UserId,
@@ -391,25 +334,31 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     // 第二步，发 msgpack
     await clientSession.write(encoded);
     // 第三步，发文件
-    const uploadStream = webStreams.toWebReadableStream(
-      fileReaderStream(params.SourceFile)
-    );
-
-    const sessionStream = clientSession.getWritableStream(true);
-    const timeStart = Date.now();
-    console.log(
-      `Start sending ${params.FullName[0]} (${params.FileSize} bytes) to ${clientSession.remoteAddr}`
-    );
+    const fileBuffer = await params.SourceFile.arrayBuffer();
+    // console.log("fileBuffer", fileBuffer);
+    const maxSendLength = fileBuffer.byteLength;
+    let startLen = 0;
     let res, err;
     try {
-      res = (await uploadStream.pipeTo(
-        sessionStream
-      )) as unknown as ResponseUploadSingle;
-      console.log(
-        `Finish sending file ${params.FullName[0]} (${params.FileSize} bytes, ${
-          (params.FileSize / (1 << 20) / (Date.now() - timeStart)) * 1000
-        } MB/s)`
-      );
+      while (startLen <= maxSendLength) {
+        const toWriteChunk = new Uint8Array(
+          fileBuffer.slice(
+            startLen,
+            // 到结尾了吗 不然接续加max
+            Math.min(startLen + MAX_MTU, maxSendLength)
+          )
+        );
+        // console.log("toWriteChunk", toWriteChunk);
+        await clientSession.write(toWriteChunk);
+        // .catch((e) => console.log("session-write-error", e));
+        startLen += MAX_MTU;
+        if (params.SetProgress) {
+          // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
+          const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
+          params.SetProgress(toSetProgressVal < 90 ? toSetProgressVal : 90);
+        }
+      }
+      res = { data: "session成功写入" };
     } catch (error) {
       console.error(error);
       err = error;

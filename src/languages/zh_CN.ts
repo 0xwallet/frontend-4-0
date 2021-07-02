@@ -292,6 +292,7 @@ export default {
     errorPleaseSelect: "请先选择数据",
     errorDeleteFail: "删除失败",
     errorDeletePartFail: "部分删除失败",
+    uploadStatusInfo: "上传信息",
     uploadStatusUploading: "上传中",
     uploadStatusSuccess: "完成",
     uploadStatusFailed: "失败",

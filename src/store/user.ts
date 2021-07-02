@@ -96,6 +96,12 @@ export default defineStore({
         console.log("[Ready multiClient]", this.multiClient);
       }
     },
+    resetMultiClient() {
+      if (!this.wallet) throw Error("wallet 未初始化");
+      this.multiClient = null;
+      this.multiClient = getMultiClient(this.wallet);
+      console.log("[Ready multiClient]", this.multiClient);
+    },
     setSocket() {
       if (!this.token) throw Error("no token");
       if (this.socket) return;

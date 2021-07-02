@@ -11,3 +11,7 @@ export const FILE_TYPE_MAP = {
   audio: ["mp3", "m4a", "flac"],
   video: ["mp4", "3gp", "avi", "wmv"],
 };
+/** 最大传输单元20kb */
+export const MAX_MTU = 1024 * 20;
+/** nkn multiclient 数量 */
+export const NKN_SUB_CLIENT_COUNT = 4;

@@ -45,6 +45,7 @@ import {
   Upload,
   Drawer,
   Progress,
+  Tag,
   Layout,
 } from "ant-design-vue";
 app
@@ -68,6 +69,7 @@ app
   .use(Upload)
   .use(Drawer)
   .use(Progress)
+  .use(Tag)
   .use(Layout);
 // ant-design-vue --end
 

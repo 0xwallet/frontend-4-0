@@ -1,13 +1,14 @@
 <template>
   <div>
     <!-- 功能区 -->
-    <div class="flex items-center mb-3">
+    <div class="relative flex items-center mb-3">
       <!-- 这个为隐藏的作为选择文件用的 -->
       <input
+        multiple
         class="hidden"
         type="file"
         id="singleInput"
-        @change="onChangeSingleUploadFile"
+        @change="onChangeMultipleUploadFile"
       />
       <!-- 下拉 - 上传 -->
       <a-dropdown class="mr-2">
@@ -47,8 +48,7 @@
         <SyncOutlined :spin="tableLoading" />
         {{ $t("metanet.refresh") }}
       </a-button>
-      <!-- 临时加的显示进度抽屉的按钮 -->
-      <a-button @click="onToggleIsShowProgressDrawer"> 显示进度 </a-button>
+
       <!-- 处理选中数据按钮集合 -->
       <!-- TODO 分享多个? -->
       <!-- 下载 删除 重命名 复制到 移动到 -->
@@ -76,6 +76,34 @@
           {{ $t("metanet.buttonMoveTo") }}
         </a-button>
       </a-button-group>
+      <!-- 临时加的显示进度抽屉的按钮 -->
+      <div class="absolute right-1 cursor-pointer">
+        <a-tooltip title="nknClient状态">
+          <a-dropdown>
+            <a-tag color="#3b5999">
+              <template #icon>
+                <GlobalOutlined />
+              </template>
+              <span class="inline-block w-16 text-center">
+                {{ nknClientConnectStatusShowText }}
+              </span>
+            </a-tag>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item class="text-xs" @click="onResetNknMultiClient">
+                  重置Client
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+        </a-tooltip>
+
+        <a-tooltip :title="$t('metanet.uploadStatusInfo')">
+          <div class="inline-block" @click="onToggleIsShowProgressDrawer">
+            <InfoCircleOutlined />
+          </div>
+        </a-tooltip>
+      </div>
     </div>
     <a-breadcrumb class="pl-2 mb-1">
       <template #separator>></template>
@@ -230,9 +258,13 @@
         >
           {{ uploadTaskTotalProgress }}%
         </div>
-        <span class="ml-2">完成</span>
         <a-tooltip :title="$t('metanet.uploadDrawerClearAll')">
-          <a-button class="ml-4" shape="circle" size="small">
+          <a-button
+            class="ml-4"
+            shape="circle"
+            size="small"
+            @click="onRemoveTaskList"
+          >
             <template #icon><DeleteOutlined /></template>
           </a-button>
         </a-tooltip>
@@ -255,7 +287,7 @@
           <div class="flex-1 ml-4 text-xs text-gray-400">
             | &nbsp; {{ taskItem.fileSize }}
             <a-tooltip :title="$t('metanet.uploadDrawerClearItem')">
-              <DeleteOutlined @click="$log('he')" />
+              <DeleteOutlined @click="onRemoveTaskItem(taskItem)" />
             </a-tooltip>
           </div>
           <div
@@ -279,7 +311,7 @@
               ? 'exception'
               : taskItem.progress < 100
               ? 'active'
-              : 'sussecc'
+              : 'success'
           "
         />
       </div>
@@ -288,7 +320,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, createVNode, computed, watch } from "vue";
+import {
+  defineComponent,
+  ref,
+  createVNode,
+  computed,
+  watch,
+  reactive,
+  onUnmounted,
+} from "vue";
 import {
   DownOutlined,
   CloudUploadOutlined,
@@ -297,6 +337,8 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined,
   EllipsisOutlined,
+  GlobalOutlined,
+  InfoCircleOutlined,
   DownloadOutlined,
 } from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
@@ -317,7 +359,11 @@ import { useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
 import { formatBytes, getFileSHA256, getFileType } from "@/utils";
 import TdHash from "./TdHash.vue";
-import { FILE_TYPE_MAP, MAX_UPLOAD_SIZE } from "@/constants";
+import {
+  FILE_TYPE_MAP,
+  MAX_UPLOAD_SIZE,
+  NKN_SUB_CLIENT_COUNT,
+} from "@/constants";
 
 type THistoryDirItem = {
   id: string;
@@ -343,6 +389,8 @@ export default defineComponent({
     FolderAddOutlined,
     EllipsisOutlined,
     DeleteOutlined,
+    GlobalOutlined,
+    InfoCircleOutlined,
     // DownloadOutlined,
     //
     TableFiles,
@@ -371,7 +419,7 @@ export default defineComponent({
         // 点击文件
         if (key === "file") {
           document.getElementById("singleInput")?.click();
-          // 选择完文件后会触发 onChangeSingleUploadFile
+          // 选择完文件后会触发 onChangeMultipleUploadFile
         } else {
           // 点击文件夹
         }
@@ -454,15 +502,33 @@ export default defineComponent({
       };
       // TODO input 上传成功后清除文件?
       // 文件对话框选完文件后就会触发这个函数
-      const onChangeSingleUploadFile = async (e: Event) => {
+      const onChangeMultipleUploadFile = async (e: Event) => {
         const input = e.target as HTMLInputElement;
         if (!input.files?.length) return;
-        const file = input.files[0];
-        if (file.size > MAX_UPLOAD_SIZE) {
-          message.warning(t("metanet.errorUploadSizeLimit"));
+        const sizeCanUploadFiles = [...input.files].filter((file) => {
+          if (file.size > MAX_UPLOAD_SIZE) {
+            message.warning(t("metanet.errorUploadSizeLimit"));
+            return false;
+          } else {
+            return true;
+          }
+        });
+        if (!sizeCanUploadFiles.length) {
           input.value = "";
           return;
         }
+        try {
+          const resOfAll = await Promise.all(
+            sizeCanUploadFiles.map(onUploadSingleFile)
+          );
+          console.log("resOfAll", resOfAll);
+        } catch (error) {
+          console.log("上传文件错误");
+        }
+        input.value = "";
+      };
+      /** 上传单个文件 */
+      const onUploadSingleFile = async (file: File) => {
         // input.files[0] =>file
         // lastModified: 1623572088894
         // lastModifiedDate: Sun Jun 13 2021 16:14:48 GMT+0800 (中国标准时间) {}
@@ -470,20 +536,23 @@ export default defineComponent({
         // size: 1916
         // type: ""
         // webkitRelativePath: ""
-        console.log("onChangeSingleUploadFile---", input);
-
+        // 弹出上传drawer
+        isShowProgressDrawer.value = true;
         const fileName = file.name;
         const fileHash = await getFileSHA256(file);
-        const taskItem: TUploadTaskItem = {
+        const taskItem: TUploadTaskItem = reactive({
           fileHash,
           fileName,
           fileSize: formatBytes(+file.size),
-          fileType: "filetype",
+          fileType: getFileType({
+            isDir: false,
+            fileName,
+          }),
           progress: 0,
           status: "uploading",
-        };
+        });
         const setTaskItemProgress = (v: number) => {
-          console.log("setTaskItemProgress", v);
+          // console.log("setTaskItemProgress", v);
           taskItem.progress = v;
           if (v === 100) taskItem.status = "success";
         };
@@ -501,19 +570,20 @@ export default defineComponent({
           Action: "drive",
           SetProgress: setTaskItemProgress,
         });
-        input.value = ""; //释放input 资源
         if (err) {
           taskItem.status = "failed";
           return;
         }
         if (res?.data.startsWith("秒传成功")) {
           message.success(t("metanet.uploadSuccess"));
+          setTaskItemProgress(100);
+          taskItem.status = "success";
           getAndSetTableDataFn(curFolderId.value);
           return;
         }
         // 处理秒传
         // 同步添加新的事件监听 然后解除监听
-        const hide = message.loading("上传成功,等待websocket 返回确认信息", 0);
+        const hide = message.loading(`上传${fileName}成功,等待websocket 返回确认信息`, 0);
         let timer: number;
         const { channel } = useUserStore();
         if (!channel) throw Error("no channel");
@@ -535,6 +605,8 @@ export default defineComponent({
               useDelay().then(() => {
                 clearTimeout(timer);
                 message.success(t("metanet.uploadSuccess"));
+                setTaskItemProgress(100);
+                taskItem.status = "success";
                 getAndSetTableDataFn(curFolderId.value);
                 // console.log("getAndSetTableDataFn", getAndSetTableDataFn);
                 channel.off("file_uploaded", removeListener);
@@ -545,12 +617,13 @@ export default defineComponent({
         );
         // 设置超时
         timer = window.setTimeout(() => {
-          hide();
           channel.off("file_uploaded", removeListener);
+          hide();
           clearTimeout(timer);
           // TODO 国际化提示
           message.warn(t("metanet.errorUpload"));
-          getAndSetTableDataFn(curFolderId.value);
+          taskItem.status = "failed";
+          // getAndSetTableDataFn(curFolderId.value);
         }, 60000);
         // 重新刷新数据?
         if (err) console.error(err);
@@ -561,7 +634,7 @@ export default defineComponent({
         onClickDropDownMenuUpload,
         onBatchDelete,
         onDownloadBatch,
-        onChangeSingleUploadFile,
+        onChangeMultipleUploadFile,
       };
     }
     /** action 里对record的操作 */
@@ -717,7 +790,10 @@ export default defineComponent({
                 // 等于名字最后一项, 因为返回的是 [父级目录,item文件夹名] 所以取最后一个
                 obj.fullName = [obj.fullName[obj.fullName.length - 1]];
               }
-              obj.fileType = getFileType(obj);
+              obj.fileType = getFileType({
+                isDir: obj.isDir,
+                fileName: obj.fullName[0],
+              });
               return obj;
             })
             // filter 里用类型守卫去除null
@@ -767,36 +843,45 @@ export default defineComponent({
         tableLoading,
       };
     }
-    const uploadTaskList = ref<TUploadTaskItem[]>([
-      // {
-      //   fileHash: "hey",
-      //   fileName: "那天的鱼2134.jpg",
-      //   fileType: "jpg",
-      //   fileSize: "1.7 MB",
-      //   progress: 0,
-      //   status: "uploading",
-      // },
-      // {
-      //   fileHash: "h2ey",
-      //   fileName: "那天的鱼2134.pdf",
-      //   fileType: "pdf",
-      //   fileSize: "1.7 MB",
-      //   progress: 0,
-      //   status: "uploading",
-      // },
-    ]);
+    const uploadTaskList = ref<TUploadTaskItem[]>([]);
     const uploadTaskTotalProgress = computed(() => {
       const taskList = uploadTaskList.value.map((i) => i.progress);
       if (!taskList.length) return 0;
-      return taskList.reduce((a, b) => a + b);
+      const totalPercent = taskList.length * 100;
+      const currentProgress = taskList.reduce((a, b) => a + b);
+      return Math.floor((currentProgress / totalPercent) * 100);
     });
+    /** 清除列表中非上传状态的数据 */
+    const onRemoveTaskList = () => {
+      const listOfUploading = uploadTaskList.value.filter(
+        (v) => v.status === "uploading"
+      );
+      uploadTaskList.value.length = 0;
+      if (listOfUploading.length) {
+        message.warning("上传中的数据无法清除");
+        uploadTaskList.value.push(...listOfUploading);
+      }
+    };
+    /** 清除这条记录 */
+    const onRemoveTaskItem = (item: TUploadTaskItem) => {
+      if (item.status === "uploading") {
+        message.warning("上传中,无法清除");
+        return;
+      }
+      const foundIndex = uploadTaskList.value.findIndex(
+        // 同文件不同名文件?
+        (v) => v.fileName === item.fileName && v.fileHash === item.fileHash
+      );
+      if (foundIndex !== -1) uploadTaskList.value.splice(foundIndex, 1);
+    };
+    const isShowProgressDrawer = ref(false);
     /** 上传进度抽屉 */
     function useDrawer() {
-      const isShowProgressDrawer = ref(true);
       const onCloseProgressDrawer = () => {
-        console.log("onCloseProgressDrawer", onCloseProgressDrawer);
+        // console.log("onCloseProgressDrawer", onCloseProgressDrawer);
         isShowProgressDrawer.value = false;
       };
+
       const onToggleIsShowProgressDrawer = () => {
         isShowProgressDrawer.value = !isShowProgressDrawer.value;
       };
@@ -807,12 +892,71 @@ export default defineComponent({
       };
       return {
         uploadTaskList,
+        onRemoveTaskList,
+        onRemoveTaskItem,
         uploadTaskTotalProgress,
         isShowProgressDrawer,
         onCloseProgressDrawer,
         onToggleIsShowProgressDrawer,
         transformStatusText,
       };
+    }
+    /** nkn client 连接状态 */
+    function useNknStatus() {
+      // 连接中 3/4
+      const nknClientConnectStatusMap = reactive({
+        count: 0,
+        text: "连接中",
+      });
+      // let readyClientCount = useUserStore().multiClient?.clients ?? 0
+      const getStoreNknClientCount = () => {
+        const multiClient = useUserStore().multiClient;
+        if (!multiClient) return 0;
+        else {
+          // console.log(multiClient.readyClientIDs());
+          return multiClient.readyClientIDs().length;
+        }
+      };
+      nknClientConnectStatusMap.count = getStoreNknClientCount();
+      let counterOfNknCLient = 0; // 用来猜测计时ws 连接fail 的时间
+      let timer: number;
+      /** 全局不断检测 */
+      const intervalGetClientCount = () => {
+        timer = window.setTimeout(() => {
+          counterOfNknCLient++;
+          nknClientConnectStatusMap.count = getStoreNknClientCount();
+          intervalGetClientCount();
+          if (nknClientConnectStatusMap.count === NKN_SUB_CLIENT_COUNT) {
+            nknClientConnectStatusMap.text = "就绪";
+          } else if (counterOfNknCLient > 30) {
+            // 30秒未能全部成功的话
+            nknClientConnectStatusMap.text = "半连接"; // 半准备?
+          }
+        }, 1000);
+      };
+      // 防止内存泄漏
+      onUnmounted(() => {
+        clearInterval(timer);
+      });
+      intervalGetClientCount();
+      const nknClientConnectStatusShowText = computed(() => {
+        const { count, text } = nknClientConnectStatusMap;
+        return `${text} ${count}/${NKN_SUB_CLIENT_COUNT}`;
+      });
+      /** 重置nkn client */
+      const onResetNknMultiClient = () => {
+        Modal.confirm({
+          title: "是否重置nkn multiClient?",
+          icon: createVNode(ExclamationCircleOutlined),
+          onOk: () => {
+            counterOfNknCLient = 0;
+            nknClientConnectStatusMap.text = "连接中";
+            useUserStore().resetMultiClient();
+            console.log("重置nkn multiClient", useUserStore().multiClient);
+          },
+        });
+      };
+      return { nknClientConnectStatusShowText, onResetNknMultiClient };
     }
     return {
       selectedRows,
@@ -821,6 +965,7 @@ export default defineComponent({
       ...useActions(),
       ...useTableData(),
       ...useDrawer(),
+      ...useNknStatus(),
     };
   },
 });

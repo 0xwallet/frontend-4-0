@@ -113,15 +113,15 @@ export default defineComponent({
   border: none;
   border-bottom: 1px solid #eff2f9;
 }
-:deep(.ant-table-tbody) {
-  // &::before {
-  //   content: "-";
-  //   display: block;
-  //   line-height: 1em;
-  //   color: transparent;
-  //   background: #eff2f9;
-  // }
-}
+// :deep(.ant-table-tbody) {
+//   // &::before {
+//   //   content: "-";
+//   //   display: block;
+//   //   line-height: 1em;
+//   //   color: transparent;
+//   //   background: #eff2f9;
+//   // }
+// }
 :deep(.ant-table-thead > tr) {
   border-bottom: 1rem solid blue;
 }

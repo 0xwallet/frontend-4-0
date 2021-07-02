@@ -5,7 +5,7 @@
       prefixCls="ant-layout"
       class="ant-layout"
       :style="{
-        height: '100%',
+        'min-height': '100%',
       }"
       id="global-layout-component"
     >

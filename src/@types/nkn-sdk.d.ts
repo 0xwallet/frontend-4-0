@@ -94,10 +94,11 @@ declare module "nkn" {
 
   export class classMultiClient {
     constructor();
-    dial(id: string): Promise<TSession>;
+    dial(id: string, options?: { dialTimeout: number }): Promise<TSession>;
     clients: {
       [key: string]: classNknClient;
     };
+    readyClientIDs(): string[];
     defaultClient: classNknClient;
     msgCache: typeof CacheClass;
     acceptAddrs: string[];
@@ -128,11 +129,11 @@ declare module "nkn" {
   }
   export type TSession = {
     isClosed: boolean;
-    localAddr:string;
+    localAddr: string;
     remoteAddr: string;
     write(ArrayBuffer): Promise<void>;
     getWritableStream(boolean): WritableStream;
-    setLinger(number):void;
+    setLinger(number): void;
   };
   type Tnkn = {
     // setPRNG: string;

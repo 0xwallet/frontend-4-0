@@ -36,6 +36,7 @@ function getIcon(fileType: string | undefined) {
   if (FILE_TYPE_MAP.archive.includes(e)) return archive;
   if (FILE_TYPE_MAP.audio.includes(e)) return audio;
   if (FILE_TYPE_MAP.video.includes(e)) return video;
+  else return defaultFile;
 }
 
 export default defineComponent({

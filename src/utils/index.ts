@@ -29,9 +29,9 @@ export async function getFileSHA256(file: File): Promise<string> {
 }
 
 /** 根据isDir/ 文件名后缀返回文件类型 */
-export function getFileType(obj: TFileItem): string {
+export function getFileType(obj: { isDir: boolean; fileName: string }): string {
   if (obj.isDir) return "folder";
-  const arr = obj.fullName[0].split(".");
+  const arr = obj.fileName.split(".");
   if (arr.length <= 1) return "file";
   return arr.pop()?.toLowerCase() || "file";
 }

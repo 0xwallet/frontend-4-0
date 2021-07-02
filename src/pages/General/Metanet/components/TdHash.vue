@@ -40,7 +40,7 @@ import { CopyOutlined } from "@ant-design/icons-vue";
 import { useClipboard } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { message } from "ant-design-vue";
-import ColorHash from "color-hash";
+// import ColorHash from "color-hash";
 // import { chunk } from "lodash-es";
 // const colorHash = new ColorHash();
 
