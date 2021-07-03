@@ -1,35 +1,32 @@
 <template>
-  <!-- <a-tooltip :title="`[${type}]`"> -->
-  <a-tooltip :title="hash">
-    <!-- <span class="font-dmmono cursor-pointer" @click="onCopyHash"
-      >{{ hash.slice(0, 2)
-      }}<i
-        v-for="item in colors"
-        :key="item"
-        :style="{ 'background-color': item }"
-        >&nbsp;&nbsp;&nbsp;</i
-      >{{ hash.slice(-2) }}<CopyOutlined class="ml-1 cursor-pointer"
-    /></span> -->
+  <a-tooltip
+    :title="hash"
+    :destroyTooltipOnHide="true"
+    :arrowPointAtCenter="true"
+    overlayClassName="tdHashToolTip"
+  >
     <div
-      class="font-dmmono cursor-pointer flex items-center"
+      class="tdHash font-dmmono cursor-pointer flex items-center"
       @click="onCopyHash"
     >
-      <div>
-        {{ hash.slice(0, 5) }}
+      <div class="tdHashText relative cursor-pointer flex items-center">
+        <div>
+          {{ hash.slice(0, 5) }}
+        </div>
+        <div class="flex items-center">
+          <i
+            v-for="color in ['#2170FF', '#FF0078', '#FF9F00']"
+            :key="color"
+            class="tdHashDot relative align-middle ml-0.5 inline-block"
+            :style="{
+              'background-color': color,
+              'font-size': 0,
+            }"
+          ></i>
+        </div>
+        <div class="ml-0.5">{{ hash.slice(-5) }}</div>
       </div>
-      <div class="flex items-center">
-        <i
-          v-for="color in ['#f50', '#2db7f5', 'purple']"
-          :key="color"
-          class="align-middle ml-0.5 inline-block w-1.5 h-1.5 rounded-full"
-          :style="{
-            'background-color': color,
-            'font-size': 0,
-          }"
-        ></i>
-      </div>
-      <div class="ml-0.5">{{ hash.slice(-5) }}</div>
-      <CopyOutlined class="ml-1 cursor-pointer" />
+      <CopyOutlined class="tdHashIcon ml-1 cursor-pointer" />
     </div>
   </a-tooltip>
 </template>
@@ -77,3 +74,180 @@ export default defineComponent({
   },
 });
 </script>
+
+<style lang="less">
+.tdHashToolTip {
+  .ant-tooltip-inner {
+    font-family: "DM Mono";
+    text-align: center;
+    border-radius: 8px;
+    background-color: #0a0a0a;
+    width: 420px;
+  }
+}
+.tdHashText:hover {
+  // color: #2170ff; // bitcoin 网站色
+  color: #1890ff;
+}
+.tdHash:hover .tdHashIcon {
+  // display: block;
+  opacity: 0.3;
+}
+.tdHashIcon {
+  opacity: 0;
+  color: #1890ff;
+  &:hover {
+    opacity: 1 !important;
+  }
+}
+.tdHashDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 10px;
+}
+// 圆点样式from https://blockchair.com/bitcoin
+.tdHash:hover .tdHashDot:nth-of-type(1) {
+  animation: cyan-to-yellow 0.46s cubic-bezier(0.04, 0.91, 0.94, 0.11) 0s 1
+    forwards;
+}
+.tdHash:hover .tdHashDot:nth-of-type(2) {
+  animation: red-to-cyan 0.46s cubic-bezier(0.04, 0.91, 0.94, 0.11) 0s 1
+    forwards;
+}
+.tdHash:hover .tdHashDot:nth-of-type(3) {
+  animation: yellow-to-red 0.46s cubic-bezier(0.04, 0.91, 0.94, 0.11) 0s 1
+    forwards;
+}
+
+// 第一个点
+@keyframes cyan-to-yellow {
+  0% {
+    color: var(--c-cyan-d3);
+    top: 0;
+  }
+
+  25% {
+    color: var(--c-red);
+    top: -5px;
+  }
+
+  50% {
+    color: var(--c-yellow-d3);
+    top: 1px;
+  }
+
+  to {
+    color: var(--c-yellow-d3);
+    top: 0;
+  }
+
+  0% {
+    background-color: var(--c-cyan-d3);
+  }
+
+  25% {
+    background-color: var(--c-red);
+  }
+
+  50% {
+    background-color: var(--c-yellow-d3);
+  }
+
+  to {
+    background-color: var(--c-yellow-d3);
+  }
+}
+// 第二个点
+@keyframes red-to-cyan {
+  0% {
+    color: var(--c-red);
+    top: 0;
+  }
+
+  25% {
+    color: var(--c-red);
+    top: 0;
+  }
+
+  50% {
+    color: var(--c-yellow-d3);
+    top: -5px;
+  }
+
+  75% {
+    color: var(--c-cyan-d3);
+    top: 3px;
+  }
+
+  to {
+    color: var(--c-cyan-d3);
+    top: 0;
+  }
+
+  0% {
+    background-color: var(--c-red);
+  }
+
+  25% {
+    background-color: var(--c-red);
+  }
+
+  50% {
+    background-color: var(--c-yellow-d3);
+  }
+
+  75% {
+    background-color: var(--c-cyan-d3);
+  }
+
+  to {
+    background-color: var(--c-cyan-d3);
+  }
+}
+// 第三个点
+@keyframes yellow-to-red {
+  0% {
+    color: var(--c-yellow-d3);
+    top: 0;
+  }
+
+  50% {
+    color: var(--c-yellow-d3);
+    top: 0;
+  }
+
+  75% {
+    color: var(--c-cyan-d3);
+    top: -4px;
+  }
+
+  to {
+    color: var(--c-red);
+    top: 0;
+  }
+
+  0% {
+    background-color: var(--c-yellow-d3);
+  }
+
+  50% {
+    background-color: var(--c-yellow-d3);
+  }
+
+  75% {
+    background-color: var(--c-cyan-d3);
+  }
+
+  to {
+    background-color: var(--c-red);
+  }
+}
+</style>
+
+<style>
+:root {
+  --c-red: #ff0078;
+  --c-yellow-d3: #ff9f00;
+  --c-cyan-d3: #2170ff;
+}
+</style>

@@ -583,7 +583,10 @@ export default defineComponent({
         }
         // 处理秒传
         // 同步添加新的事件监听 然后解除监听
-        const hide = message.loading(`上传${fileName}成功,等待websocket 返回确认信息`, 0);
+        const hide = message.loading(
+          `上传${fileName}成功,等待websocket 返回确认信息`,
+          0
+        );
         let timer: number;
         const { channel } = useUserStore();
         if (!channel) throw Error("no channel");
@@ -747,7 +750,7 @@ export default defineComponent({
           title: "Hash",
           dataIndex: "hash",
           slots: { customRender: "hash" },
-          width: 180,
+          width: 150,
         },
         {
           title: t("metanet.data"),

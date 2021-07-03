@@ -104,7 +104,7 @@ export default defineComponent({
 // font
 // dm Mono use for hash
 // font-weight : 300 400 500
-@import url("~@fontsource/dm-mono/400.css");
+@import url("~@fontsource/dm-mono/500.css");
 // font-family: "DM Mono";
 .font-dmmono {
   font-family: "DM Mono";

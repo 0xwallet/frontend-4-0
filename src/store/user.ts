@@ -72,6 +72,7 @@ export default defineStore({
       return [pick(this, ["id", "token", "username", "email"]), undefined];
     },
     // TODO 假如登录过期了 要调用这个方法先清除
+    /** 登出并清除信息 */
     signOutAndClear() {
       this.id = "";
       this.token = "";
@@ -83,12 +84,14 @@ export default defineStore({
       this.socket = null;
       userLocalStorage.value = {};
     },
+    /** 设置钱包数据 */
     setWallet() {
       if (!this.wallet) {
         this.wallet = new Wallet({ password: this.email });
         console.log("[Ready wallet]", this);
       }
     },
+    /** 初始化multiClient */
     setMultiClient() {
       if (!this.wallet) throw Error("wallet 未初始化");
       if (!this.multiClient) {
@@ -96,12 +99,14 @@ export default defineStore({
         console.log("[Ready multiClient]", this.multiClient);
       }
     },
+    /** 重置multiClient */
     resetMultiClient() {
       if (!this.wallet) throw Error("wallet 未初始化");
       this.multiClient = null;
       this.multiClient = getMultiClient(this.wallet);
       console.log("[Ready multiClient]", this.multiClient);
     },
+    /** 设置登录的socket 连接 */
     setSocket() {
       if (!this.token) throw Error("no token");
       if (this.socket) return;
