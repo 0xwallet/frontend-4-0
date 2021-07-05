@@ -224,7 +224,11 @@
         left: 'auto',
         right: '40px',
       }"
-      :drawerStyle="{}"
+      :drawerStyle="{
+        'max-height': '400px',
+        overflow: 'hidden',
+        'overflow-y': 'scroll',
+      }"
       :headerStyle="{
         padding: '8px 12px',
         'background-color': '#F7F7F8',
@@ -364,6 +368,7 @@ import {
   MAX_UPLOAD_SIZE,
   NKN_SUB_CLIENT_COUNT,
 } from "@/constants";
+import pLimit from "p-limit";
 
 type THistoryDirItem = {
   id: string;
@@ -523,10 +528,12 @@ export default defineComponent({
           );
           console.log("resOfAll", resOfAll);
         } catch (error) {
-          console.log("上传文件错误");
+          console.log("上传文件错误", error);
         }
         input.value = "";
       };
+      // 并发管理器 只允许两个文件同时上传
+      const limitUploadFiles = pLimit(2);
       /** 上传单个文件 */
       const onUploadSingleFile = async (file: File) => {
         // input.files[0] =>file
@@ -558,18 +565,24 @@ export default defineComponent({
         };
         uploadTaskList.value.push(taskItem);
         // TODO 上传完后清除?
-        const [res, err] = await apiUploadSingle({
-          // File: new Uint8Array(await file.arrayBuffer()),
-          SourceFile: file,
-          // 上传到不同的文件夹就要带上其名称在前面 (除了root)
-          FullName: [...historyDir.value.slice(1).map((i) => i.name), fileName],
-          FileSize: file.size,
-          UserId: useUserStore().id,
-          Space: "PRIVATE",
-          Description: "",
-          Action: "drive",
-          SetProgress: setTaskItemProgress,
-        });
+        // const [res, err] = await apiUploadSingle({
+        const [res, err] = await limitUploadFiles(() =>
+          apiUploadSingle({
+            // File: new Uint8Array(await file.arrayBuffer()),
+            SourceFile: file,
+            // 上传到不同的文件夹就要带上其名称在前面 (除了root)
+            FullName: [
+              ...historyDir.value.slice(1).map((i) => i.name),
+              fileName,
+            ],
+            FileSize: file.size,
+            UserId: useUserStore().id,
+            Space: "PRIVATE",
+            Description: "",
+            Action: "drive",
+            SetProgress: setTaskItemProgress,
+          })
+        );
         if (err) {
           taskItem.status = "failed";
           return;
@@ -771,6 +784,9 @@ export default defineComponent({
       const tableData = ref<TFileList>([]);
       // 提供一个函数给外部
       getAndSetTableDataFn = (dirId) => {
+        // 重置选中项目
+        selectedRows.value.length = 0;
+        selectedRowKeys.value.length = 0;
         tableLoading.value = true;
         apiQueryFileByDir({ dirId }).then(([res, err]) => {
           if (err || !res?.data.driveListFiles) return;
@@ -923,7 +939,7 @@ export default defineComponent({
       nknClientConnectStatusMap.count = getStoreNknClientCount();
       let counterOfNknCLient = 0; // 用来猜测计时ws 连接fail 的时间
       let timer: number;
-      /** 全局不断检测 */
+      /** 全局不断检测nkn节点状态 */
       const intervalGetClientCount = () => {
         timer = window.setTimeout(() => {
           counterOfNknCLient++;
@@ -932,8 +948,15 @@ export default defineComponent({
           if (nknClientConnectStatusMap.count === NKN_SUB_CLIENT_COUNT) {
             nknClientConnectStatusMap.text = "就绪";
           } else if (counterOfNknCLient > 30) {
-            // 30秒未能全部成功的话
-            nknClientConnectStatusMap.text = "半连接"; // 半准备?
+            // 30秒后
+            if (nknClientConnectStatusMap.count === 0) {
+              // 一个都没成功就自动重置
+              useUserStore().resetMultiClient();
+              nknClientConnectStatusMap.text = "重连中";
+            } else {
+              // 未能全部成功的话
+              nknClientConnectStatusMap.text = "半连接"; // 半准备?
+            }
           }
         }, 1000);
       };
@@ -955,7 +978,7 @@ export default defineComponent({
             counterOfNknCLient = 0;
             nknClientConnectStatusMap.text = "连接中";
             useUserStore().resetMultiClient();
-            console.log("重置nkn multiClient", useUserStore().multiClient);
+            // console.log("重置nkn multiClient", useUserStore().multiClient);
           },
         });
       };

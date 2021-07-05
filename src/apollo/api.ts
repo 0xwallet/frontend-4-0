@@ -19,6 +19,7 @@ import { MAX_MTU, REMOTE_ADDR } from "@/constants";
 import { getFileSHA256 } from "@/utils";
 import { chunk } from "lodash-es";
 import pLimit from "p-limit";
+import { useDelay } from "@/hooks";
 //
 export type CommonRes<T> = Promise<
   [res: T | undefined, err: Error | undefined]
@@ -308,15 +309,36 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
 
     // const clientSession = await getClientSession();
     const { multiClient } = useUserStore();
-    console.log("before-multiClient", multiClient);
+    if (!multiClient) return [undefined, Error("multiClient未初始化")];
+    // console.log(
+    //   "before-multiClient",
+    //   multiClient.isClosed,
+    //   multiClient.isReady
+    // );
     console.time(`[性能 client.dial 时间]${params.SourceFile.name}`);
     // 多个任务的时候要限制dial 的时间?
     // const clientSession = await multiClient?.dial(REMOTE_ADDR);
-    const clientSession = await limit(() => multiClient?.dial(REMOTE_ADDR));
+    /** 如果是dial 超时就重新dial */
+    const neverTimeOutClientDial = async (): Promise<TSession> => {
+      let res;
+      try {
+        res = await multiClient.dial(REMOTE_ADDR, {
+          dialTimeout: 3000, // 3s dial 过期
+        });
+        // 过期就重试
+      } catch (error) {
+        console.error("clientDial-error", error);
+        // return neverTimeOutClientDial();
+        // return neverTimeOutClientDial();
+        res = await neverTimeOutClientDial();
+      }
+      return res;
+    };
+    const clientSession = await limit(() => neverTimeOutClientDial());
     // console.log("after-client-shakehand");
     console.timeEnd(`[性能 client.dial 时间]${params.SourceFile.name}`);
     if (!clientSession) return [undefined, Error("no clientSession")];
-    console.log("准备开始发长度");
+    // console.log("准备开始发长度");
     // 第一步，发长度，长度表示接下来的 msgpack 的长度
     const encoded: Uint8Array = encode({
       File: "", // 需要传空字符串

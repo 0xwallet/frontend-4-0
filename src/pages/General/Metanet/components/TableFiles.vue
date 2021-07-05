@@ -109,6 +109,9 @@ export default defineComponent({
 :deep(.ant-table-row-cell-last) {
   border-radius: 0px 10px 10px 0 !important;
 }
+:deep(.ant-table-fixed-right .ant-table-row-cell-break-word) {
+  border-radius: 0 10px 10px 0 !important;
+}
 :deep(.ant-table-row > td) {
   border: none;
   border-bottom: 1px solid #eff2f9;
