@@ -29,10 +29,13 @@
       <a-dropdown class="mr-2">
         <template #overlay>
           <a-menu @click="onClickDropDownMenuCreate">
+            <!-- 新建文件 -->
             <a-menu-item key="file">{{ $t("metanet.createFile") }}</a-menu-item>
+            <!-- 新建文件夹 -->
             <a-menu-item key="folder">{{
               $t("metanet.createFolder")
             }}</a-menu-item>
+            <!-- 新建by 导入 -->
             <a-menu-item key="import">{{
               $t("metanet.createByImport")
             }}</a-menu-item>
@@ -69,10 +72,24 @@
           <!-- 选中多个的时候禁用重命名 -->
           {{ $t("metanet.rename") }}
         </a-button>
-        <a-button @click="onDownload">
+        <a-button
+          @click="
+            onCopyMoveModalPreAction(
+              'copy',
+              selectedRows.map((i) => i.id)
+            )
+          "
+        >
           {{ $t("metanet.buttonCopyTo") }}
         </a-button>
-        <a-button @click="onDownload">
+        <a-button
+          @click="
+            onCopyMoveModalPreAction(
+              'move',
+              selectedRows.map((i) => i.id)
+            )
+          "
+        >
           {{ $t("metanet.buttonMoveTo") }}
         </a-button>
       </a-button-group>
@@ -105,6 +122,7 @@
         </a-tooltip>
       </div>
     </div>
+    <!-- 面包屑 目录历史索引 -->
     <a-breadcrumb class="pl-2 mb-1">
       <template #separator>></template>
       <template v-if="historyDir.length > 1">
@@ -123,6 +141,7 @@
         historyDir[historyDir.length - 1].name
       }}</a-breadcrumb-item>
     </a-breadcrumb>
+    <!-- 表格 -->
     <TableFiles
       rowKey="id"
       :columns="columns"
@@ -162,51 +181,59 @@
           </div>
           <template #overlay>
             <a-menu>
+              <!-- 分享 -->
               <a-menu-item
                 class="px-4 flex items-center"
                 @click="onRecordShare(record)"
               >
                 {{ $t("metanet.shareButton") }}
               </a-menu-item>
+              <!-- 发布 -->
               <a-menu-item
                 class="px-4 flex items-center"
                 @click="onRecordShare(record)"
               >
                 {{ $t("metanet.publish") }}
               </a-menu-item>
+              <!-- 传送 -->
               <a-menu-item
                 class="px-4 flex items-center"
                 @click="onRecordShare(record)"
               >
                 {{ $t("metanet.send") }}
               </a-menu-item>
+              <!-- 下载 -->
               <a-menu-item
                 class="px-4 flex items-center"
                 @click="onDownload(record)"
               >
                 {{ $t("metanet.downloadButton") }}
               </a-menu-item>
+              <!-- 移动 -->
               <a-menu-item
                 class="px-4 flex items-center"
-                @click="onRecordShare(record)"
+                @click="onCopyMoveModalPreAction('move', [record.id])"
               >
-                {{ $t("metanet.moveButton") }}
+                {{ $t("metanet.buttonMoveTo") }}
               </a-menu-item>
+              <!-- 复制 -->
               <a-menu-item
                 class="px-4 flex items-center"
-                @click="onRecordShare(record)"
+                @click="onCopyMoveModalPreAction('copy', [record.id])"
               >
-                {{ $t("metanet.copyButton") }}
+                {{ $t("metanet.buttonCopyTo") }}
               </a-menu-item>
+              <!-- 重命名 -->
               <a-menu-item
                 class="px-4 flex items-center"
                 @click="onRecordShare(record)"
               >
                 {{ $t("metanet.rename") }}
               </a-menu-item>
+              <!-- 删除 -->
               <a-menu-item
                 class="px-4 flex items-center text-red-500"
-                @click="onRecordShare(record)"
+                @click="onRecordDelete(record)"
               >
                 {{ $t("metanet.delButton") }}
               </a-menu-item>
@@ -215,7 +242,7 @@
         </a-dropdown>
       </template>
     </TableFiles>
-    <!-- 上传进度 抽屉 -->
+    <!-- 抽屉 上传进度 -->
     <a-drawer
       id="uploadDrawer"
       height="auto"
@@ -320,6 +347,81 @@
         />
       </div>
     </a-drawer>
+    <!-- 弹窗 新建文件夹 -->
+    <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowCreateFolderModal"
+      :title="$t('metanet.createFolder')"
+      @ok="onCreateFolderModalConfirm"
+      @cancel="onResetCreateFolderModalForm"
+    >
+      <!-- <a-form> </a-form> -->
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item
+          :label="$t('metanet.createFolderPath')"
+          v-bind="createFolderValidateInfos.folderPrefix"
+        >
+          <a-radio-group v-model:value="createFolderModelRef.folderPrefix">
+            <a-radio value="1">当前路径*</a-radio>
+            <a-radio value="2">根目录~ </a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item
+          :label="$t('metanet.folderName')"
+          v-bind="createFolderValidateInfos.folderName"
+        >
+          <a-input
+            :maxlength="30"
+            :placeholder="$t('metanet.folderName')"
+            v-model:value="createFolderModelRef.folderName"
+          />
+        </a-form-item>
+        <a-form-item :label="$t('metanet.addDesc')">
+          <a-input
+            :maxlength="200"
+            v-model:value="createFolderModelRef.folderDesc"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+    <!-- 弹窗 复制/移动 -->
+    <a-modal
+      destroyOnClose
+      v-model:visible="isShowCopyMoveModal"
+      :title="
+        currentCopyMoveModalTitle === 'copy'
+          ? $t('metanet.buttonCopyTo')
+          : $t('metanet.buttonMoveTo')
+      "
+      @ok="onCopyMoveModalConfirm"
+      :bodyStyle="{ padding: '18px 12px', border: '1px solid #f2f2f2' }"
+    >
+      <!-- padding: '18px 12px', -->
+      <a-table
+        size="small"
+        rowKey="dirId"
+        :showHeader="false"
+        :pagination="false"
+        :style="{
+          border: '1px solid #eff2f9',
+        }"
+        :defaultExpandedRowKeys="['root']"
+        :rowClassName="copyMoveModalTableRowClassName"
+        :columns="copyMoveTableColumns"
+        :data-source="copyMoveModalTableData"
+        :customRow="copyMoveModalTableCustomRow"
+        :loading="copyMoveModalTableLoading"
+      >
+        <!-- <template #name="{ record }"> -->
+        <template #name="{ record }">
+          <div class="inline-block">
+            <!-- 空白就是blank 文件夹就是folder -->
+            <XFileTypeIcon class="w-4 h-4" type="folder" />
+            <a href="javascript:void(0)" class="ml-1">{{ record.dirName }}</a>
+          </div>
+        </template>
+      </a-table>
+    </a-modal>
   </div>
 </template>
 
@@ -332,6 +434,7 @@ import {
   watch,
   reactive,
   onUnmounted,
+  toRaw,
 } from "vue";
 import {
   DownOutlined,
@@ -350,8 +453,13 @@ import { XFileTypeIcon } from "@/components";
 import { useI18n } from "vue-i18n";
 import {
   apiBatchDelete,
+  apiCopyFileToDir,
   apiGetPreviewToken,
+  apiMakeDirByPath,
+  apiMakeDirByRoot,
+  apiMoveFileToDir,
   apiQueryFileByDir,
+  apiSingleDelete,
   apiUploadSingle,
   TFileItem,
   TFileList,
@@ -369,6 +477,7 @@ import {
   NKN_SUB_CLIENT_COUNT,
 } from "@/constants";
 import pLimit from "p-limit";
+import { useForm } from "@ant-design-vue/use";
 
 type THistoryDirItem = {
   id: string;
@@ -381,6 +490,16 @@ type TUploadTaskItem = {
   fileSize: string;
   progress: number;
   status: "uploading" | "success" | "failed";
+};
+type TDir = {
+  dirId: string;
+  dirName: string;
+  children?: TDir[];
+};
+type TCreateFolder = {
+  folderPrefix: "1" | "2";
+  folderName: string;
+  folderDesc: string;
 };
 function sortByDirType(a: TFileItem, b: TFileItem) {
   return a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1;
@@ -414,6 +533,7 @@ export default defineComponent({
         key: "file" | "folder";
       }) => {
         console.log("onClickDropDownMenuCreate", key);
+        if (key === "folder") isShowCreateFolderModal.value = true;
       };
       const onClickDropDownMenuUpload = ({
         key,
@@ -448,21 +568,30 @@ export default defineComponent({
           //   "Some descriptions"
           // ),
           onOk: async () => {
-            const [res, err] = await apiBatchDelete({
-              ids: selectedRows.value.map((i) => i.id),
-              space: "PRIVATE",
-            });
-            if (err || !res) return;
-            const { driveDeleteFiles: deletedCount } = res.data;
-            if (deletedCount === len) {
-              // 全部删除成功
-              message.success(t("metanet.deleted"));
-            } else if (deletedCount > 0) {
-              // 选中的其中部分删除失败
-              message.error(t("metanet.errorDeletePartFail"));
-            } else {
-              // 选中的全部删除失败
-              message.error(t("metanet.errorDeleteFail"));
+            // 2021-07-06 因为批量接口不支持删除文件夹, 所以这里先分开处理
+            const idOfFiles: string[] = [];
+            const idOfDirs: string[] = [];
+            selectedRows.value.forEach((item) =>
+              item.isDir ? idOfDirs.push(item.id) : idOfFiles.push(item.id)
+            );
+            if (idOfDirs.length) {
+              const resOfDeleteDirs = await Promise.all(
+                idOfDirs.map((id) => apiSingleDelete({ id, space: "PRIVATE" }))
+              );
+              resOfDeleteDirs.forEach(([r, e]) => {
+                if (e) message.warning(e.message);
+              });
+            }
+            if (idOfFiles.length) {
+              const [res, err] = await apiBatchDelete({
+                ids: selectedRows.value.map((i) => i.id),
+                space: "PRIVATE",
+              });
+              if (err || !res) return;
+              const { driveDeleteFiles } = res.data;
+              if (driveDeleteFiles === idOfFiles.length) {
+                message.success(t("metanet.deleted"));
+              }
             }
             getAndSetTableDataFn(curFolderId.value);
           },
@@ -526,7 +655,7 @@ export default defineComponent({
           const resOfAll = await Promise.all(
             sizeCanUploadFiles.map(onUploadSingleFile)
           );
-          console.log("resOfAll", resOfAll);
+          // console.log("resOfAll", resOfAll);
         } catch (error) {
           console.log("上传文件错误", error);
         }
@@ -653,19 +782,348 @@ export default defineComponent({
         onChangeMultipleUploadFile,
       };
     }
+    const isShowCopyMoveModal = ref(false);
+    const currentCopyMoveModalTitle = ref<"copy" | "move">("copy"); // copy or move
+    /** 弹窗 复制/移动 */
+    function useCopyMoveModal() {
+      const copyMoveTableColumns = [
+        {
+          title: "Name",
+          // dataIndex: "name",
+          slots: { customRender: "name" },
+          key: "name",
+        },
+      ];
+      const copyMoveModalTableLoading = ref(false);
+      const copyMoveModalTableData = reactive<TDir[]>([]);
+      /** 选中要复制/移动的目标文件夹 默认选中'全部文件' */
+      const copyMoveModalCurrentSelectedDir = ref("root");
+      /** 选中的要复制/移动的文件的 id list */
+      const copyMoveModalSelectedDirList = ref<string[]>([]);
+      const getAndSetCopyMoveModalTableData = () => {
+        copyMoveModalTableLoading.value = true;
+        // 2021-07-05 先递归处理所有的目录, 后续要按需加载
+        apiQueryFileByDir({ dirId: "root" }).then(async ([res, err]) => {
+          if (err || !res) {
+            // console.log("err", err);
+            copyMoveModalTableLoading.value = false;
+            return;
+          }
+          /** 根据目录id, 父目录id 去递归获取children */
+          const getAndSetDirChildren = async (item: TDir, parentId: string) => {
+            const [resItem, errItem] = await apiQueryFileByDir({
+              dirId: item.dirId,
+            });
+            // console.log("目录res", item.dirId, item.dirName, resItem);
+            if (errItem || !resItem) return item;
+            // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
+            const afterFilterList = resItem.data.driveListFiles.filter(
+              (i): i is TFileItem =>
+                i !== null &&
+                i.isDir &&
+                !["root", item.dirId, parentId].includes(i.id)
+            );
+            // console.log("afterFilterList", afterFilterList);
+            if (!afterFilterList.length) return item;
+            item.children = await Promise.all(
+              afterFilterList.map((i) =>
+                getAndSetDirChildren(
+                  {
+                    dirId: i.id,
+                    dirName: i.fullName[i.fullName.length - 1],
+                  },
+                  item.dirId
+                )
+              )
+            );
+            return item;
+          };
+          // res.data.driveListFiles 提取文件夹的出来
+          const resIsDirList = res.data.driveListFiles.filter(
+            (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
+          );
+          const withChildrensDirList = await Promise.all(
+            resIsDirList.map((i) =>
+              getAndSetDirChildren(
+                {
+                  dirId: i.id,
+                  dirName: i.fullName[i.fullName.length - 1],
+                },
+                "root"
+              )
+            )
+          );
+          const rootDir: TDir = {
+            dirId: "root",
+            dirName: t("metanet.allFiles"),
+            children: withChildrensDirList,
+          };
+          copyMoveModalTableData.push(rootDir);
+          copyMoveModalTableLoading.value = false;
+        });
+      };
+      // getAndSetCopyMoveModalTableData();
+      /** 确认按钮点击 */
+      const onCopyMoveModalConfirm = () => {
+        /** 是否复制操作 */
+        const isActionCopy = currentCopyMoveModalTitle.value === "copy";
+        // 检测是否复制/移动到自身
+        if (
+          copyMoveModalSelectedDirList.value.some(
+            (fromId) => fromId === copyMoveModalCurrentSelectedDir.value
+          )
+        ) {
+          message.warning(
+            isActionCopy
+              ? "不能将文件复制到自身或其子目录下"
+              : "不能将文件移动到自身或其子目录下"
+          );
+          return;
+        }
+        return new Promise<void>((resolve) => {
+          /** 是否全部成功 */
+          let isAllSuccess = true;
+          /** 统一的收尾 */
+          const onFinally = () => {
+            resolve();
+            if (isAllSuccess) {
+              message.success(isActionCopy ? "复制成功" : "移动成功");
+            } else {
+              message.success(isActionCopy ? "部分复制成功" : "部分移动成功");
+            }
+            // 关闭弹窗并刷新当前列表
+            isShowCopyMoveModal.value = false;
+            getAndSetTableDataFn(curFolderId.value);
+          };
+          const toId = copyMoveModalCurrentSelectedDir.value;
+          // 移动/复制
+          if (isActionCopy) {
+            Promise.all(
+              copyMoveModalSelectedDirList.value.map((fromId) =>
+                apiCopyFileToDir({ fromId, toId })
+              )
+            )
+              .then((resOfCopyList) => {
+                // resOfCopyList: [[res,err],[res,err]...]
+                // console.log("resOfCopyList", resOfCopyList);
+                resOfCopyList.forEach(([r, e]) => {
+                  if (e) {
+                    isAllSuccess = false;
+                    message.warning(e.message);
+                  }
+                });
+              })
+              .finally(onFinally);
+          } else {
+            Promise.all(
+              copyMoveModalSelectedDirList.value.map((fromId) =>
+                apiMoveFileToDir({
+                  fromId,
+                  toId,
+                  fromSpace: "PRIVATE",
+                  toSpace: "PRIVATE",
+                })
+              )
+            )
+              .then((resOfMoveList) => {
+                // resOfMoveList: [[res,err],[res,err]...]
+                // console.log("resOfMoveList", resOfMoveList);
+                resOfMoveList.forEach(([r, e]) => {
+                  if (e) {
+                    isAllSuccess = false;
+                    message.warning(e.message);
+                  }
+                });
+              })
+              .finally(onFinally);
+          }
+        });
+      };
+      /** 设置自定义行onClick 事件 */
+      const copyMoveModalTableCustomRow = (record: TDir, index: number) => ({
+        onClick: (e: {
+          currentTarget: {
+            dataset: {
+              rowKey: string;
+            };
+          };
+        }) => {
+          // console.log(e.currentTarget.dataset.rowKey);
+          copyMoveModalCurrentSelectedDir.value =
+            e.currentTarget.dataset.rowKey;
+        },
+      });
+      const copyMoveModalTableRowClassName = (record: TDir, index: number) => {
+        return record.dirId === copyMoveModalCurrentSelectedDir.value
+          ? "copyMoveModalRow copyMoveModalRowActive"
+          : "copyMoveModalRow";
+      };
+      /** 设置要移动的idList,操作类型 */
+      const onCopyMoveModalPreAction = (
+        type: "move" | "copy",
+        idList: string[]
+      ) => {
+        copyMoveModalCurrentSelectedDir.value = "root"; // 重置为全部文件
+        copyMoveModalSelectedDirList.value.length = 0;
+        copyMoveModalSelectedDirList.value.push(...idList);
+        currentCopyMoveModalTitle.value = type;
+        isShowCopyMoveModal.value = true;
+        // 每次打开弹窗都获取最新的文件夹数据
+        copyMoveModalTableData.length = 0;
+        getAndSetCopyMoveModalTableData();
+      };
+      return {
+        isShowCopyMoveModal,
+        currentCopyMoveModalTitle,
+        copyMoveTableColumns,
+        copyMoveModalTableData,
+        onCopyMoveModalConfirm,
+        copyMoveModalCurrentSelectedDir,
+        copyMoveModalSelectedDirList,
+        copyMoveModalTableLoading,
+        copyMoveModalTableCustomRow,
+        copyMoveModalTableRowClassName,
+        onCopyMoveModalPreAction,
+      };
+    }
+    const isShowCreateFolderModal = ref(false);
+    /** 弹窗 新建文件夹 */
+    function useCreateFolderModal() {
+      const createFolderModelRef: TCreateFolder = reactive({
+        folderPrefix: "1", //1 当前路径 2根目录
+        folderName: "",
+        folderDesc: "",
+      });
+      const createFolderRulesRef = reactive({
+        folderName: [
+          {
+            required: true,
+            message: t("metanet.requireFolderName"),
+          },
+        ],
+      });
+      const {
+        resetFields,
+        validate,
+        validateInfos: createFolderValidateInfos,
+      } = useForm(createFolderModelRef, createFolderRulesRef);
+      const onCreateFolderModalConfirm = () => {
+        return new Promise<void>((resolve, reject) => {
+          const onResolvedAndCloseModal = () => {
+            resolve();
+            isShowCreateFolderModal.value = false;
+            onResetCreateFolderModalForm();
+            message.success(t("metanet.successCreateFolder"));
+            getAndSetTableDataFn(curFolderId.value);
+          };
+          validate()
+            .then(() => {
+              // 结构不需要toRaw
+              const { folderPrefix, folderName, folderDesc } =
+                createFolderModelRef;
+              const isMakeDirByRoot = folderPrefix === "2";
+              console.log("folderPrefix", folderPrefix, isMakeDirByRoot);
+              /** 检查对应位置的同名文件夹 */
+              const checkSameFolderNameByDirId = (
+                folderName: string,
+                dirId: string
+              ) => {
+                return new Promise<void>((resolve, reject) => {
+                  apiQueryFileByDir({ dirId }).then(([res, err]) => {
+                    if (err || !res) {
+                      reject();
+                      return;
+                    }
+                    if (
+                      res.data.driveListFiles.some(
+                        (i) =>
+                          i && i.fullName[i.fullName.length - 1] === folderName
+                      )
+                    ) {
+                      message.warning("对应位置已经存在同名文件夹");
+                      reject();
+                    } else {
+                      resolve();
+                    }
+                  });
+                });
+              };
+              if (isMakeDirByRoot) {
+                checkSameFolderNameByDirId(folderName, "root").then(() => {
+                  apiMakeDirByRoot({
+                    fullName: folderName,
+                    description: folderDesc,
+                  }).then(([res, err]) => {
+                    err ? reject() : onResolvedAndCloseModal();
+                  });
+                });
+              } else {
+                checkSameFolderNameByDirId(folderName, curFolderId.value).then(
+                  () => {
+                    apiMakeDirByPath({
+                      fullName: folderName,
+                      description: folderDesc,
+                      parentId: curFolderId.value,
+                    }).then(([res, err]) => {
+                      err ? reject() : onResolvedAndCloseModal();
+                    });
+                  }
+                );
+              }
+            })
+            .catch(() => {
+              resolve();
+            });
+        });
+      };
+      /** 重置为原始值 */
+      const onResetCreateFolderModalForm = () => {
+        const ori = toRaw(createFolderModelRef);
+        ori.folderPrefix = "1";
+        ori.folderName = "";
+        ori.folderDesc = "";
+      };
+      return {
+        isShowCreateFolderModal,
+        createFolderModelRef,
+        createFolderValidateInfos,
+        onCreateFolderModalConfirm,
+        onResetCreateFolderModalForm,
+      };
+    }
     /** action 里对record的操作 */
     function useActions() {
-      const onRecordShare = () => {
-        console.log("share");
+      // 分享
+      const onRecordShare = (record: TFileItem) => {
+        console.log("share", record);
       };
-      // const onRecordShare = () => {};
-      // const onRecordShare = () => {};
-      // const onRecordShare = () => {};
-      // const onRecordShare = () => {};
-      // const onRecordShare = () => {};
-      // const onRecordShare = () => {};
-      // const onRecordShare = () => {};
-      return { onRecordShare };
+      // 发布
+      // 传送
+      // 下载
+      // 重命名
+      const onRecordRename = (record: TFileItem) => {
+        console.log("onRecordRename", record);
+      };
+      const onRecordDelete = (record: TFileItem) => {
+        const fileName = record.fullName[record.fullName.length - 1];
+        Modal.confirm({
+          title: `是否删除${fileName}`,
+          icon: createVNode(ExclamationCircleOutlined),
+          onOk: async () => {
+            const [res, err] = await apiSingleDelete({
+              id: record.id,
+              space: "PRIVATE",
+            });
+            if (err || !res) return;
+            // if (res.data.driveDeleteFile === 1) {
+            // }
+            message.success(t("metanet.deleted"));
+            getAndSetTableDataFn(curFolderId.value);
+          },
+        });
+      };
+
+      return { onRecordShare, onRecordDelete, onRecordRename };
     }
     let getAndSetTableDataFn: (dirId: string) => void;
 
@@ -988,6 +1446,8 @@ export default defineComponent({
       selectedRows,
       selectedRowKeys,
       ...useToolSet(),
+      ...useCopyMoveModal(),
+      ...useCreateFolderModal(),
       ...useActions(),
       ...useTableData(),
       ...useDrawer(),
@@ -1012,5 +1472,14 @@ export default defineComponent({
     height: 47px;
     line-height: 47px;
   }
+}
+
+.copyMoveModalRow > td {
+  cursor: pointer;
+  border: none !important;
+  // border-bottom: 1px solid #eff2f9;
+}
+.copyMoveModalRowActive > td {
+  background: #bae7ff;
 }
 </style>

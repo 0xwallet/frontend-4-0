@@ -449,6 +449,34 @@ export const apiBatchDelete: TApiFn<ParamsBatchDelete, ResponseBatchDelete> =
     return [res, err];
   };
 
+type ParamsSingleDelete = {
+  id: string;
+  space: "PRIVATE" | "PUBLIC";
+};
+type ResponseSingleDelete = {
+  data: {
+    driveDeleteFile: number; // 实际服务器删除的数量
+  };
+};
+/** 删除单个文件/文件夹
+ * 这个接口可以成功删除文件夹,批量的那个暂时不可以
+ *  */
+export const apiSingleDelete: TApiFn<ParamsSingleDelete, ResponseSingleDelete> =
+  async (params) => {
+    if (!params) return [undefined, Error("noparams")];
+    let res, err;
+    try {
+      res = await useApollo<ResponseSingleDelete>({
+        mode: "mutate",
+        gql: Basic.Delete,
+        variables: params,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };
+
 type ResponseGetPreviewToken = {
   data: {
     drivePreviewToken: string;
@@ -495,6 +523,127 @@ export const apiGetShareToken: TApiFn<
         uri: params.uri,
         code: params.code,
       },
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsMoveFileToDir = {
+  fromId: string;
+  toId: string;
+  fromSpace: "PRIVATE" | "PUBLIC";
+  toSpace: "PRIVATE" | "PUBLIC";
+};
+type ResponseMoveFileToDir = {
+  data: {
+    driveMoveFile: number; // 移动的文件数
+  };
+};
+/** 移动文件 */
+export const apiMoveFileToDir: TApiFn<
+  ParamsMoveFileToDir,
+  ResponseMoveFileToDir
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseMoveFileToDir>({
+      mode: "mutate",
+      gql: Basic.Move,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsCopyFileToDir = {
+  fromId: string;
+  toId: string;
+};
+type ResponseCopyFileToDir = {
+  data: {
+    driveCopyFile: number; // 修改的文件数
+  };
+};
+/** 复制文件 */
+export const apiCopyFileToDir: TApiFn<
+  ParamsCopyFileToDir,
+  ResponseCopyFileToDir
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseCopyFileToDir>({
+      mode: "mutate",
+      gql: Basic.Copy,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsMakeDirByRoot = {
+  fullName: string;
+  description?: string;
+};
+type ResponseMakeDirByRoot = {
+  data: {
+    driveMakeDir: {
+      fullName: string[];
+      isDir: boolean;
+    };
+  };
+};
+/** 创建文件夹 */
+export const apiMakeDirByRoot: TApiFn<
+  ParamsMakeDirByRoot,
+  ResponseMakeDirByRoot
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseMakeDirByRoot>({
+      mode: "mutate",
+      gql: Basic.MakeDir,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsMakeDirByPath = {
+  fullName: string;
+  parentId: string;
+  description?: string;
+};
+type ResponseMakeDirByPath = {
+  data: {
+    driveMakeDirUnder: {
+      fullName: string[];
+      isDir: boolean;
+    };
+  };
+};
+/** 在指定目录下创建文件夹 */
+export const apiMakeDirByPath: TApiFn<
+  ParamsMakeDirByPath,
+  ResponseMakeDirByPath
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseMakeDirByPath>({
+      mode: "mutate",
+      gql: Basic.MakeDirUnder,
+      variables: params,
     });
   } catch (error) {
     err = error;

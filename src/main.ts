@@ -46,6 +46,9 @@ import {
   Drawer,
   Progress,
   Tag,
+  Modal,
+  Tree,
+  Radio,
   Layout,
 } from "ant-design-vue";
 app
@@ -70,6 +73,9 @@ app
   .use(Drawer)
   .use(Progress)
   .use(Tag)
+  .use(Modal)
+  .use(Tree)
+  .use(Radio)
   .use(Layout);
 // ant-design-vue --end
 
