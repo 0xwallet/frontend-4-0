@@ -68,10 +68,10 @@
         >
           {{ $t("metanet.downloadButton") }}
         </a-button> -->
-        <a-button @click="onDownload" :disabled="selectedRows.length > 1">
-          <!-- 选中多个的时候禁用重命名 -->
+        <!-- 选中多个的时候禁用重命名 -->
+        <!-- <a-button @click="onDownload" :disabled="selectedRows.length > 1">
           {{ $t("metanet.rename") }}
-        </a-button>
+        </a-button> -->
         <a-button
           @click="
             onCopyMoveModalPreAction(
@@ -154,15 +154,31 @@
         <!-- 空白就是blank 文件夹就是folder -->
         <XFileTypeIcon class="w-6 h-6" :type="record.fileType" />
         <a
+          v-if="currentRenameId !== record.id"
           href="javascript:void(0)"
           class="ml-2"
           :title="record.fullName[0]"
           @click="onClickTableItemName(record)"
         >
-          <!-- <a-tooltip :title="record.fullName[0]"> -->
           {{ record.fullName[0] }}
-          <!-- </a-tooltip> -->
         </a>
+        <div v-else class="inline-flex items-center ml-1">
+          <a-input
+            ref="renameInput"
+            class="w-48"
+            size="small"
+            :maxlength="200"
+            v-model:value="currentRenameString"
+          />
+          <CheckSquareOutlined
+            class="ml-1 renameButton"
+            @click="onRecordRenameConfirm(record)"
+          />
+          <CloseSquareOutlined
+            class="ml-1 renameButton"
+            @click="onResetRecordRenameState"
+          />
+        </div>
       </template>
       <template #hash="{ record }">
         <TdHash v-if="record && record.hash" :hash="record.hash" />
@@ -226,7 +242,7 @@
               <!-- 重命名 -->
               <a-menu-item
                 class="px-4 flex items-center"
-                @click="onRecordShare(record)"
+                @click="onRecordRename(record)"
               >
                 {{ $t("metanet.rename") }}
               </a-menu-item>
@@ -435,6 +451,7 @@ import {
   reactive,
   onUnmounted,
   toRaw,
+  nextTick,
 } from "vue";
 import {
   DownOutlined,
@@ -446,6 +463,8 @@ import {
   EllipsisOutlined,
   GlobalOutlined,
   InfoCircleOutlined,
+  CheckSquareOutlined,
+  CloseSquareOutlined,
   DownloadOutlined,
 } from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
@@ -459,6 +478,7 @@ import {
   apiMakeDirByRoot,
   apiMoveFileToDir,
   apiQueryFileByDir,
+  apiRename,
   apiSingleDelete,
   apiUploadSingle,
   TFileItem,
@@ -515,6 +535,8 @@ export default defineComponent({
     DeleteOutlined,
     GlobalOutlined,
     InfoCircleOutlined,
+    CheckSquareOutlined,
+    CloseSquareOutlined,
     // DownloadOutlined,
     //
     TableFiles,
@@ -1100,9 +1122,48 @@ export default defineComponent({
       // 发布
       // 传送
       // 下载
-      // 重命名
+      const currentRenameId = ref("");
+      const currentRenameString = ref("");
+      const renameInput =
+        ref<{ focus: () => void; input: HTMLInputElement } | null>(null);
+      /** 重命名 */
       const onRecordRename = (record: TFileItem) => {
         console.log("onRecordRename", record);
+        const toEditName = record.fullName[record.fullName.length - 1];
+        currentRenameString.value = toEditName;
+        currentRenameId.value = record.id;
+        nextTick(() => {
+          console.log("renameInput", renameInput.value);
+          // 设置默认选中编辑的文字区域
+          const end = record.isDir
+            ? toEditName.length
+            : toEditName.lastIndexOf(".");
+          renameInput.value?.input.setSelectionRange(0, end);
+          renameInput.value?.focus();
+        });
+      };
+      const onRecordRenameConfirm = async (record: TFileItem) => {
+        // api success clear
+        const [res, err] = await apiRename({
+          id: currentRenameId.value,
+          newName: currentRenameString.value,
+          space: "PRIVATE",
+        });
+        if (err) {
+          onResetRecordRenameState();
+          message.warning(err.message);
+          return;
+        }
+        // 这里暂时赋值, 保证视觉连贯性
+        record.fullName = [currentRenameString.value];
+        onResetRecordRenameState();
+        getAndSetTableDataFn(curFolderId.value);
+        message.success("重命名成功");
+      };
+      /** 清空编辑状态 */
+      const onResetRecordRenameState = () => {
+        currentRenameString.value = "";
+        currentRenameId.value = "";
       };
       const onRecordDelete = (record: TFileItem) => {
         const fileName = record.fullName[record.fullName.length - 1];
@@ -1123,7 +1184,16 @@ export default defineComponent({
         });
       };
 
-      return { onRecordShare, onRecordDelete, onRecordRename };
+      return {
+        onRecordShare,
+        onRecordDelete,
+        currentRenameId,
+        currentRenameString,
+        renameInput,
+        onRecordRename,
+        onRecordRenameConfirm,
+        onResetRecordRenameState,
+      };
     }
     let getAndSetTableDataFn: (dirId: string) => void;
 
@@ -1190,7 +1260,7 @@ export default defineComponent({
           title: t("metanet.name"),
           slots: { customRender: "name" },
           // width: 100,
-          ellipsis: true,
+          // ellipsis: true,
         },
         // {
         //   title: t("metanet.type"),
@@ -1481,5 +1551,14 @@ export default defineComponent({
 }
 .copyMoveModalRowActive > td {
   background: #bae7ff;
+}
+.renameButton {
+  cursor: pointer;
+  font-size: 17px;
+  color: #1890ff;
+  opacity: 0.5;
+  &:hover {
+    opacity: 1;
+  }
 }
 </style>

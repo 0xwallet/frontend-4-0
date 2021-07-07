@@ -650,3 +650,33 @@ export const apiMakeDirByPath: TApiFn<
   }
   return [res, err];
 };
+
+type ParamsRename = {
+  id: string;
+  newName: string;
+  space: "PRIVATE" | "PUBLIC";
+};
+type ResponseRename = {
+  data: {
+    driveRenameFile: {
+      id: string;
+    };
+  };
+};
+/** 重命名文件/夹 */
+export const apiRename: TApiFn<ParamsRename, ResponseRename> = async (
+  params
+) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseRename>({
+      mode: "mutate",
+      gql: Basic.Rename,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};

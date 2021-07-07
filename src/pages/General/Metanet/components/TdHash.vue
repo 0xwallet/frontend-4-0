@@ -91,7 +91,8 @@ export default defineComponent({
 }
 .tdHash:hover .tdHashIcon {
   // display: block;
-  opacity: 0.3;
+  font-size: 16px;
+  opacity: 0.5;
 }
 .tdHashIcon {
   opacity: 0;
