@@ -363,6 +363,46 @@
         />
       </div>
     </a-drawer>
+    <!-- 新建文件 txt/ markdown -->
+    <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowCreateFileModal"
+      :title="$t('metanet.createFile')"
+      :confirmLoading="createFileModalConfirmLoading"
+      @ok="onCreateFileModalConfirm"
+      @cancel="onResetCreateFileModalForm"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item
+          :label="$t('metanet.createFileType')"
+          v-bind="createFileValidateInfos.fileType"
+        >
+          <a-radio-group v-model:value="createFileModelRef.fileType">
+            <a-radio value="txt">txt</a-radio>
+            <a-radio value="markdown">markdown</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item
+          :label="$t('metanet.fileName')"
+          v-bind="createFileValidateInfos.fileName"
+        >
+          <a-input
+            :maxlength="30"
+            :placeholder="$t('metanet.fileName')"
+            v-model:value="createFileModelRef.fileName"
+            :addonAfter="
+              createFileModelRef.fileType === 'txt' ? '.txt' : '.md '
+            "
+          />
+        </a-form-item>
+        <a-form-item :label="$t('metanet.addDesc')">
+          <a-input
+            :maxlength="200"
+            v-model:value="createFileModelRef.fileDesc"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
     <!-- 弹窗 新建文件夹 -->
     <a-modal
       :destroyOnClose="true"
@@ -516,6 +556,11 @@ type TDir = {
   dirName: string;
   children?: TDir[];
 };
+type TCreateFile = {
+  fileType: "txt" | "markdown";
+  fileName: string;
+  fileDesc: string;
+};
 type TCreateFolder = {
   folderPrefix: "1" | "2";
   folderName: string;
@@ -554,7 +599,7 @@ export default defineComponent({
       }: {
         key: "file" | "folder";
       }) => {
-        console.log("onClickDropDownMenuCreate", key);
+        if (key === "file") isShowCreateFileModal.value = true;
         if (key === "folder") isShowCreateFolderModal.value = true;
       };
       const onClickDropDownMenuUpload = ({
@@ -1006,6 +1051,83 @@ export default defineComponent({
         copyMoveModalTableCustomRow,
         copyMoveModalTableRowClassName,
         onCopyMoveModalPreAction,
+      };
+    }
+    const isShowCreateFileModal = ref(false);
+    /** 弹窗 新建文件 */
+    function useCreateFileModal() {
+      const createFileModelRef: TCreateFile = reactive({
+        fileType: "txt", // txt markdown
+        fileName: "",
+        fileDesc: "",
+      });
+      const createFileRulesRef = reactive({
+        fileName: [
+          {
+            required: true,
+            message: t("metanet.requireFileName"),
+          },
+        ],
+      });
+      const {
+        resetFields,
+        validate,
+        validateInfos: createFileValidateInfos,
+      } = useForm(createFileModelRef, createFileRulesRef);
+      const createFileModalConfirmLoading = ref(false);
+      const onCreateFileModalConfirm = () => {
+        return new Promise<void>((resolve, reject) => {
+          validate()
+            .then(async () => {
+              const { fileType, fileName, fileDesc } = createFileModelRef;
+              const isTxt = fileType === "txt";
+              const fullFileName = `${fileName}${isTxt ? ".txt" : ".md"}`;
+              // console.log("fullFileName", fullFileName, fileName);
+              const file = new File([""], fullFileName, {
+                type: isTxt ? "text/plain" : "text/markdown",
+              });
+              createFileModalConfirmLoading.value = true;
+              const [res, err] = await apiUploadSingle({
+                SourceFile: file,
+                // 上传到不同的文件夹就要带上其名称在前面 (除了root)
+                FullName: [
+                  ...historyDir.value.slice(1).map((i) => i.name),
+                  fullFileName,
+                ],
+                FileSize: file.size,
+                UserId: useUserStore().id,
+                Space: "PRIVATE",
+                Description: fileDesc,
+                Action: "drive",
+              });
+              createFileModalConfirmLoading.value = false;
+              if (err) {
+                message.warning(err.message);
+                resolve();
+                return;
+              }
+              resolve();
+              message.success("新建成功");
+              isShowCreateFileModal.value = false;
+              onResetCreateFileModalForm();
+              getAndSetTableDataFn(curFolderId.value);
+            })
+            .catch(() => resolve());
+        });
+      };
+      const onResetCreateFileModalForm = () => {
+        const ori = toRaw(createFileModelRef);
+        ori.fileType = "txt";
+        ori.fileName = "";
+        ori.fileDesc = "";
+      };
+      return {
+        isShowCreateFileModal,
+        createFileModelRef,
+        createFileValidateInfos,
+        createFileModalConfirmLoading,
+        onCreateFileModalConfirm,
+        onResetCreateFileModalForm,
       };
     }
     const isShowCreateFolderModal = ref(false);
@@ -1517,6 +1639,7 @@ export default defineComponent({
       selectedRowKeys,
       ...useToolSet(),
       ...useCopyMoveModal(),
+      ...useCreateFileModal(),
       ...useCreateFolderModal(),
       ...useActions(),
       ...useTableData(),

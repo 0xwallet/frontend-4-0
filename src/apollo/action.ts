@@ -46,12 +46,15 @@ export function initApollo(): TClient | null {
   });
   const error = onError(({ graphQLErrors, networkError }) => {
     if (graphQLErrors) {
+      console.log("graphQLErrors", graphQLErrors);
       if (
         // 调试中发现 500 报错的返回是有detail 的
-        (graphQLErrors as unknown as { detail: string }).detail ===
-        '"Internal Server Error"'
+        typeof (graphQLErrors as unknown as { detail: string }).detail ===
+        "string"
       ) {
-        Modal.error({ content: "Internal Server Error" });
+        Modal.error({
+          content: (graphQLErrors as unknown as { detail: string }).detail,
+        });
       } else {
         graphQLErrors.map(({ message, locations, path }) => {
           switch (message) {

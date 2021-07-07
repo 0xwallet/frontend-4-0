@@ -256,7 +256,9 @@ export default {
     path: "路径",
     folderName: "文件夹名",
     requireFolderName: "请输入文件夹名称",
+    requireFileName: "请输入文件名称",
     createFolderPath: "创建位置",
+    createFileType: "文件类型",
     successCreateFolder: "创建文件夹成功", // TODO 加上参数 什么 文件夹成功
     drag: `单击或拖动文件到该区域以上传`,
     basic: "基本",
