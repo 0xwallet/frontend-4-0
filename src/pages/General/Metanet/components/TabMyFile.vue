@@ -444,6 +444,63 @@
         </a-form-item>
       </a-form>
     </a-modal>
+    <!-- 弹窗 分享链接 -->
+    <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowSuccessShareModal"
+      :okText="
+        currentSuccessShare.code
+          ? $t('metanet.copyShare')
+          : $t('metanet.copyLink')
+      "
+      :title="`分享文件(夹) ${currentSuccessShare.name}`"
+      @ok="onSuccessShareModalConfirm"
+      @cancel="onResetSuccessShareModalForm"
+    >
+      <a-row class="mb-4" type="flex" justify="space-around" align="middle">
+        <a-col :span="4">{{ $t("metanet.shareUrl") }}</a-col>
+        <a-col :span="20">
+          <a-input v-model:value="currentSuccessShare.url">
+            <template #suffix>
+              <a
+                @click="onCopySuccessShareInput('url')"
+                class="ant-color-blue"
+                href="javascript:;"
+                >{{ $t("metanet.copyButton") }}</a
+              >
+            </template>
+          </a-input>
+        </a-col>
+      </a-row>
+      <a-row
+        v-if="currentSuccessShare.code"
+        class="mb-4"
+        type="flex"
+        justify="start"
+        align="middle"
+      >
+        <a-col :span="4">{{ $t("metanet.code") }}</a-col>
+        <a-col :span="5">
+          <a-input v-model:value="currentSuccessShare.code">
+            <template #suffix>
+              <a
+                @click="onCopySuccessShareInput('code')"
+                class="ant-color-blue"
+                href="javascript:;"
+                >{{ $t("metanet.copyButton") }}</a
+              >
+            </template>
+          </a-input>
+        </a-col>
+      </a-row>
+      <a-row>
+        <a-col
+          >链接<span class="ant-color-blue"
+            >{{ currentSuccessShare.expired }}天</span
+          >后失效</a-col
+        >
+      </a-row>
+    </a-modal>
     <!-- 弹窗 发布文件 -->
     <a-modal
       :destroyOnClose="true"
@@ -658,6 +715,7 @@ import {
 import pLimit from "p-limit";
 import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
+import { useClipboard } from "@vueuse/core";
 
 type THistoryDirItem = {
   id: string;
@@ -1271,7 +1329,7 @@ export default defineComponent({
           await validate();
           // 验证通过
           const { type, expired, code } = shareFileModelRef;
-          const { id: fileId } = currentShareFile;
+          const { name, id: fileId } = currentShareFile;
           shareFileModalConfirmLoading.value = true;
           const [res, err] = await apiShareCreate({
             userFileId: fileId,
@@ -1288,10 +1346,15 @@ export default defineComponent({
             return;
           }
           message.success("分享成功");
-          // TODO 分享成功的界面 链接
           isShowShareFileModal.value = false;
+          // 开始显示分享成功后的分享信息弹窗 -start
+          currentSuccessShare.name = name;
+          currentSuccessShare.url = `${window.location.href}?shareUri=${res?.data.driveCreateShare.uri}`;
+          currentSuccessShare.code = code || "";
+          currentSuccessShare.expired = expired;
+          isShowSuccessShareModal.value = true;
+          // 开始显示分享成功后的分享信息弹窗 -end
           onResetShareFileModalForm();
-          // 变换弹窗内容为分享后的
         } catch (error) {
           console.log(error);
         }
@@ -1312,6 +1375,47 @@ export default defineComponent({
         shareFileModalConfirmLoading,
         onShareFileModalConfirm,
         onResetShareFileModalForm,
+      };
+    }
+    const isShowSuccessShareModal = ref(false);
+    const currentSuccessShare = reactive({
+      name: "",
+      url: "", // 分享链接
+      code: "", // 提取码
+      expired: 0, // 1 or 7 天有效期
+    });
+    /** 弹窗 分享链接 */
+    function useSuccessShareModal() {
+      /** 复制链接及访问码 */
+      const onSuccessShareModalConfirm = () => {
+        // console.log("onSuccessShareModalConfirm");
+        const { url, code } = currentSuccessShare;
+        const { username } = useUserStore();
+        const codeText = code ? `访问码: ${code}` : "";
+        const text = `链接: ${url} ${codeText} \n--来自0xWallet ${username}的分享`;
+        const { copy } = useClipboard({ read: false });
+        copy(text).then(() => message.success(t("metanet.copySuccess")));
+      };
+      /** 重置当前分享成功信息 */
+      const onResetSuccessShareModalForm = () => {
+        const ori = toRaw(currentSuccessShare);
+        ori.name = "";
+        ori.url = "";
+        ori.code = "";
+        ori.expired = 0;
+      };
+      const onCopySuccessShareInput = (type: "url" | "code") => {
+        const text =
+          type === "url" ? currentSuccessShare.url : currentSuccessShare.code;
+        const { copy } = useClipboard({ read: false });
+        copy(text).then(() => message.success(t("metanet.copySuccess")));
+      };
+      return {
+        isShowSuccessShareModal,
+        currentSuccessShare,
+        onCopySuccessShareInput,
+        onSuccessShareModalConfirm,
+        onResetSuccessShareModalForm,
       };
     }
     const isShowPublishModal = ref(false);
@@ -1628,14 +1732,14 @@ export default defineComponent({
     function useActions() {
       // 分享
       const onRecordShare = (record: TFileItem) => {
-        console.log("share", record);
+        // console.log("share", record);
         currentShareFile.name = lastOfArray(record.fullName);
         currentShareFile.id = record.id;
         isShowShareFileModal.value = true;
       };
       // 发布
       const onRecordPublish = (record: TFileItem) => {
-        console.log("onRecordPublish", record);
+        // console.log("onRecordPublish", record);
         getPublishOptionList();
         currentPublish.name = lastOfArray(record.fullName);
         currentPublish.id = record.id;
@@ -1648,12 +1752,12 @@ export default defineComponent({
         ref<{ focus: () => void; input: HTMLInputElement } | null>(null);
       /** 重命名 */
       const onRecordRename = (record: TFileItem) => {
-        console.log("onRecordRename", record);
+        // console.log("onRecordRename", record);
         const toEditName = lastOfArray(record.fullName);
         currentRenameString.value = toEditName;
         currentRenameId.value = record.id;
         nextTick(() => {
-          console.log("renameInput", renameInput.value);
+          // console.log("renameInput", renameInput.value);
           // 设置默认选中编辑的文字区域
           const end = record.isDir
             ? toEditName.length
@@ -2039,6 +2143,7 @@ export default defineComponent({
       ...useToolSet(),
       ...useCopyMoveModal(),
       ...useShareFileModal(),
+      ...useSuccessShareModal(),
       ...usePublishModal(),
       ...useCreateFileModal(),
       ...useCreateFolderModal(),
