@@ -13,6 +13,7 @@ import {
   signUp,
   Basic,
   Share,
+  Publish,
 } from "./document";
 import { TSession } from "nkn";
 import { MAX_MTU, REMOTE_ADDR } from "@/constants";
@@ -673,6 +674,193 @@ export const apiRename: TApiFn<ParamsRename, ResponseRename> = async (
     res = await useApollo<ResponseRename>({
       mode: "mutate",
       gql: Basic.Rename,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsShareCreate = {
+  code?: string;
+  userFileId: string;
+  day: number;
+};
+type ResponseShareCreate = {
+  data: {
+    driveCreateShare: {
+      code: string;
+      token: string;
+      uri: string;
+      // code: "38px"
+      // token: "lYB28i-jPO9QF30464PWng"
+      // uri: "vkvgtGrbKeCZNtLokzgxpg"
+    };
+  };
+};
+/** 分享文件 */
+export const apiShareCreate: TApiFn<ParamsShareCreate, ResponseShareCreate> =
+  async (params) => {
+    if (!params) return [undefined, Error("noparams")];
+    let res, err;
+    try {
+      res = await useApollo<ResponseShareCreate>({
+        mode: "mutate",
+        gql: Share.Create,
+        variables: params,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };
+
+export type QueryShareFileItem = {
+  code: string | null;
+  collectedCount: number;
+  expiredAt: string;
+  id: string;
+  insertedAt: string;
+  isCollected: boolean;
+  token: string;
+  updatedAt: string;
+  uri: string;
+  userFile: TFileItem | null;
+};
+
+type ResponseQueryShareFile = {
+  data: {
+    driveListShares: QueryShareFileItem[];
+  };
+};
+/** 获取分享文件列表 */
+export const apiQueryShareFile: TApiFn<undefined, ResponseQueryShareFile> =
+  async () => {
+    let res, err;
+    try {
+      res = await useApollo<ResponseQueryShareFile>({
+        mode: "query",
+        gql: Share.List,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };
+
+type ParamsDeleteShare = {
+  id: string;
+};
+type ResponseDeleteShare = {
+  data: {
+    driveDeleteShare: {
+      id: string;
+    };
+  };
+};
+/** 删除分享 */
+export const apiDeleteShare: TApiFn<ParamsDeleteShare, ResponseDeleteShare> =
+  async (params) => {
+    if (!params) return [undefined, Error("noparams")];
+    let res, err;
+    try {
+      res = await useApollo<ResponseDeleteShare>({
+        mode: "mutate",
+        gql: Share.Delete,
+        variables: params,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };
+
+type TPublishHistoryItem = {
+  id: string;
+  txid: string;
+  version: number;
+  userFile: TFileItem;
+};
+
+type ResponseQueryPublishList = {
+  data: {
+    driveListPublishs: {
+      // id: string;
+      collectedCount: number;
+      id: string;
+      isCollected: boolean;
+      current: TPublishHistoryItem;
+      history: TPublishHistoryItem[];
+    }[];
+  };
+};
+/** 查询发布列表 */
+export const apiQueryPublishList: TApiFn<undefined, ResponseQueryPublishList> =
+  async () => {
+    let res, err;
+    try {
+      res = await useApollo<ResponseQueryPublishList>({
+        mode: "query",
+        gql: Publish.List,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };
+
+type ParamsPublishCreate = {
+  userFileId: string;
+};
+type ResponsePublishCreate = {
+  data: {
+    driveCreatePublish: {
+      id: string;
+    };
+  };
+};
+/** 发布新文件 */
+export const apiPublishCreate: TApiFn<
+  ParamsPublishCreate,
+  ResponsePublishCreate
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponsePublishCreate>({
+      mode: "mutate",
+      gql: Publish.Create,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsPublishUpdate = {
+  userFileId: string;
+  id: string;
+};
+type ResponsePublishUpdate = {
+  data: {
+    driveUpdatePublish: {
+      id: string;
+    };
+  };
+};
+/** 更新已发布id(文件) */
+export const apiPublishUpdate: TApiFn<
+  ParamsPublishUpdate,
+  ResponsePublishUpdate
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponsePublishUpdate>({
+      mode: "mutate",
+      gql: Publish.Update,
       variables: params,
     });
   } catch (error) {

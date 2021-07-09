@@ -9,6 +9,8 @@ const app = createApp(App);
 // 注册全局属性
 // 专门给模板中调试事件用的 @click="$log"
 app.config.globalProperties.$log = console.log;
+// 专门给模板用的提取最后一个元素
+app.config.globalProperties.$lastOfArray = lastOfArray;
 
 // 国际化 --start
 import { createI18n } from "vue-i18n";
@@ -51,6 +53,7 @@ import {
   Radio,
   Layout,
 } from "ant-design-vue";
+import { lastOfArray } from "./utils";
 app
   .use(ConfigProvider)
   .use(Menu)

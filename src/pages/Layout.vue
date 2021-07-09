@@ -76,7 +76,7 @@
             <!-- 面包屑 sub/item -->
             <a-breadcrumb class="inline-block">
               <a-breadcrumb-item>
-                <a href="javascript:void(0)">{{
+                <a href="javascript:;">{{
                   $t(`common.${computedBreadcrumpObj.subKey}`)
                 }}</a>
                 <template #overlay>

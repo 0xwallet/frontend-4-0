@@ -77,7 +77,7 @@ export default defineComponent({
       },
       getCheckboxProps: (record: TFileItem) => ({
         // 禁选上级目录
-        disabled: record.fullName[0] === "...", // Column configuration not to be checked
+        disabled: record.fullName && record.fullName[0] === "...", // Column configuration not to be checked
         // name: record.name,
       }),
     };

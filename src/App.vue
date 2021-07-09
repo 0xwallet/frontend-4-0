@@ -145,4 +145,7 @@ body,
 .ant-color-failed {
   color: #ff4d4f;
 }
+.ant-color-danger {
+  color: #ff7875;
+}
 </style>

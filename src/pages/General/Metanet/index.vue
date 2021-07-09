@@ -23,12 +23,14 @@ import TabMyCollect from "./components/TabMyCollect.vue";
 import TabMyPublish from "./components/TabMyPublish.vue";
 import TabMyShare from "./components/TabMyShare.vue";
 import TabRecycle from "./components/TabRecycle.vue";
+
 export type ICurrentTabKey =
   | "myFile"
   | "myShare"
   | "myPublish"
   | "myCollect"
   | "recycle";
+
 export default defineComponent({
   components: {
     // icon
@@ -45,8 +47,8 @@ export default defineComponent({
         [key in ICurrentTabKey]: string;
       } = {
         myFile: "TabMyFile",
-        myPublish: "TabMyCollect",
-        myCollect: "TabMyPublish",
+        myPublish: "TabMyPublish",
+        myCollect: "TabMyCollect",
         myShare: "TabMyShare",
         recycle: "TabRecycle",
       };

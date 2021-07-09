@@ -1,14 +1,9 @@
 import SHA256 from "crypto-js/sha256";
 import WordArray from "crypto-js/lib-typedarrays";
-import { TFileItem } from "@/apollo/api";
 
-export function hasOwn(
-  obj: {
-    [key: string]: any;
-  },
-  key: string
-): boolean {
-  return Object.prototype.hasOwnProperty.call(obj, key);
+/** 获取同类数组的最后一个元素 */
+export function lastOfArray<T>(arr: T[]) {
+  return arr[arr.length - 1];
 }
 
 /** 转换size 显示 */

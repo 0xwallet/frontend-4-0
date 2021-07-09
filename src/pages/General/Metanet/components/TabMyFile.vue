@@ -137,13 +137,12 @@
           >
         </a-breadcrumb-item>
       </template>
-      <a-breadcrumb-item>{{
-        historyDir[historyDir.length - 1].name
-      }}</a-breadcrumb-item>
+      <a-breadcrumb-item>{{ $lastOfArray(historyDir).name }}</a-breadcrumb-item>
     </a-breadcrumb>
     <!-- 表格 -->
     <TableFiles
       rowKey="id"
+      :rowClassName="() => 'rowClass'"
       :columns="columns"
       :data="tableData"
       :loading="tableLoading"
@@ -151,33 +150,80 @@
       v-model:selectedRowKeys="selectedRowKeys"
     >
       <template #name="{ record }">
-        <!-- 空白就是blank 文件夹就是folder -->
-        <XFileTypeIcon class="w-6 h-6" :type="record.fileType" />
-        <a
-          v-if="currentRenameId !== record.id"
-          href="javascript:void(0)"
-          class="ml-2"
-          :title="record.fullName[0]"
-          @click="onClickTableItemName(record)"
-        >
-          {{ record.fullName[0] }}
-        </a>
-        <div v-else class="inline-flex items-center ml-1">
-          <a-input
-            ref="renameInput"
-            class="w-48"
-            size="small"
-            :maxlength="200"
-            v-model:value="currentRenameString"
-          />
-          <CheckSquareOutlined
-            class="ml-1 renameButton"
-            @click="onRecordRenameConfirm(record)"
-          />
-          <CloseSquareOutlined
-            class="ml-1 renameButton"
-            @click="onResetRecordRenameState"
-          />
+        <div class="tdName relative">
+          <!-- 空白就是blank 文件夹就是folder -->
+          <XFileTypeIcon class="w-6 h-6" :type="record.fileType" />
+          <a
+            v-if="currentRenameId !== record.id"
+            href="javascript:;"
+            class="ml-2"
+            :title="record.fullName[0]"
+            @click="onClickTableItemName(record)"
+          >
+            {{ record.fullName[0] }}
+          </a>
+          <div v-else class="inline-flex items-center ml-1">
+            <a-input
+              ref="renameInput"
+              class="w-48"
+              size="small"
+              :maxlength="200"
+              v-model:value="currentRenameString"
+            />
+            <CheckSquareOutlined
+              class="ml-1 renameButton"
+              @click="onRecordRenameConfirm(record)"
+            />
+            <CloseSquareOutlined
+              class="ml-1 renameButton"
+              @click="onResetRecordRenameState"
+            />
+          </div>
+          <!-- hover 才显示的shortCut栏 -->
+          <div class="tdShortcut hidden inline-block absolute right-0">
+            <!-- 详情 -->
+            <a-tooltip title="详情">
+              <a class="renameButton ml-1" href="javascript:;"
+                ><InfoCircleOutlined
+              /></a>
+            </a-tooltip>
+            <!-- 重命名 -->
+            <a-tooltip title="重命名">
+              <a
+                class="renameButton ml-1"
+                href="javascript:;"
+                @click="onRecordRename(record)"
+                ><EditOutlined
+              /></a>
+            </a-tooltip>
+            <!-- 分享 -->
+            <a-tooltip title="分享">
+              <a
+                class="renameButton ml-1"
+                href="javascript:;"
+                @click="onRecordShare(record)"
+                ><ShareAltOutlined
+              /></a>
+            </a-tooltip>
+            <!-- 下载 -->
+            <a-tooltip title="下载">
+              <a
+                class="renameButton ml-1"
+                href="javascript:;"
+                @click="onDownload(record)"
+                ><DownloadOutlined
+              /></a>
+            </a-tooltip>
+            <!-- 删除 -->
+            <a-tooltip title="删除">
+              <a
+                class="renameButton ml-1 ant-color-danger"
+                href="javascript:;"
+                @click="onRecordDelete(record)"
+                ><DeleteOutlined
+              /></a>
+            </a-tooltip>
+          </div>
         </div>
       </template>
       <template #hash="{ record }">
@@ -207,17 +253,17 @@
               <!-- 发布 -->
               <a-menu-item
                 class="px-4 flex items-center"
-                @click="onRecordShare(record)"
+                @click="onRecordPublish(record)"
               >
                 {{ $t("metanet.publish") }}
               </a-menu-item>
-              <!-- 传送 -->
-              <a-menu-item
+              <!-- TODO 传送 -->
+              <!-- <a-menu-item
                 class="px-4 flex items-center"
                 @click="onRecordShare(record)"
               >
                 {{ $t("metanet.send") }}
-              </a-menu-item>
+              </a-menu-item> -->
               <!-- 下载 -->
               <a-menu-item
                 class="px-4 flex items-center"
@@ -363,6 +409,72 @@
         />
       </div>
     </a-drawer>
+    <!-- 弹窗 分享文件 -->
+    <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowShareFileModal"
+      :title="`分享文件(夹) ${currentShareFile.name}`"
+      :confirmLoading="shareFileModalConfirmLoading"
+      @ok="onShareFileModalConfirm"
+      @cancel="onResetShareFileModalForm"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="有效期" v-bind="shareFileValidateInfos.expired">
+          <a-input-number
+            :maxlength="30"
+            :min="1"
+            v-model:value="shareFileModelRef.expired"
+          />
+        </a-form-item>
+        <a-form-item
+          :label="$t('metanet.createFileType')"
+          v-bind="shareFileValidateInfos.type"
+        >
+          <a-radio-group v-model:value="shareFileModelRef.type">
+            <a-radio value="PUBLIC">公开</a-radio>
+            <a-radio value="PRIVATE">私密</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item
+          label="访问码"
+          v-if="shareFileModelRef.type === 'PRIVATE'"
+          v-bind="shareFileValidateInfos.code"
+        >
+          <a-input :maxlength="6" v-model:value="shareFileModelRef.code" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+    <!-- 弹窗 发布文件 -->
+    <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowPublishModal"
+      :title="`发布文件(夹) ${currentPublish.name}`"
+      :confirmLoading="publishModalConfirmLoading"
+      @ok="onPublishModalConfirm"
+      @cancel="onResetPublishModalForm"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="发布ID" v-bind="publishValidateInfos.publishId">
+          <a-select
+            v-model:value="publishModelRef.publishId"
+            placeholder="选择发布ID"
+          >
+            <a-select-option key="new">新的发布</a-select-option>
+            <a-select-option
+              v-for="item in publishModalOptionList"
+              :key="item.publishId"
+              :title="item.showText"
+            >
+              {{ item.showText }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <!-- TODO tag 参数? -->
+        <!-- <a-form-item label="TAG" v-bind="publishValidateInfos.expired">
+          <a-input :maxlength="30" v-model:value="publishModelRef.tag" />
+        </a-form-item> -->
+      </a-form>
+    </a-modal>
     <!-- 新建文件 txt/ markdown -->
     <a-modal
       :destroyOnClose="true"
@@ -408,6 +520,7 @@
       :destroyOnClose="true"
       v-model:visible="isShowCreateFolderModal"
       :title="$t('metanet.createFolder')"
+      :confirmLoading="createFolderModalConfirmLoading"
       @ok="onCreateFolderModalConfirm"
       @cancel="onResetCreateFolderModalForm"
     >
@@ -473,7 +586,7 @@
           <div class="inline-block">
             <!-- 空白就是blank 文件夹就是folder -->
             <XFileTypeIcon class="w-4 h-4" type="folder" />
-            <a href="javascript:void(0)" class="ml-1">{{ record.dirName }}</a>
+            <a href="javascript:;" class="ml-1">{{ record.dirName }}</a>
           </div>
         </template>
       </a-table>
@@ -505,6 +618,8 @@ import {
   InfoCircleOutlined,
   CheckSquareOutlined,
   CloseSquareOutlined,
+  EditOutlined,
+  ShareAltOutlined,
   DownloadOutlined,
 } from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
@@ -517,8 +632,12 @@ import {
   apiMakeDirByPath,
   apiMakeDirByRoot,
   apiMoveFileToDir,
+  apiPublishCreate,
+  apiPublishUpdate,
   apiQueryFileByDir,
+  apiQueryPublishList,
   apiRename,
+  apiShareCreate,
   apiSingleDelete,
   apiUploadSingle,
   TFileItem,
@@ -529,7 +648,7 @@ import { assign } from "lodash-es";
 import { message, Modal } from "ant-design-vue";
 import { useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
-import { formatBytes, getFileSHA256, getFileType } from "@/utils";
+import { formatBytes, getFileSHA256, getFileType, lastOfArray } from "@/utils";
 import TdHash from "./TdHash.vue";
 import {
   FILE_TYPE_MAP,
@@ -538,6 +657,7 @@ import {
 } from "@/constants";
 import pLimit from "p-limit";
 import { useForm } from "@ant-design-vue/use";
+import { RuleObject } from "ant-design-vue/lib/form/interface";
 
 type THistoryDirItem = {
   id: string;
@@ -566,6 +686,24 @@ type TCreateFolder = {
   folderName: string;
   folderDesc: string;
 };
+type TShareCreate = {
+  type: "PUBLIC" | "PRIVATE";
+  expired: number;
+  code?: string;
+};
+type TPublish = {
+  publishId: string;
+  tag?: string;
+};
+type TPublishOptionItem = {
+  publishId: string;
+  collectCount: number;
+  txId: string;
+  fileId: string;
+  fileName: string;
+  version: number;
+  showText: string;
+};
 function sortByDirType(a: TFileItem, b: TFileItem) {
   return a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1;
 }
@@ -582,7 +720,9 @@ export default defineComponent({
     InfoCircleOutlined,
     CheckSquareOutlined,
     CloseSquareOutlined,
-    // DownloadOutlined,
+    EditOutlined,
+    ShareAltOutlined,
+    DownloadOutlined,
     //
     TableFiles,
     XFileTypeIcon,
@@ -897,7 +1037,7 @@ export default defineComponent({
                 getAndSetDirChildren(
                   {
                     dirId: i.id,
-                    dirName: i.fullName[i.fullName.length - 1],
+                    dirName: lastOfArray(i.fullName),
                   },
                   item.dirId
                 )
@@ -914,7 +1054,7 @@ export default defineComponent({
               getAndSetDirChildren(
                 {
                   dirId: i.id,
-                  dirName: i.fullName[i.fullName.length - 1],
+                  dirName: lastOfArray(i.fullName),
                 },
                 "root"
               )
@@ -1053,6 +1193,218 @@ export default defineComponent({
         onCopyMoveModalPreAction,
       };
     }
+    /** 检查对应位置的同名文件/ 文件夹 */
+    const checkSameFileOrFolderNameByDirId = (
+      type: "file" | "folder",
+      fileOrFolderName: string,
+      dirId: string
+    ) => {
+      return new Promise<void>((resolve, reject) => {
+        apiQueryFileByDir({ dirId }).then(([res, err]) => {
+          if (err || !res) {
+            reject();
+            return;
+          }
+          if (
+            res.data.driveListFiles.some(
+              (i) => i && lastOfArray(i.fullName) === fileOrFolderName
+            )
+          ) {
+            message.warning(
+              type === "file"
+                ? "对应位置已经存在同名文件"
+                : "对应位置已经存在同名文件夹"
+            );
+            reject();
+          } else {
+            resolve();
+          }
+        });
+      });
+    };
+    const isShowShareFileModal = ref(false);
+    /** 正在分享的文件 */
+    const currentShareFile = reactive({
+      name: "", // 文件(夹)名
+      id: "", // 文件id
+    });
+    /** 弹窗 分享文件 */
+    function useShareFileModal() {
+      const shareFileModelRef: TShareCreate = reactive({
+        type: "PUBLIC",
+        expired: 7, // 有效期
+        code: "", // 如果是私密文件,则需要访问码 后面传参数的时候如果还是空字符串则不要传这个参数
+      });
+      const shareFileRulesRef = reactive({
+        expired: [
+          {
+            required: true,
+            type: "number",
+            message: t("metanet.requireFileName"),
+          },
+        ],
+        code: [
+          {
+            required: true,
+            asyncValidator: (rule: RuleObject, val: string) => {
+              // console.log("code-validate", rule, val);
+              return new Promise<void>((resolve, reject) => {
+                // 如果是私有但还没写验证码,则报错
+                if (shareFileModelRef.type === "PRIVATE" && val.length === 0) {
+                  reject("请输入访问码");
+                } else {
+                  resolve();
+                }
+              });
+            },
+          },
+        ],
+      });
+      const {
+        resetFields,
+        validate,
+        validateInfos: shareFileValidateInfos,
+      } = useForm(shareFileModelRef, shareFileRulesRef);
+      const shareFileModalConfirmLoading = ref(false);
+      const onShareFileModalConfirm = async () => {
+        try {
+          await validate();
+          // 验证通过
+          const { type, expired, code } = shareFileModelRef;
+          const { id: fileId } = currentShareFile;
+          shareFileModalConfirmLoading.value = true;
+          const [res, err] = await apiShareCreate({
+            userFileId: fileId,
+            day: expired,
+            ...(type === "PRIVATE"
+              ? {
+                  code: code,
+                }
+              : {}),
+          });
+          shareFileModalConfirmLoading.value = false;
+          if (err) {
+            message.warning(err.message);
+            return;
+          }
+          message.success("分享成功");
+          // TODO 分享成功的界面 链接
+          isShowShareFileModal.value = false;
+          onResetShareFileModalForm();
+          // 变换弹窗内容为分享后的
+        } catch (error) {
+          console.log(error);
+        }
+      };
+      const onResetShareFileModalForm = () => {
+        const ori = toRaw(shareFileModelRef);
+        ori.type = "PUBLIC";
+        ori.expired = 7;
+        ori.code = "";
+        currentShareFile.name = "";
+        currentShareFile.id = "";
+      };
+      return {
+        isShowShareFileModal,
+        currentShareFile,
+        shareFileModelRef,
+        shareFileValidateInfos,
+        shareFileModalConfirmLoading,
+        onShareFileModalConfirm,
+        onResetShareFileModalForm,
+      };
+    }
+    const isShowPublishModal = ref(false);
+    /** 正在发布的文件 */
+    const currentPublish = reactive({
+      name: "",
+      id: "",
+    });
+    /** 获取发布下拉框选项,块变量,给其他函数access */
+    let getPublishOptionList: () => Promise<void>;
+    /** 弹窗 发布文件 */
+    function usePublishModal() {
+      const publishModelRef: TPublish = reactive({
+        publishId: "new",
+        tag: "", // 描述tag
+      });
+      const publishRulesRef = reactive({
+        publishId: [
+          {
+            required: true,
+            message: "请选择发布id",
+          },
+        ],
+      });
+      const publishModalOptionList = ref<TPublishOptionItem[]>([]);
+      getPublishOptionList = async () => {
+        // 先清空原来的
+        publishModalOptionList.value.length = 0;
+        const [res, err] = await apiQueryPublishList();
+        if (err || !res) {
+          return;
+        }
+        publishModalOptionList.value = res.data.driveListPublishs.map((i) => ({
+          publishId: i.id,
+          collectCount: i.collectedCount,
+          txId: i.current.txid,
+          fileId: i.current.userFile.id,
+          fileName: lastOfArray(i.current.userFile.fullName),
+          version: i.current.version,
+          showText: `id-${i.id}/ 版本-${i.current.version}/ 收藏数-${
+            i.collectedCount
+          }/ ${lastOfArray(i.current.userFile.fullName)}`,
+        }));
+      };
+      const {
+        resetFields,
+        validate,
+        validateInfos: publishValidateInfos,
+      } = useForm(publishModelRef, publishRulesRef);
+      const publishModalConfirmLoading = ref(false);
+      const onPublishModalConfirm = async () => {
+        try {
+          await validate();
+          const { publishId, tag } = publishModelRef;
+          publishModalConfirmLoading.value = true;
+          const [res, err] =
+            publishId === "new"
+              ? await apiPublishCreate({
+                  userFileId: currentPublish.id,
+                })
+              : await apiPublishUpdate({
+                  userFileId: currentPublish.id,
+                  id: publishId,
+                });
+          publishModalConfirmLoading.value = false;
+          if (err) {
+            message.warning(err.message);
+            return;
+          }
+          message.success(t("metanet.publishSuccess"));
+          isShowPublishModal.value = false;
+          onResetPublishModalForm();
+        } catch (error) {
+          console.log(error);
+        }
+      };
+      /** 重置发布弹窗的表单值 */
+      const onResetPublishModalForm = () => {
+        const ori = toRaw(publishModelRef);
+        ori.publishId = "new";
+        ori.tag = "";
+      };
+      return {
+        isShowPublishModal,
+        currentPublish,
+        publishModelRef,
+        publishValidateInfos,
+        publishModalOptionList,
+        publishModalConfirmLoading,
+        onPublishModalConfirm,
+        onResetPublishModalForm,
+      };
+    }
     const isShowCreateFileModal = ref(false);
     /** 弹窗 新建文件 */
     function useCreateFileModal() {
@@ -1075,45 +1427,49 @@ export default defineComponent({
         validateInfos: createFileValidateInfos,
       } = useForm(createFileModelRef, createFileRulesRef);
       const createFileModalConfirmLoading = ref(false);
-      const onCreateFileModalConfirm = () => {
-        return new Promise<void>((resolve, reject) => {
-          validate()
-            .then(async () => {
-              const { fileType, fileName, fileDesc } = createFileModelRef;
-              const isTxt = fileType === "txt";
-              const fullFileName = `${fileName}${isTxt ? ".txt" : ".md"}`;
-              // console.log("fullFileName", fullFileName, fileName);
-              const file = new File([""], fullFileName, {
-                type: isTxt ? "text/plain" : "text/markdown",
-              });
-              createFileModalConfirmLoading.value = true;
-              const [res, err] = await apiUploadSingle({
-                SourceFile: file,
-                // 上传到不同的文件夹就要带上其名称在前面 (除了root)
-                FullName: [
-                  ...historyDir.value.slice(1).map((i) => i.name),
-                  fullFileName,
-                ],
-                FileSize: file.size,
-                UserId: useUserStore().id,
-                Space: "PRIVATE",
-                Description: fileDesc,
-                Action: "drive",
-              });
-              createFileModalConfirmLoading.value = false;
-              if (err) {
-                message.warning(err.message);
-                resolve();
-                return;
-              }
-              resolve();
-              message.success("新建成功");
-              isShowCreateFileModal.value = false;
-              onResetCreateFileModalForm();
-              getAndSetTableDataFn(curFolderId.value);
-            })
-            .catch(() => resolve());
-        });
+      const onCreateFileModalConfirm = async () => {
+        try {
+          await validate();
+          // 验证通过
+          const { fileType, fileName, fileDesc } = createFileModelRef;
+          const isTxt = fileType === "txt";
+          const fullFileName = `${fileName}${isTxt ? ".txt" : ".md"}`;
+          checkSameFileOrFolderNameByDirId(
+            "file",
+            fullFileName,
+            curFolderId.value
+          ).then(async () => {
+            // console.log("fullFileName", fullFileName, fileName);
+            const file = new File([""], fullFileName, {
+              type: isTxt ? "text/plain" : "text/markdown",
+            });
+            createFileModalConfirmLoading.value = true;
+            const [res, err] = await apiUploadSingle({
+              SourceFile: file,
+              // 上传到不同的文件夹就要带上其名称在前面 (除了root)
+              FullName: [
+                ...historyDir.value.slice(1).map((i) => i.name),
+                fullFileName,
+              ],
+              FileSize: file.size,
+              UserId: useUserStore().id,
+              Space: "PRIVATE",
+              Description: fileDesc,
+              Action: "drive",
+            });
+            createFileModalConfirmLoading.value = false;
+            if (err) {
+              message.warning(err.message);
+              return;
+            }
+            message.success("新建成功");
+            isShowCreateFileModal.value = false;
+            onResetCreateFileModalForm();
+            getAndSetTableDataFn(curFolderId.value);
+          });
+        } catch (error) {
+          console.log(error);
+        }
       };
       const onResetCreateFileModalForm = () => {
         const ori = toRaw(createFileModelRef);
@@ -1151,7 +1507,8 @@ export default defineComponent({
         validate,
         validateInfos: createFolderValidateInfos,
       } = useForm(createFolderModelRef, createFolderRulesRef);
-      const onCreateFolderModalConfirm = () => {
+      const createFolderModalConfirmLoading = ref(false);
+      const onCreateFolderModalConfirm2 = () => {
         return new Promise<void>((resolve, reject) => {
           const onResolvedAndCloseModal = () => {
             resolve();
@@ -1167,33 +1524,13 @@ export default defineComponent({
                 createFolderModelRef;
               const isMakeDirByRoot = folderPrefix === "2";
               console.log("folderPrefix", folderPrefix, isMakeDirByRoot);
-              /** 检查对应位置的同名文件夹 */
-              const checkSameFolderNameByDirId = (
-                folderName: string,
-                dirId: string
-              ) => {
-                return new Promise<void>((resolve, reject) => {
-                  apiQueryFileByDir({ dirId }).then(([res, err]) => {
-                    if (err || !res) {
-                      reject();
-                      return;
-                    }
-                    if (
-                      res.data.driveListFiles.some(
-                        (i) =>
-                          i && i.fullName[i.fullName.length - 1] === folderName
-                      )
-                    ) {
-                      message.warning("对应位置已经存在同名文件夹");
-                      reject();
-                    } else {
-                      resolve();
-                    }
-                  });
-                });
-              };
+
               if (isMakeDirByRoot) {
-                checkSameFolderNameByDirId(folderName, "root").then(() => {
+                checkSameFileOrFolderNameByDirId(
+                  "folder",
+                  folderName,
+                  "root"
+                ).then(() => {
                   apiMakeDirByRoot({
                     fullName: folderName,
                     description: folderDesc,
@@ -1202,23 +1539,74 @@ export default defineComponent({
                   });
                 });
               } else {
-                checkSameFolderNameByDirId(folderName, curFolderId.value).then(
-                  () => {
-                    apiMakeDirByPath({
-                      fullName: folderName,
-                      description: folderDesc,
-                      parentId: curFolderId.value,
-                    }).then(([res, err]) => {
-                      err ? reject() : onResolvedAndCloseModal();
-                    });
-                  }
-                );
+                checkSameFileOrFolderNameByDirId(
+                  "folder",
+                  folderName,
+                  curFolderId.value
+                ).then(() => {
+                  apiMakeDirByPath({
+                    fullName: folderName,
+                    description: folderDesc,
+                    parentId: curFolderId.value,
+                  }).then(([res, err]) => {
+                    err ? reject() : onResolvedAndCloseModal();
+                  });
+                });
               }
             })
             .catch(() => {
               resolve();
             });
         });
+      };
+      const onCreateFolderModalConfirm = async () => {
+        const onFinishedAndCloseModal = () => {
+          isShowCreateFolderModal.value = false;
+          onResetCreateFolderModalForm();
+          message.success(t("metanet.successCreateFolder"));
+          getAndSetTableDataFn(curFolderId.value);
+        };
+        try {
+          await validate();
+          // 结构不需要toRaw
+          const { folderPrefix, folderName, folderDesc } = createFolderModelRef;
+          const isMakeDirByRoot = folderPrefix === "2";
+          // console.log("folderPrefix", folderPrefix, isMakeDirByRoot);
+          if (isMakeDirByRoot) {
+            checkSameFileOrFolderNameByDirId("folder", folderName, "root").then(
+              async () => {
+                const [res, err] = await apiMakeDirByRoot({
+                  fullName: folderName,
+                  description: folderDesc,
+                });
+                if (err) {
+                  message.warning(err.message);
+                  return;
+                }
+                onFinishedAndCloseModal();
+              }
+            );
+          } else {
+            checkSameFileOrFolderNameByDirId(
+              "folder",
+              folderName,
+              curFolderId.value
+            ).then(async () => {
+              const [res, err] = await apiMakeDirByPath({
+                fullName: folderName,
+                description: folderDesc,
+                parentId: curFolderId.value,
+              });
+              if (err) {
+                message.warning(err.message);
+                return;
+              }
+              onFinishedAndCloseModal();
+            });
+          }
+        } catch (error) {
+          console.log(error);
+        }
       };
       /** 重置为原始值 */
       const onResetCreateFolderModalForm = () => {
@@ -1231,6 +1619,7 @@ export default defineComponent({
         isShowCreateFolderModal,
         createFolderModelRef,
         createFolderValidateInfos,
+        createFolderModalConfirmLoading,
         onCreateFolderModalConfirm,
         onResetCreateFolderModalForm,
       };
@@ -1240,9 +1629,18 @@ export default defineComponent({
       // 分享
       const onRecordShare = (record: TFileItem) => {
         console.log("share", record);
+        currentShareFile.name = lastOfArray(record.fullName);
+        currentShareFile.id = record.id;
+        isShowShareFileModal.value = true;
       };
       // 发布
-      // 传送
+      const onRecordPublish = (record: TFileItem) => {
+        console.log("onRecordPublish", record);
+        getPublishOptionList();
+        currentPublish.name = lastOfArray(record.fullName);
+        currentPublish.id = record.id;
+        isShowPublishModal.value = true;
+      };
       // 下载
       const currentRenameId = ref("");
       const currentRenameString = ref("");
@@ -1251,7 +1649,7 @@ export default defineComponent({
       /** 重命名 */
       const onRecordRename = (record: TFileItem) => {
         console.log("onRecordRename", record);
-        const toEditName = record.fullName[record.fullName.length - 1];
+        const toEditName = lastOfArray(record.fullName);
         currentRenameString.value = toEditName;
         currentRenameId.value = record.id;
         nextTick(() => {
@@ -1288,7 +1686,7 @@ export default defineComponent({
         currentRenameId.value = "";
       };
       const onRecordDelete = (record: TFileItem) => {
-        const fileName = record.fullName[record.fullName.length - 1];
+        const fileName = lastOfArray(record.fullName);
         Modal.confirm({
           title: `是否删除${fileName}`,
           icon: createVNode(ExclamationCircleOutlined),
@@ -1308,6 +1706,7 @@ export default defineComponent({
 
       return {
         onRecordShare,
+        onRecordPublish,
         onRecordDelete,
         currentRenameId,
         currentRenameString,
@@ -1329,7 +1728,7 @@ export default defineComponent({
     // 当前目录
     const curFolderId = computed(() => {
       const dirArr = historyDir.value;
-      return dirArr[dirArr.length - 1].id;
+      return lastOfArray(dirArr).id;
     });
 
     function useTableData() {
@@ -1358,7 +1757,7 @@ export default defineComponent({
           } else {
             historyDir.value.push({
               id,
-              name: fullName[fullName.length - 1],
+              name: lastOfArray(fullName),
             });
           }
           onRefreshTableData();
@@ -1404,9 +1803,9 @@ export default defineComponent({
             text,
           }: {
             record: TFileItem;
-            text: number;
+            text: string;
           }) => {
-            return record.isDir ? "" : formatBytes(text);
+            return record.isDir ? "" : formatBytes(+text);
           },
         },
         {
@@ -1457,7 +1856,7 @@ export default defineComponent({
                 obj.fullName = ["..."];
               } else {
                 // 等于名字最后一项, 因为返回的是 [父级目录,item文件夹名] 所以取最后一个
-                obj.fullName = [obj.fullName[obj.fullName.length - 1]];
+                obj.fullName = [lastOfArray(obj.fullName)];
               }
               obj.fileType = getFileType({
                 isDir: obj.isDir,
@@ -1639,6 +2038,8 @@ export default defineComponent({
       selectedRowKeys,
       ...useToolSet(),
       ...useCopyMoveModal(),
+      ...useShareFileModal(),
+      ...usePublishModal(),
       ...useCreateFileModal(),
       ...useCreateFolderModal(),
       ...useActions(),
@@ -1683,5 +2084,8 @@ export default defineComponent({
   &:hover {
     opacity: 1;
   }
+}
+.rowClass:hover .tdShortcut {
+  display: inline-block;
 }
 </style>
