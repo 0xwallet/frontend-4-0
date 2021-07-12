@@ -131,8 +131,12 @@ export const driveDeleteFiles = gql`
 
 // 根据hash查询
 const driveUploadByHash = gql`
-  mutation ($fullName: [String]!, $hash: Sting!) {
-    driveUploadByHash(fullName: $fullName, hash: $hash) {
+  mutation ($fullName: [String]!, $hash: Sting!, $description: String) {
+    driveUploadByHash(
+      fullName: $fullName
+      hash: $hash
+      description: $description
+    ) {
       id
     }
   }

@@ -320,6 +320,7 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
       SourceFile: params.SourceFile,
       FullName: params.FullName,
+      Description: params.Description,
     });
     console.log("---先调秒传---", resSecondUpload);
     if (resSecondUpload) {
@@ -444,6 +445,7 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
 type ParamsSecondUpload = {
   SourceFile: File;
   FullName: string[];
+  Description: string;
 };
 type ResponseSecondUpload = {
   data: {
@@ -468,6 +470,7 @@ export const apiSecondUpload: TApiFn<ParamsSecondUpload, ResponseSecondUpload> =
         variables: {
           hash,
           fullName: params.FullName,
+          description: params.Description,
         },
       });
     } catch (error) {
