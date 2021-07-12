@@ -44,11 +44,14 @@
         </a-button-group>
       </template>
     </TableFiles>
+    <!-- 详情卡片 -->
+    <ModalDetail v-model:visible="isShowDetailModal" :detail="currenDetailInfo">
+    </ModalDetail>
   </div>
 </template>
 
 <script lang="ts">
-import { createVNode, defineComponent, reactive, ref } from "vue";
+import { createVNode, defineComponent, reactive, ref, watch } from "vue";
 import { SyncOutlined, ExclamationCircleOutlined } from "@ant-design/icons-vue";
 import { XFileTypeIcon } from "@/components";
 import TableFiles from "./TableFiles.vue";
@@ -61,8 +64,14 @@ import {
   TFileItem,
 } from "@/apollo/api";
 import { message, Modal } from "ant-design-vue";
-import { getFileType } from "@/utils";
+import {
+  formatBytes,
+  getFileLocation,
+  getFileType,
+  lastOfArray,
+} from "@/utils";
 import { cloneDeep } from "lodash-es";
+import ModalDetail, { TDetailInfo } from "./ModalDetail.vue";
 
 type TTableShareFileItem = QueryShareFileItem & {
   userFile: TFileItem;
@@ -73,6 +82,7 @@ export default defineComponent({
     XFileTypeIcon,
     SyncOutlined,
     TableFiles,
+    ModalDetail,
   },
   setup() {
     const { t } = useI18n();
@@ -141,6 +151,7 @@ export default defineComponent({
               isDir: obj.userFile.isDir,
               fileName: obj.userFile.fullName[0],
             });
+            obj.code = obj.code ?? "无";
             return obj;
           });
       });
@@ -175,6 +186,21 @@ export default defineComponent({
     /** 表格里单项详情 */
     const onRecordInfo = (record: TTableShareFileItem) => {
       console.log("onRecordInfo", record);
+      // 链接	Hash	类型	位置	修改时间	创建时间	描述(直接显示)
+      currenDetailInfo.value = {
+        type: getFileType({
+          isDir: record.userFile.isDir,
+          fileName: lastOfArray(record.userFile.fullName),
+        }),
+        location: getFileLocation(record.userFile.fullName),
+        size: formatBytes(+record.userFile.info.size),
+        shareLink: record.uri,
+        shareHash: record.userFile.hash,
+        insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
+        updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
+        desc: record.userFile.info.description || "无",
+      };
+      isShowDetailModal.value = true;
     };
     /** 表格里单项删除 */
     const onRecordDelete = (record: TTableShareFileItem) => {
@@ -193,6 +219,19 @@ export default defineComponent({
         },
       });
     };
+    /** 详情-分享 */
+    const currenDetailInfo = ref<TDetailInfo>({});
+    /** 是否显示详情卡片 */
+    const isShowDetailModal = ref(false);
+    // 关闭弹窗时清空数据
+    watch(
+      () => isShowDetailModal.value,
+      (val) => {
+        if (val === false) {
+          currenDetailInfo.value = {};
+        }
+      }
+    );
     return {
       tableLoading,
       selectedRows,
@@ -204,6 +243,8 @@ export default defineComponent({
       onBatchDelete,
       onRecordInfo,
       onRecordDelete,
+      currenDetailInfo,
+      isShowDetailModal,
     };
   },
 });

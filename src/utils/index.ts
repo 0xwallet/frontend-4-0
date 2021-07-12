@@ -30,3 +30,18 @@ export function getFileType(obj: { isDir: boolean; fileName: string }): string {
   if (arr.length <= 1) return "file";
   return arr.pop()?.toLowerCase() || "file";
 }
+
+/** 根据后端返回的fullName(未处理过的) 计算出所在位置 */
+export function getFileLocation(fileFullName: string[]): string {
+  // 556.jpg
+  // dist 556.jpg
+  const arr = fileFullName;
+  if (arr.length === 1) return "~";
+  return "~" + arr.join("/") + "/";
+}
+
+/** 根据分享文件的uri 拼接成分享链接 */
+export function getShareUrlByUri(uri: string): string {
+  
+  return "";
+}

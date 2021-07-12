@@ -28,7 +28,12 @@
               <a-col class="ant-color-gray" :span="6">{{
                 formatDetailKey(key)
               }}</a-col>
-              <a-col :span="17">{{ value }}</a-col>
+              <template v-if="canShowToolTipKeys.includes(key)">
+                <a-tooltip :title="value">
+                  <a-col :span="17" class="truncate">{{ value }}</a-col>
+                </a-tooltip>
+              </template>
+              <a-col v-else :span="17" class="truncate">{{ value }}</a-col>
             </a-row>
           </slot>
         </template>
@@ -56,6 +61,8 @@ const MAP_DETAIL_KEY = {
   insertedAt: "创建时间",
   desc: "描述",
   owner: "所有者",
+  shareLink: "分享链接",
+  shareHash: "Hash",
 };
 export default defineComponent({
   components: {
@@ -73,13 +80,15 @@ export default defineComponent({
   },
   emits: ["update:visible"],
   setup(props, { emit }) {
+    // 需要显示tooltip 的数组
+    const canShowToolTipKeys = ["shareLink", "shareHash"];
     // console.log("props", props.detail);
     /** 穿透v-model */
     const updateFromAModal = (v: boolean) => emit("update:visible", v);
     /** map出文字 */
     const formatDetailKey = (k: keyof typeof MAP_DETAIL_KEY) =>
       MAP_DETAIL_KEY[k];
-    return { updateFromAModal, formatDetailKey };
+    return { updateFromAModal, formatDetailKey, canShowToolTipKeys };
   },
 });
 </script>

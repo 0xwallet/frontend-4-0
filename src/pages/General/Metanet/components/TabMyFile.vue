@@ -1223,7 +1223,7 @@ export default defineComponent({
         onBatchDelete,
         onDownloadBatch,
         onChangeMultipleUploadFile,
-        onChangeMultipleUploadFolder
+        onChangeMultipleUploadFolder,
       };
     }
     const isShowCopyMoveModal = ref(false);
@@ -2279,6 +2279,8 @@ export default defineComponent({
             document.body.appendChild(el);
             el.type = "download";
             el.href = url;
+            // TODO 优化,不开新窗口的下载
+            el.target = "_blank";
             el.click();
             el.remove();
           })
