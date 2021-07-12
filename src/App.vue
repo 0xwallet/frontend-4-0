@@ -109,6 +109,12 @@ export default defineComponent({
 .font-dmmono {
   font-family: "DM Mono";
 }
+
+@import url("~@fontsource/lato/400.css");
+.font-lato {
+  font-family: "Lato";
+}
+
 @import url("~tailwindcss/tailwind.css");
 // fix tailwindcss-antd conflict bug
 // tailwindcss 中用了vertical-align : middle 导致antd 库的很多图标文字不能居中
@@ -128,6 +134,7 @@ body,
 #app {
   width: 100%;
   height: 100%;
+  font-family: "lato";
 }
 /* 不加 scope 属性,密码强度栏的默认配色 */
 .po-password-strength-bar {
@@ -147,5 +154,8 @@ body,
 }
 .ant-color-danger {
   color: #ff7875;
+}
+.ant-color-gray {
+  color: rgba(0, 0, 0, 0.45);
 }
 </style>

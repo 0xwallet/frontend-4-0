@@ -1,5 +1,5 @@
 <template>
-  <div>我的收藏</div>
+  <div>test</div>
 </template>
 
 <script lang="ts">

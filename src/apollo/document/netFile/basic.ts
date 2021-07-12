@@ -177,6 +177,19 @@ const driveFileUploaded = gql`
     }
   }
 `;
+/** 可用空间 */
+const queryMeSpace = gql`
+  query {
+    me {
+      driveSetting {
+        availableSpace
+        totalSpace
+        usedSpace
+      }
+    }
+  }
+`;
+
 export const Basic = {
   FileList: driveListFiles,
   Search: driveSearch,
@@ -192,4 +205,5 @@ export const Basic = {
   Copy: driveCopyFile,
   DirSize: driveDirSize,
   Uploaded: driveFileUploaded,
+  QueryMeSpace: queryMeSpace,
 };

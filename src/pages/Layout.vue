@@ -439,6 +439,10 @@ export default defineComponent({
 .site-layout .site-layout-background {
   background: #fff;
 } */
+/* table 里的快捷键 */
+.ant-table-row:hover .tableShortcut {
+  display: inline-block;
+}
 </style>
 
 <style lang="less" scoped>

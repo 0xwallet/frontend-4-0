@@ -10,6 +10,15 @@
         id="singleInput"
         @change="onChangeMultipleUploadFile"
       />
+      <!-- 这个作为上传文件夹的时候用的 -->
+      <input
+        multiple
+        class="hidden"
+        type="file"
+        id="folderInput"
+        webkitdirectory
+        @change="onChangeMultipleUploadFolder"
+      />
       <!-- 下拉 - 上传 -->
       <a-dropdown class="mr-2">
         <template #overlay>
@@ -94,7 +103,20 @@
         </a-button>
       </a-button-group>
       <!-- 临时加的显示进度抽屉的按钮 -->
-      <div class="absolute right-1 cursor-pointer">
+      <div class="flex items-center absolute right-1 cursor-pointer">
+        <!-- 网盘使用信息 -->
+        <a-tooltip title="网盘信息">
+          <div class="inline-block mr-2" @click="onShowDiskDetail">
+            <DatabaseOutlined />
+          </div>
+        </a-tooltip>
+        <!-- 上传信息 -->
+        <a-tooltip :title="$t('metanet.uploadStatusInfo')">
+          <div class="inline-block mr-2" @click="onToggleIsShowProgressDrawer">
+            <InfoCircleOutlined />
+          </div>
+        </a-tooltip>
+        <!-- nkn节点状态 -->
         <a-tooltip title="nknClient状态">
           <a-dropdown>
             <a-tag color="#3b5999">
@@ -113,12 +135,6 @@
               </a-menu>
             </template>
           </a-dropdown>
-        </a-tooltip>
-
-        <a-tooltip :title="$t('metanet.uploadStatusInfo')">
-          <div class="inline-block" @click="onToggleIsShowProgressDrawer">
-            <InfoCircleOutlined />
-          </div>
         </a-tooltip>
       </div>
     </div>
@@ -142,7 +158,6 @@
     <!-- 表格 -->
     <TableFiles
       rowKey="id"
-      :rowClassName="() => 'rowClass'"
       :columns="columns"
       :data="tableData"
       :loading="tableLoading"
@@ -180,10 +195,17 @@
             />
           </div>
           <!-- hover 才显示的shortCut栏 -->
-          <div class="tdShortcut hidden inline-block absolute right-0">
+          <!-- 非上级目录 -->
+          <div
+            v-if="record.fullName[0] !== '...'"
+            class="tableShortcut hidden inline-block absolute right-0"
+          >
             <!-- 详情 -->
             <a-tooltip title="详情">
-              <a class="renameButton ml-1" href="javascript:;"
+              <a
+                class="renameButton ml-1"
+                href="javascript:;"
+                @click="onRecordDetail(record)"
                 ><InfoCircleOutlined
               /></a>
             </a-tooltip>
@@ -206,7 +228,8 @@
               /></a>
             </a-tooltip>
             <!-- 下载 -->
-            <a-tooltip title="下载">
+            <!-- 非文件夹才显示 -->
+            <a-tooltip v-if="!record.isDir" title="下载">
               <a
                 class="renameButton ml-1"
                 href="javascript:;"
@@ -265,7 +288,9 @@
                 {{ $t("metanet.send") }}
               </a-menu-item> -->
               <!-- 下载 -->
+              <!-- 非文件夹才显示下载 -->
               <a-menu-item
+                v-if="!record.isDir"
                 class="px-4 flex items-center"
                 @click="onDownload(record)"
               >
@@ -378,7 +403,8 @@
             {{ taskItem.fileName }}
           </div>
           <div class="flex-1 ml-4 text-xs text-gray-400">
-            | &nbsp; {{ taskItem.fileSize }}
+            | &nbsp; {{ taskItem.fileSize
+            }}{{ taskItem.status === "uploading" ? `(${taskItem.speed})` : "" }}
             <a-tooltip :title="$t('metanet.uploadDrawerClearItem')">
               <DeleteOutlined @click="onRemoveTaskItem(taskItem)" />
             </a-tooltip>
@@ -648,6 +674,75 @@
         </template>
       </a-table>
     </a-modal>
+
+    <!-- 弹窗 导入文件(夹) -->
+    <!-- <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowImportModal"
+      :title="$t('metanet.createFolder')"
+      :confirmLoading="createFolderModalConfirmLoading"
+      @ok="onCreateFolderModalConfirm"
+      @cancel="onResetCreateFolderModalForm"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item
+          :label="$t('metanet.createFolderPath')"
+          v-bind="createFolderValidateInfos.folderPrefix"
+        >
+          <a-radio-group v-model:value="createFolderModelRef.folderPrefix">
+            <a-radio value="1">当前路径*</a-radio>
+            <a-radio value="2">根目录~ </a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item
+          :label="$t('metanet.folderName')"
+          v-bind="createFolderValidateInfos.folderName"
+        >
+          <a-input
+            :maxlength="30"
+            :placeholder="$t('metanet.folderName')"
+            v-model:value="createFolderModelRef.folderName"
+          />
+        </a-form-item>
+        <a-form-item :label="$t('metanet.addDesc')">
+          <a-input
+            :maxlength="200"
+            v-model:value="createFolderModelRef.folderDesc"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal> -->
+
+    <!-- 详情卡片 -->
+    <ModalDetail v-model:visible="isShowDetailModal" :detail="currenDetailInfo">
+      <!-- <template #name="{ value }">
+        <div>i am the name--{{ value }}</div>
+      </template> -->
+      <template v-if="currenDetailInfo.slotDiskUsageInfo" #slotDiskUsagePercent>
+        <a-tooltip
+          :title="`总空间 ${
+            currenDetailInfo.slotDiskUsageInfo.split(' / ')[1]
+          }, 已使用 ${currenDetailInfo.slotDiskUsageInfo.split(' / ')[0]}`"
+        >
+          <a-row class="mb-1" justify="space-between">
+            <a-col :span="6" class="ant-color-gray">空间使用</a-col>
+            <a-col :span="17">
+              <a-progress :percent="+currenDetailInfo.slotDiskUsagePercent" />
+            </a-col>
+          </a-row>
+        </a-tooltip>
+      </template>
+      <template v-if="currenDetailInfo.slotDiskUsageInfo" #slotBuyMoreDisk>
+        <a-row class="mb-1" justify="space-between">
+          <a-col :span="6" class="ant-color-gray"></a-col>
+          <a-col :span="17" class="pt-4">
+            <a-button type="primary" shape="round">{{
+              $t("metanet.buyStorage")
+            }}</a-button>
+          </a-col>
+        </a-row>
+      </template>
+    </ModalDetail>
   </div>
 </template>
 
@@ -673,6 +768,7 @@ import {
   EllipsisOutlined,
   GlobalOutlined,
   InfoCircleOutlined,
+  DatabaseOutlined,
   CheckSquareOutlined,
   CloseSquareOutlined,
   EditOutlined,
@@ -680,6 +776,8 @@ import {
   DownloadOutlined,
 } from "@ant-design/icons-vue";
 import TableFiles from "./TableFiles.vue";
+import ModalDetail, { TDetailInfo } from "./ModalDetail.vue";
+import TdHash from "./TdHash.vue";
 import { XFileTypeIcon } from "@/components";
 import { useI18n } from "vue-i18n";
 import {
@@ -692,6 +790,7 @@ import {
   apiPublishCreate,
   apiPublishUpdate,
   apiQueryFileByDir,
+  apiQueryMeSpace,
   apiQueryPublishList,
   apiRename,
   apiShareCreate,
@@ -706,7 +805,6 @@ import { message, Modal } from "ant-design-vue";
 import { useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
 import { formatBytes, getFileSHA256, getFileType, lastOfArray } from "@/utils";
-import TdHash from "./TdHash.vue";
 import {
   FILE_TYPE_MAP,
   MAX_UPLOAD_SIZE,
@@ -728,6 +826,7 @@ type TUploadTaskItem = {
   fileSize: string;
   progress: number;
   status: "uploading" | "success" | "failed";
+  speed: string; // 2m / s
 };
 type TDir = {
   dirId: string;
@@ -738,6 +837,10 @@ type TCreateFile = {
   fileType: "txt" | "markdown";
   fileName: string;
   fileDesc: string;
+};
+type TImport = {
+  codeType: "hash" | "txid";
+  code: string;
 };
 type TCreateFolder = {
   folderPrefix: "1" | "2";
@@ -762,6 +865,9 @@ type TPublishOptionItem = {
   version: number;
   showText: string;
 };
+/** 上传文件夹的时候需要非标准的webkitRelativePath 属性 */
+type TFileWithFolderPath = File & { webkitRelativePath: string };
+
 function sortByDirType(a: TFileItem, b: TFileItem) {
   return a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1;
 }
@@ -776,6 +882,7 @@ export default defineComponent({
     DeleteOutlined,
     GlobalOutlined,
     InfoCircleOutlined,
+    DatabaseOutlined,
     CheckSquareOutlined,
     CloseSquareOutlined,
     EditOutlined,
@@ -785,6 +892,7 @@ export default defineComponent({
     TableFiles,
     XFileTypeIcon,
     TdHash,
+    ModalDetail,
   },
   setup() {
     const { t } = useI18n();
@@ -795,10 +903,11 @@ export default defineComponent({
       const onClickDropDownMenuCreate = ({
         key,
       }: {
-        key: "file" | "folder";
+        key: "file" | "folder" | "import";
       }) => {
         if (key === "file") isShowCreateFileModal.value = true;
         if (key === "folder") isShowCreateFolderModal.value = true;
+        // if (key === "import") isShowImportModal.value = true;
       };
       const onClickDropDownMenuUpload = ({
         key,
@@ -812,6 +921,8 @@ export default defineComponent({
           // 选择完文件后会触发 onChangeMultipleUploadFile
         } else {
           // 点击文件夹
+          document.getElementById("folderInput")?.click();
+          // 选择完文件后会触发 onChangeMultipleUploadFolder
         }
       };
       // 批量删除
@@ -900,17 +1011,33 @@ export default defineComponent({
         // });
       };
       // TODO input 上传成功后清除文件?
-      // 文件对话框选完文件后就会触发这个函数
+      /** 文件对话框选完文件后就会触发这个函数 */
       const onChangeMultipleUploadFile = async (e: Event) => {
         const input = e.target as HTMLInputElement;
         if (!input.files?.length) return;
+        // const availableSpace
+        const [res, err] = await apiQueryMeSpace();
+        if (err || !res) {
+          return;
+        }
+        const { availableSpace } = res.data.me.driveSetting;
+        // 如果即将要传的文件总大小超出可用, 退出
+        if (
+          [...input.files].reduce((a, b) => (a += b.size), 0) > +availableSpace
+        ) {
+          message.warning("超出最大可用容量!");
+          input.value = "";
+          return;
+        }
         const sizeCanUploadFiles = [...input.files].filter((file) => {
-          if (file.size > MAX_UPLOAD_SIZE) {
-            message.warning(t("metanet.errorUploadSizeLimit"));
-            return false;
-          } else {
-            return true;
-          }
+          // 如果超出最大可用容量
+          // if (file.size > MAX_UPLOAD_SIZE) {
+          //   message.warning(t("metanet.errorUploadSizeLimit"));
+          //   // message.warning("超出最大可用容量!");
+          //   return false;
+          // } else {
+          return true;
+          // }
         });
         if (!sizeCanUploadFiles.length) {
           input.value = "";
@@ -918,7 +1045,42 @@ export default defineComponent({
         }
         try {
           const resOfAll = await Promise.all(
-            sizeCanUploadFiles.map(onUploadSingleFile)
+            sizeCanUploadFiles.map((i) => onUploadSingleFile(i))
+          );
+          // console.log("resOfAll", resOfAll);
+        } catch (error) {
+          console.log("上传文件错误", error);
+        }
+        input.value = "";
+      };
+      /** 上传文件夹 */
+      const onChangeMultipleUploadFolder = async (e: Event) => {
+        const input = e.target as HTMLInputElement;
+        if (!input.files?.length) return;
+        // 创建文件夹 直接传fullName 会自动创建文件夹
+        const [res, err] = await apiQueryMeSpace();
+        if (err || !res) {
+          return;
+        }
+        const { availableSpace } = res.data.me.driveSetting;
+        // 如果即将要传的文件总大小超出可用, 退出
+        if (
+          [...input.files].reduce((a, b) => (a += b.size), 0) > +availableSpace
+        ) {
+          message.warning("超出最大可用容量!");
+          input.value = "";
+          return;
+        }
+        const sizeCanUploadFiles = [...input.files] as TFileWithFolderPath[];
+        if (!sizeCanUploadFiles.length) {
+          input.value = "";
+          return;
+        }
+        try {
+          const resOfAll = await Promise.all(
+            sizeCanUploadFiles.map((i) =>
+              onUploadSingleFile(i, i.webkitRelativePath.split("/"))
+            )
           );
           // console.log("resOfAll", resOfAll);
         } catch (error) {
@@ -929,7 +1091,10 @@ export default defineComponent({
       // 并发管理器 只允许两个文件同时上传
       const limitUploadFiles = pLimit(2);
       /** 上传单个文件 */
-      const onUploadSingleFile = async (file: File) => {
+      const onUploadSingleFile = async (
+        file: File,
+        withPathFileNameArr?: string[]
+      ) => {
         // input.files[0] =>file
         // lastModified: 1623572088894
         // lastModifiedDate: Sun Jun 13 2021 16:14:48 GMT+0800 (中国标准时间) {}
@@ -951,11 +1116,22 @@ export default defineComponent({
           }),
           progress: 0,
           status: "uploading",
+          speed: "0 Bytes /s",
         });
-        const setTaskItemProgress = (v: number) => {
+        const setTaskItemProgress = (
+          percentNum: number,
+          bytesPerSecond: number
+        ) => {
+          // console.log(
+          //   "bytesPerSecond",
+          //   bytesPerSecond,
+          //   typeof bytesPerSecond,
+          //   formatBytes(bytesPerSecond)
+          // );
           // console.log("setTaskItemProgress", v);
-          taskItem.progress = v;
-          if (v === 100) taskItem.status = "success";
+          taskItem.progress = percentNum;
+          if (percentNum === 100) taskItem.status = "success";
+          taskItem.speed = `${formatBytes(bytesPerSecond)} /s`;
         };
         uploadTaskList.value.push(taskItem);
         // TODO 上传完后清除?
@@ -967,7 +1143,9 @@ export default defineComponent({
             // 上传到不同的文件夹就要带上其名称在前面 (除了root)
             FullName: [
               ...historyDir.value.slice(1).map((i) => i.name),
-              fileName,
+              ...(withPathFileNameArr?.length
+                ? withPathFileNameArr
+                : [fileName]),
             ],
             FileSize: file.size,
             UserId: useUserStore().id,
@@ -983,7 +1161,7 @@ export default defineComponent({
         }
         if (res?.data.startsWith("秒传成功")) {
           message.success(t("metanet.uploadSuccess"));
-          setTaskItemProgress(100);
+          setTaskItemProgress(100, 0);
           taskItem.status = "success";
           getAndSetTableDataFn(curFolderId.value);
           return;
@@ -1015,7 +1193,7 @@ export default defineComponent({
               useDelay().then(() => {
                 clearTimeout(timer);
                 message.success(t("metanet.uploadSuccess"));
-                setTaskItemProgress(100);
+                setTaskItemProgress(100, 0);
                 taskItem.status = "success";
                 getAndSetTableDataFn(curFolderId.value);
                 // console.log("getAndSetTableDataFn", getAndSetTableDataFn);
@@ -1045,6 +1223,7 @@ export default defineComponent({
         onBatchDelete,
         onDownloadBatch,
         onChangeMultipleUploadFile,
+        onChangeMultipleUploadFolder
       };
     }
     const isShowCopyMoveModal = ref(false);
@@ -1728,22 +1907,122 @@ export default defineComponent({
         onResetCreateFolderModalForm,
       };
     }
+    // const isShowImportModal = ref(false);
+    /** 弹窗 导入 */
+    // function useImportModal() {
+    //   const importModelRef: TImport = reactive({
+    //     codeType: "hash", // txt markdown
+    //     code: "",
+    //   });
+    //   const importRulesRef = reactive({
+    //     code: [
+    //       {
+    //         required: true,
+    //         message: '请输入代码',
+    //       },
+    //     ],
+    //   });
+    //   const {
+    //     resetFields,
+    //     validate,
+    //     validateInfos: importValidateInfos,
+    //   } = useForm(importModelRef, importRulesRef);
+    //   const importModalConfirmLoading = ref(false);
+    //    const onimportModalConfirm = async () => {
+    //     try {
+    //       await validate();
+    //       // 验证通过
+    //       const { codeType, code } = importModelRef;
+    //       const isTxt = fileType === "txt";
+    //       const fullFileName = `${fileName}${isTxt ? ".txt" : ".md"}`;
+    //       // TODO 导入相同hash 的文件怎么办
+    //         // console.log("fullFileName", fullFileName, fileName);
+    //         const file = new File([""], fullFileName, {
+    //           type: isTxt ? "text/plain" : "text/markdown",
+    //         });
+    //         importModalConfirmLoading.value = true;
+    //         const [res, err] = await apiUploadSingle({
+    //           SourceFile: file,
+    //           // 上传到不同的文件夹就要带上其名称在前面 (除了root)
+    //           FullName: [
+    //             ...historyDir.value.slice(1).map((i) => i.name),
+    //             fullFileName,
+    //           ],
+    //           FileSize: file.size,
+    //           UserId: useUserStore().id,
+    //           Space: "PRIVATE",
+    //           Description: fileDesc,
+    //           Action: "drive",
+    //         });
+    //         importModalConfirmLoading.value = false;
+    //         if (err) {
+    //           message.warning(err.message);
+    //           return;
+    //         }
+    //         message.success("新建成功");
+    //         isShowImportModal.value = false;
+    //         onResetImportModalForm();
+    //         getAndSetTableDataFn(curFolderId.value);
+    //     } catch (error) {
+    //       console.log(error);
+    //     }
+    //   };
+    //   const onResetImportModalForm = () => {
+    //     const ori = toRaw(importModelRef);
+    //     ori.codeType = "hash";
+    //     ori.code = "";
+    //   };
+    //   return {
+    //     isShowImportModal,
+    //     importModelRef,
+    //     importModalConfirmLoading,
+    //     onimportModalConfirm,
+    //     onResetImportModalForm
+    //   };
+    // }
     /** action 里对record的操作 */
     function useActions() {
-      // 分享
+      /** 分享 */
       const onRecordShare = (record: TFileItem) => {
         // console.log("share", record);
         currentShareFile.name = lastOfArray(record.fullName);
         currentShareFile.id = record.id;
         isShowShareFileModal.value = true;
       };
-      // 发布
+      /** 发布 */
       const onRecordPublish = (record: TFileItem) => {
         // console.log("onRecordPublish", record);
         getPublishOptionList();
         currentPublish.name = lastOfArray(record.fullName);
         currentPublish.id = record.id;
         isShowPublishModal.value = true;
+      };
+      // 详情
+      const onRecordDetail = (record: TFileItem) => {
+        currenDetailInfo.value = {
+          name: lastOfArray(record.fullName),
+          location:
+            historyDir.value
+              .map((i) => (i.id === "root" ? "~" : i.name))
+              .join("/") + "/",
+          // curFolderId.value === "root"
+          //   ? "~/"
+          //   : `~/${lastOfArray(historyDir.value).name}`,
+          type: getFileType({
+            isDir: record.isDir,
+            fileName: lastOfArray(record.fullName),
+          }),
+          size: formatBytes(+record.info.size),
+          usedSpaceRatio:
+            (
+              (+record.info.size / +record.user.driveSetting.totalSpace) *
+              100
+            ).toFixed(3) + "%",
+          insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
+          updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
+          desc: record.info.description || "无",
+        };
+        isShowDetailModal.value = true;
       };
       // 下载
       const currentRenameId = ref("");
@@ -1812,6 +2091,7 @@ export default defineComponent({
         onRecordShare,
         onRecordPublish,
         onRecordDelete,
+        onRecordDetail,
         currentRenameId,
         currentRenameString,
         renameInput,
@@ -2137,6 +2417,53 @@ export default defineComponent({
       };
       return { nknClientConnectStatusShowText, onResetNknMultiClient };
     }
+    /** 当前详情数据 */
+    const currenDetailInfo = ref<TDetailInfo>({});
+    const isShowDetailModal = ref(false);
+    /** 详情数据 */
+    function useModalDetail() {
+      /** 显示网盘详情 */
+      const onShowDiskDetail = () => {
+        // 类型	所有者	扩容 (列出扩容购买选项)
+        // Type	Owner	Add More Space
+        const diskDetail = reactive({
+          type: "folder",
+          owner: "Me",
+          slotDiskUsagePercent: "",
+          slotDiskUsageInfo: "",
+          slotBuyMoreDisk: "",
+        });
+        currenDetailInfo.value = diskDetail;
+        apiQueryMeSpace().then(([res, err]) => {
+          if (err || !res) return;
+          // currenDetailInfo.value.
+          const { usedSpace, totalSpace, availableSpace } =
+            res.data.me.driveSetting;
+          diskDetail.slotDiskUsageInfo = `${formatBytes(
+            +usedSpace
+          )} / ${formatBytes(+totalSpace)}`;
+          diskDetail.slotDiskUsagePercent = (
+            (+usedSpace / +totalSpace) *
+            100
+          ).toFixed(0);
+        });
+        isShowDetailModal.value = true;
+      };
+      // 关闭弹窗时清空数据
+      watch(
+        () => isShowDetailModal.value,
+        (val) => {
+          if (val === false) {
+            currenDetailInfo.value = {};
+          }
+        }
+      );
+      return {
+        currenDetailInfo,
+        isShowDetailModal,
+        onShowDiskDetail,
+      };
+    }
     return {
       selectedRows,
       selectedRowKeys,
@@ -2147,10 +2474,12 @@ export default defineComponent({
       ...usePublishModal(),
       ...useCreateFileModal(),
       ...useCreateFolderModal(),
+      // ...useImportModal(),
       ...useActions(),
       ...useTableData(),
       ...useDrawer(),
       ...useNknStatus(),
+      ...useModalDetail(),
     };
   },
 });
@@ -2189,8 +2518,5 @@ export default defineComponent({
   &:hover {
     opacity: 1;
   }
-}
-.rowClass:hover .tdShortcut {
-  display: inline-block;
 }
 </style>

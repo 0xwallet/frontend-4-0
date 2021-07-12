@@ -1,4 +1,4 @@
-import { Session } from "../@types/apolloType";
+import { DriveUserSetting, Session } from "../@types/apolloType";
 import { encode } from "@msgpack/msgpack";
 import { useUserStore } from "@/store";
 import { getClientSession } from "./nknConfig";
@@ -14,6 +14,7 @@ import {
   Basic,
   Share,
   Publish,
+  Collection,
 } from "./document";
 import { TSession } from "nkn";
 import { MAX_MTU, REMOTE_ADDR } from "@/constants";
@@ -21,6 +22,7 @@ import { getFileSHA256 } from "@/utils";
 import { chunk } from "lodash-es";
 import pLimit from "p-limit";
 import { useDelay } from "@/hooks";
+import dayjs from "dayjs";
 //
 export type CommonRes<T> = Promise<
   [res: T | undefined, err: Error | undefined]
@@ -220,19 +222,42 @@ export const apiQueryMe: TApiFn<undefined, ResponseQureyMe> = async () => {
   return [res, err];
 };
 
+type ResponseQueryMeSpace = {
+  data: {
+    me: {
+      driveSetting: DriveUserSetting;
+    };
+  };
+};
+
+/** 查询我的空间使用信息 */
+export const apiQueryMeSpace: TApiFn<undefined, ResponseQueryMeSpace> =
+  async () => {
+    let res, err;
+    try {
+      res = await useApollo<ResponseQueryMeSpace>({
+        mode: "query",
+        gql: Basic.QueryMeSpace,
+      });
+    } catch (error) {
+      err = error;
+    }
+    return [res, err];
+  };
+
 type ParamsQueryFileByDir = {
   dirId: string;
 };
 export type TFileItem = {
   fullName: string[];
-  hash: null | string;
+  hash: string;
   id: string;
-  info: { description: null | string; size: null };
-  insertedAt: null | string;
+  info: { description: null | string; size: string };
+  insertedAt: string;
   isDir: boolean;
   isShared: boolean;
   space: string;
-  updatedAt: null | string;
+  updatedAt: string;
   fileType?: string;
   user: {
     id: string;
@@ -281,7 +306,7 @@ type ParamsUploadSingle = {
   Space: "PRIVATE" | "PUBLIC";
   Description: string;
   Action: "drive";
-  SetProgress?: (v: number) => void;
+  SetProgress?: (percentNum: number, bytesPerSecond: number) => void;
 };
 type ResponseUploadSingle = {
   data: string;
@@ -342,7 +367,7 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     // console.log("准备开始发长度");
     // 第一步，发长度，长度表示接下来的 msgpack 的长度
     const encoded: Uint8Array = encode({
-      File: "", // 需要传空字符串
+      // File: "", // 需要传空字符串
       FullName: params.FullName,
       FileSize: params.FileSize,
       UserId: params.UserId,
@@ -362,6 +387,9 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     const maxSendLength = fileBuffer.byteLength;
     let startLen = 0;
     let res, err;
+    const startTime = dayjs();
+    let diffSeconds = 0;
+    let toSetBytesPerSecond = 0;
     try {
       while (startLen <= maxSendLength) {
         const toWriteChunk = new Uint8Array(
@@ -371,16 +399,34 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
             Math.min(startLen + MAX_MTU, maxSendLength)
           )
         );
-        // console.log("toWriteChunk", toWriteChunk);
+        // console.log(
+        //   "session-toWriteChunk",
+        //   clientSession.isClosed,
+        //   startLen,
+        //   toWriteChunk
+        // );
         await clientSession.write(toWriteChunk);
         // .catch((e) => console.log("session-write-error", e));
         startLen += MAX_MTU;
         if (params.SetProgress) {
           // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
           const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
-          params.SetProgress(toSetProgressVal < 90 ? toSetProgressVal : 90);
+          const calcToSetBytesPerSecond = () => {
+            const curDiffSeconds = dayjs().diff(startTime, "second");
+            if (curDiffSeconds > diffSeconds) {
+              toSetBytesPerSecond =
+                startLen / dayjs().diff(startTime, "second");
+              diffSeconds = curDiffSeconds;
+            }
+            return toSetBytesPerSecond;
+          };
+          params.SetProgress(
+            toSetProgressVal < 90 ? toSetProgressVal : 90,
+            toSetProgressVal < 90 ? calcToSetBytesPerSecond() : 0
+          );
         }
       }
+      // console.log("escape while loop", startLen, maxSendLength);
       res = { data: "session成功写入" };
     } catch (error) {
       console.error(error);
@@ -783,16 +829,17 @@ type TPublishHistoryItem = {
   userFile: TFileItem;
 };
 
+export type QueryPublishItem = {
+  collectedCount: number;
+  id: string;
+  isCollected: boolean;
+  current: TPublishHistoryItem;
+  history: TPublishHistoryItem[];
+};
+
 type ResponseQueryPublishList = {
   data: {
-    driveListPublishs: {
-      // id: string;
-      collectedCount: number;
-      id: string;
-      isCollected: boolean;
-      current: TPublishHistoryItem;
-      history: TPublishHistoryItem[];
-    }[];
+    driveListPublishs: QueryPublishItem[];
   };
 };
 /** 查询发布列表 */
@@ -861,6 +908,160 @@ export const apiPublishUpdate: TApiFn<
     res = await useApollo<ResponsePublishUpdate>({
       mode: "mutate",
       gql: Publish.Update,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsPublishDelete = {
+  id: string;
+};
+type ResponsePublishDelete = {
+  data: {
+    driveDeletePublish: {
+      id: string;
+    };
+  };
+};
+/** 删除已发布id(文件) */
+export const apiPublishDelete: TApiFn<
+  ParamsPublishDelete,
+  ResponsePublishDelete
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponsePublishDelete>({
+      mode: "mutate",
+      gql: Publish.Delete,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsQueryCollectList = {
+  type?: "SHARE" | "PUBLISH";
+};
+export type QueryCollectItem = {
+  id: string;
+  info: {
+    description: string | null;
+  };
+  string: string;
+  updatedAt: string;
+  item: QueryShareFileItem | QueryPublishItem;
+};
+type ResponseQueryCollectList = {
+  data: {
+    driveListCollections: QueryCollectItem[];
+  };
+};
+/** 查询收藏列表 */
+export const apiQueryCollectList: TApiFn<
+  ParamsQueryCollectList,
+  ResponseQueryCollectList
+> = async (params) => {
+  let res, err;
+  try {
+    res = await useApollo<ResponseQueryCollectList>({
+      mode: "query",
+      gql: Collection.List,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsCollectCreateByShare = {
+  id: string;
+  desc?: string;
+  code?: string;
+};
+type ResponseCollectCreateByShare = {
+  data: {
+    driveCreateShareCollection: {
+      id: string;
+    };
+  };
+};
+/** 创建收藏by share */
+export const apiCollectCreateByShare: TApiFn<
+  ParamsCollectCreateByShare,
+  ResponseCollectCreateByShare
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseCollectCreateByShare>({
+      mode: "mutate",
+      gql: Collection.CreateShare,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsCollectCreateByPublish = {
+  id: string;
+  desc?: string;
+};
+type ResponseCollectCreateByPublish = {
+  data: {
+    driveCreatePublishCollection: {
+      id: string;
+    };
+  };
+};
+/** 创建收藏by publish */
+export const apiCollectCreateByPublish: TApiFn<
+  ParamsCollectCreateByPublish,
+  ResponseCollectCreateByPublish
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseCollectCreateByPublish>({
+      mode: "mutate",
+      gql: Collection.CreatePublish,
+      variables: params,
+    });
+  } catch (error) {
+    err = error;
+  }
+  return [res, err];
+};
+
+type ParamsCollectDelete = {
+  id: string;
+};
+type ResponseCollectDelete = {
+  data: {
+    driveDeleteCollection: {
+      id: string;
+    };
+  };
+};
+/** 删除已收藏 */
+export const apiCollectDelete: TApiFn<
+  ParamsCollectDelete,
+  ResponseCollectDelete
+> = async (params) => {
+  if (!params) return [undefined, Error("noparams")];
+  let res, err;
+  try {
+    res = await useApollo<ResponseCollectDelete>({
+      mode: "mutate",
+      gql: Collection.Delete,
       variables: params,
     });
   } catch (error) {
