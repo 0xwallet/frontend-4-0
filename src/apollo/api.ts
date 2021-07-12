@@ -344,8 +344,11 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
     console.time(`[性能 client.dial 时间]${params.SourceFile.name}`);
     // 多个任务的时候要限制dial 的时间?
     // const clientSession = await multiClient?.dial(REMOTE_ADDR);
+    // 尝试重拨dial 的次数, 防止爆栈
+    let dialTryTimes = 0;
+    const maxDialTimes = 10;
     /** 如果是dial 超时就重新dial */
-    const neverTimeOutClientDial = async (): Promise<TSession> => {
+    const neverTimeOutClientDial = async (): Promise<TSession | null> => {
       let res;
       try {
         res = await multiClient.dial(REMOTE_ADDR, {
@@ -353,10 +356,13 @@ export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
         });
         // 过期就重试
       } catch (error) {
-        console.error("clientDial-error", error);
-        // return neverTimeOutClientDial();
-        // return neverTimeOutClientDial();
-        res = await neverTimeOutClientDial();
+        console.error("clientDial-error-dialTryTimes", error, dialTryTimes);
+        if (dialTryTimes < maxDialTimes) {
+          dialTryTimes += 1;
+          res = await neverTimeOutClientDial();
+        } else {
+          res = null;
+        }
       }
       return res;
     };

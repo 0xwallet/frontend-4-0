@@ -871,6 +871,17 @@ type TFileWithFolderPath = File & { webkitRelativePath: string };
 function sortByDirType(a: TFileItem, b: TFileItem) {
   return a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1;
 }
+/** 创建随机4位 arraybuffer */
+function makeRandomArrayBuffer(count = 5) {
+  const randomInt = () => Math.floor(Math.random() * 10);
+  const randomArr = Array(count)
+    .fill(null)
+    .map(() => randomInt());
+  const resArrayBuffer = new ArrayBuffer(count);
+  const toWrite = new Uint8Array(resArrayBuffer);
+  toWrite.set(randomArr);
+  return resArrayBuffer;
+}
 export default defineComponent({
   components: {
     // icon
@@ -1723,9 +1734,12 @@ export default defineComponent({
             curFolderId.value
           ).then(async () => {
             // console.log("fullFileName", fullFileName, fileName);
-            const file = new File([""], fullFileName, {
+            // 这里需要事先创建空内容, 这样计算得hash 就不会是相同的了
+            const file = new File([makeRandomArrayBuffer()], fullFileName, {
               type: isTxt ? "text/plain" : "text/markdown",
             });
+            const fileHash = await getFileSHA256(file);
+            console.log("新建的file", file);
             createFileModalConfirmLoading.value = true;
             const [res, err] = await apiUploadSingle({
               SourceFile: file,
@@ -1740,15 +1754,46 @@ export default defineComponent({
               Description: fileDesc,
               Action: "drive",
             });
-            createFileModalConfirmLoading.value = false;
-            if (err) {
-              message.warning(err.message);
-              return;
-            }
-            message.success("新建成功");
-            isShowCreateFileModal.value = false;
-            onResetCreateFileModalForm();
-            getAndSetTableDataFn(curFolderId.value);
+            const hide = message.loading(
+              // `新建${fileName}成功,等待websocket 返回确认信息`,
+              `等待websocket 返回新建文件确认信息`,
+              0
+            );
+            let timer: number;
+            const { channel } = useUserStore();
+            if (!channel) throw Error("no channel");
+            // console.log("channel", channel);
+            let removeListener = channel.on(
+              "file_uploaded",
+              (fileUploadInfo: {
+                full_name: string[];
+                hash: string;
+                id: string;
+                space: number;
+              }) => {
+                // console.log("包括remove的listen", fileUploadInfo);
+                if (fileUploadInfo.hash === fileHash) {
+                  useDelay().then(() => {
+                    hide();
+                    message.success("新建成功");
+                    clearTimeout(timer);
+                    channel.off("file_uploaded", removeListener);
+                    createFileModalConfirmLoading.value = false;
+                    isShowCreateFileModal.value = false;
+                    onResetCreateFileModalForm();
+                    getAndSetTableDataFn(curFolderId.value);
+                  });
+                }
+              }
+            );
+            // 设置超时
+            timer = window.setTimeout(() => {
+              channel.off("file_uploaded", removeListener);
+              hide();
+              clearTimeout(timer);
+              message.warning("新建文件失败");
+              createFileModalConfirmLoading.value = false;
+            }, 60000);
           });
         } catch (error) {
           console.log(error);
@@ -1791,57 +1836,6 @@ export default defineComponent({
         validateInfos: createFolderValidateInfos,
       } = useForm(createFolderModelRef, createFolderRulesRef);
       const createFolderModalConfirmLoading = ref(false);
-      const onCreateFolderModalConfirm2 = () => {
-        return new Promise<void>((resolve, reject) => {
-          const onResolvedAndCloseModal = () => {
-            resolve();
-            isShowCreateFolderModal.value = false;
-            onResetCreateFolderModalForm();
-            message.success(t("metanet.successCreateFolder"));
-            getAndSetTableDataFn(curFolderId.value);
-          };
-          validate()
-            .then(() => {
-              // 结构不需要toRaw
-              const { folderPrefix, folderName, folderDesc } =
-                createFolderModelRef;
-              const isMakeDirByRoot = folderPrefix === "2";
-              console.log("folderPrefix", folderPrefix, isMakeDirByRoot);
-
-              if (isMakeDirByRoot) {
-                checkSameFileOrFolderNameByDirId(
-                  "folder",
-                  folderName,
-                  "root"
-                ).then(() => {
-                  apiMakeDirByRoot({
-                    fullName: folderName,
-                    description: folderDesc,
-                  }).then(([res, err]) => {
-                    err ? reject() : onResolvedAndCloseModal();
-                  });
-                });
-              } else {
-                checkSameFileOrFolderNameByDirId(
-                  "folder",
-                  folderName,
-                  curFolderId.value
-                ).then(() => {
-                  apiMakeDirByPath({
-                    fullName: folderName,
-                    description: folderDesc,
-                    parentId: curFolderId.value,
-                  }).then(([res, err]) => {
-                    err ? reject() : onResolvedAndCloseModal();
-                  });
-                });
-              }
-            })
-            .catch(() => {
-              resolve();
-            });
-        });
-      };
       const onCreateFolderModalConfirm = async () => {
         const onFinishedAndCloseModal = () => {
           isShowCreateFolderModal.value = false;
