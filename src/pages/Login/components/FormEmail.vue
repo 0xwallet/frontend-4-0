@@ -136,27 +136,27 @@ export default defineComponent({
           const params = toRaw(modelRef);
           console.log(params);
           loginLoading.value = true;
-          const [resEmailLogin, err] = await apiEmailLogin(params);
+          const resultEmailLogin = await apiEmailLogin(params);
           loginLoading.value = false;
-          if (err || !resEmailLogin) {
+          if (resultEmailLogin.err) {
             // Modal.error(err); // initApollo onError 会报错
             return;
           }
-          console.log("apiEmailLogin", resEmailLogin);
-          const { token } = resEmailLogin.data.signin;
-          const { id, username } = resEmailLogin.data.signin.User;
+          console.log("apiEmailLogin", resultEmailLogin.data);
+          const { token } = resultEmailLogin.data.signin;
+          const { id, username } = resultEmailLogin.data.signin.User;
           notification.success({
             message: t("pageLogin.loginSuccessTitle"),
             description: `${t("pageLogin.loginSuccessDesc")}: ${username}`,
           });
           const { signInFullPath } = useUserStore();
-          const [resLoginFull, errLoginFull] = await signInFullPath({
+          const resultSignInFullPath = await signInFullPath({
             id,
             token,
             username,
             email: params.email,
           });
-          if (errLoginFull) return;
+          if (resultSignInFullPath.err) return;
           router.replace("/");
         })
         .catch((err) => {

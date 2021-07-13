@@ -4,7 +4,7 @@ import { pick, assign } from "lodash-es";
 import { defineStore } from "pinia";
 import { getMultiClient } from "@/apollo/nknConfig";
 import { toRaw } from "vue";
-import { apiNknOnline, CommonRes } from "@/apollo/api";
+import { apiNknOnline, TApiRes } from "@/apollo/api";
 import { Channel, Socket } from "phoenix";
 const userLocalStorage = useLocalStorage<UserBaseState | Record<string, never>>(
   "user",
@@ -45,31 +45,32 @@ export default defineStore({
       userLocalStorage.value = pick(this, ["id", "token", "username", "email"]);
     },
     /** 全流程请求式登录 token wallet client */
-    async signInFullPath(payLoad: UserBaseState): CommonRes<UserBaseState> {
+    async signInFullPath(payLoad: UserBaseState): TApiRes<UserBaseState> {
       this.signInAndSetTokenIdEmail(payLoad);
       this.setWallet();
-      const [resNknOnline, err2] = await apiNknOnline();
-      if (err2) return [undefined, err2];
+      // const [resNknOnline, err2] = await apiNknOnline();
+      const resultNknOnline = await apiNknOnline();
+      if (resultNknOnline.err) return { err: resultNknOnline.err };
       this.setMultiClient();
-      console.log(["apiNknOnline-success"], resNknOnline);
+      console.log(["apiNknOnline-success"], resultNknOnline.data);
       this.setSocket();
-      return [pick(this, ["id", "token", "username", "email"]), undefined];
+      // return [pick(this, ["id", "token", "username", "email"]), undefined];
+      return { data: pick(this, ["id", "token", "username", "email"]) };
     },
     /** 从本地存储中登录 */
-    async signInWithLocalStorage(): CommonRes<UserBaseState> {
+    async signInWithLocalStorage(): TApiRes<UserBaseState> {
       const storageUser = toRaw(userLocalStorage.value);
       // token 可能 undefined
-      if (!storageUser.token)
-        return [undefined, Error("存储里的user没有token")];
+      if (!storageUser.token) return { err: Error("存储里的user没有token") };
       this.signInAndSetTokenIdEmail(
         pick(storageUser, ["id", "token", "username", "email"])
       );
       this.setWallet();
-      const [res, err] = await apiNknOnline();
-      if (err) return [undefined, err];
+      const resultNknOnline = await apiNknOnline();
+      if (resultNknOnline.err) return { err: resultNknOnline.err };
       this.setMultiClient();
       this.setSocket();
-      return [pick(this, ["id", "token", "username", "email"]), undefined];
+      return { data: pick(this, ["id", "token", "username", "email"]) };
     },
     // TODO 假如登录过期了 要调用这个方法先清除
     /** 登出并清除信息 */

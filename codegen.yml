@@ -1,0 +1,5 @@
+schema: https://owaf.io/graphiql
+generates:
+  ./src/@types/gqlTypes.d.ts:
+    plugins:
+      - typescript

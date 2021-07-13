@@ -116,12 +116,12 @@ export default defineComponent({
       selectedRows.value.length = 0;
       selectedRowKeys.value.length = 0;
       tableLoading.value = true;
-      apiQueryPublishList().then(([res, err]) => {
+      apiQueryPublishList().then((result) => {
         tableLoading.value = false;
-        if (err || !res) {
+        if (result.err) {
           return;
         }
-        tableData.value = res.data.driveListPublishs.map((i) => {
+        tableData.value = result.data.driveListPublishs.map((i) => {
           const obj = cloneDeep(i);
           // 保留最后一项作为名称
           obj.current.userFile.fullName = i.current.userFile.fullName.slice(-1);
@@ -155,7 +155,9 @@ export default defineComponent({
           const resList = await Promise.all(
             selectedRows.value.map(({ id }) => apiPublishDelete({ id }))
           );
-          resList.forEach(([r, e]) => e && message.warning(e.message));
+          resList.forEach(
+            (resItem) => resItem.err && message.warning(resItem.err.message)
+          );
           message.success(t("metanet.publishDeleted"));
           onRefreshTableData();
         },
@@ -173,10 +175,10 @@ export default defineComponent({
         title: `是否删除发布:${fileName}`,
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
-          const [res, err] = await apiPublishDelete({
+          const resultPublishDelete = await apiPublishDelete({
             id: record.id,
           });
-          if (err || !res) return;
+          if (resultPublishDelete.err) return;
           message.success(t("metanet.publishDeleted"));
           onRefreshTableData();
         },

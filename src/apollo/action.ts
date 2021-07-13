@@ -95,6 +95,7 @@ export function initApollo(): TClient | null {
   return apolloClient;
 }
 
+/** 返回接口的 data 值 */
 export function useApollo<T>(params: {
   mode: "query" | "mutate";
   gql: DocumentNode;
@@ -111,14 +112,14 @@ export function useApollo<T>(params: {
         query: gql,
         variables,
         fetchPolicy: "network-only",
-      }).then((res) => {
-        const r = res as unknown as T;
-        resolve(r);
+      }).then(({ data }) => {
+        const d = data as unknown as T;
+        resolve(d);
       }, reject);
     } else {
-      Client.mutate({ mutation: gql, variables }).then((res) => {
-        const r = res as unknown as T;
-        resolve(r);
+      Client.mutate({ mutation: gql, variables }).then(({ data }) => {
+        const d = data as unknown as T;
+        resolve(d);
       }, reject);
     }
   });

@@ -5,6 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
+    "genGqlType": "graphql-codegen",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint"
   },
@@ -36,6 +37,8 @@
     "vue-simple-password-meter": "^1.0.3"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^1.21.6",
+    "@graphql-codegen/typescript": "^1.22.4",
     "@types/color-hash": "^1.0.0",
     "@types/crypto-js": "^4.0.1",
     "@types/jest": "^24.0.19",

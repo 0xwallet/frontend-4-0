@@ -135,12 +135,12 @@ export default defineComponent({
       selectedRows.value.length = 0;
       selectedRowKeys.value.length = 0;
       tableLoading.value = true;
-      apiQueryShareFile().then(([res, err]) => {
+      apiQueryShareFile().then((result) => {
         tableLoading.value = false;
-        if (err || !res) {
+        if (result.err) {
           return;
         }
-        tableData.value = res.data.driveListShares
+        tableData.value = result.data.driveListShares
           .filter((i): i is TTableShareFileItem => i.userFile !== null)
           .map((i) => {
             const obj = cloneDeep(i);
@@ -177,7 +177,9 @@ export default defineComponent({
           const resList = await Promise.all(
             selectedRows.value.map(({ id }) => apiDeleteShare({ id }))
           );
-          resList.forEach(([r, e]) => e && message.warning(e.message));
+          resList.forEach(
+            (resItem) => resItem.err && message.warning(resItem.err.message)
+          );
           message.success(t("metanet.deleted"));
           onRefreshTableData();
         },
@@ -210,10 +212,10 @@ export default defineComponent({
         title: `是否删除${fileName}`,
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
-          const [res, err] = await apiDeleteShare({
+          const resultDeleteShare = await apiDeleteShare({
             id: record.id,
           });
-          if (err || !res) return;
+          if (resultDeleteShare.err) return;
           message.success(t("metanet.deleted"));
           onRefreshTableData();
         },

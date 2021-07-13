@@ -179,16 +179,16 @@ export default defineComponent({
     const onSendSignUpEmailCaptcha = () => {
       validate(["email"])
         .then(async ({ email }) => {
-          const [res, err] = await apiSendSignUpEmailCaptcha({
+          const resultSendCaptcha = await apiSendSignUpEmailCaptcha({
             email,
             type: "ACTIVE_EMAIL",
           });
-          if (err) return;
+          if (resultSendCaptcha.err) return;
           // 验证码发送成功 提示语 按钮60秒禁用 ?
           message.success(t("pageLogin.verificationSend"));
           // 禁用发送验证码按钮和计数
           countDown.startWithAutoStop();
-          console.log("res", res);
+          console.log("res", resultSendCaptcha);
         })
         .catch((err) => console.log(err));
     };
@@ -196,14 +196,14 @@ export default defineComponent({
     const onSignUpClick = () => {
       validate<typeof modelRef>()
         .then(async ({ email, password, captcha }) => {
-          const [res, err] = await apiSignUp({
+          const resultSignUp = await apiSignUp({
             email,
             password,
             code: captcha,
             username: email.split("@")[0],
             nknPublicKey: "",
           });
-          if (err) return;
+          if (resultSignUp.err) return;
           notification.success({
             message: t("pageLogin.registerSuccess"),
           });

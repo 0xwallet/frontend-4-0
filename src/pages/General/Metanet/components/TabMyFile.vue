@@ -954,17 +954,17 @@ export default defineComponent({
               const resOfDeleteDirs = await Promise.all(
                 idOfDirs.map((id) => apiSingleDelete({ id, space: "PRIVATE" }))
               );
-              resOfDeleteDirs.forEach(([r, e]) => {
-                if (e) message.warning(e.message);
+              resOfDeleteDirs.forEach(({ err }) => {
+                if (err) message.warning(err.message);
               });
             }
             if (idOfFiles.length) {
-              const [res, err] = await apiBatchDelete({
+              const resultBatchDelete = await apiBatchDelete({
                 ids: selectedRows.value.map((i) => i.id),
                 space: "PRIVATE",
               });
-              if (err || !res) return;
-              const { driveDeleteFiles } = res.data;
+              if (resultBatchDelete.err) return;
+              const { driveDeleteFiles } = resultBatchDelete.data;
               if (driveDeleteFiles === idOfFiles.length) {
                 message.success(t("metanet.deleted"));
               }
@@ -1016,11 +1016,11 @@ export default defineComponent({
         const input = e.target as HTMLInputElement;
         if (!input.files?.length) return;
         // const availableSpace
-        const [res, err] = await apiQueryMeSpace();
-        if (err || !res) {
+        const resultQuerySpace = await apiQueryMeSpace();
+        if (resultQuerySpace.err) {
           return;
         }
-        const { availableSpace } = res.data.me.driveSetting;
+        const { availableSpace } = resultQuerySpace.data.me.driveSetting;
         // 如果即将要传的文件总大小超出可用, 退出
         if (
           [...input.files].reduce((a, b) => (a += b.size), 0) > +availableSpace
@@ -1058,11 +1058,11 @@ export default defineComponent({
         const input = e.target as HTMLInputElement;
         if (!input.files?.length) return;
         // 创建文件夹 直接传fullName 会自动创建文件夹
-        const [res, err] = await apiQueryMeSpace();
-        if (err || !res) {
+        const resultQuerySpace = await apiQueryMeSpace();
+        if (resultQuerySpace.err) {
           return;
         }
-        const { availableSpace } = res.data.me.driveSetting;
+        const { availableSpace } = resultQuerySpace.data.me.driveSetting;
         // 如果即将要传的文件总大小超出可用, 退出
         if (
           [...input.files].reduce((a, b) => (a += b.size), 0) > +availableSpace
@@ -1136,7 +1136,7 @@ export default defineComponent({
         uploadTaskList.value.push(taskItem);
         // TODO 上传完后清除?
         // const [res, err] = await apiUploadSingle({
-        const [res, err] = await limitUploadFiles(() =>
+        const resultUploadSingle = await limitUploadFiles(() =>
           apiUploadSingle({
             // File: new Uint8Array(await file.arrayBuffer()),
             SourceFile: file,
@@ -1155,11 +1155,11 @@ export default defineComponent({
             SetProgress: setTaskItemProgress,
           })
         );
-        if (err) {
+        if (resultUploadSingle.err) {
           taskItem.status = "failed";
           return;
         }
-        if (res?.data.startsWith("秒传成功")) {
+        if (resultUploadSingle.data.msg) {
           message.success(t("metanet.uploadSuccess"));
           setTaskItemProgress(100, 0);
           taskItem.status = "success";
@@ -1214,7 +1214,6 @@ export default defineComponent({
           // getAndSetTableDataFn(curFolderId.value);
         }, 60000);
         // 重新刷新数据?
-        if (err) console.error(err);
         // console.log("writestream---", res, input);
       };
       return {
@@ -1247,26 +1246,28 @@ export default defineComponent({
       const getAndSetCopyMoveModalTableData = () => {
         copyMoveModalTableLoading.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiQueryFileByDir({ dirId: "root" }).then(async ([res, err]) => {
-          if (err || !res) {
+        apiQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
+          if (resultQueryFile.err) {
             // console.log("err", err);
             copyMoveModalTableLoading.value = false;
             return;
           }
           /** 根据目录id, 父目录id 去递归获取children */
           const getAndSetDirChildren = async (item: TDir, parentId: string) => {
-            const [resItem, errItem] = await apiQueryFileByDir({
+            // const [resItem, errItem] = await apiQueryFileByDir({
+            const resultQueryFileItem = await apiQueryFileByDir({
               dirId: item.dirId,
             });
             // console.log("目录res", item.dirId, item.dirName, resItem);
-            if (errItem || !resItem) return item;
+            if (resultQueryFileItem.err) return item;
             // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
-            const afterFilterList = resItem.data.driveListFiles.filter(
-              (i): i is TFileItem =>
-                i !== null &&
-                i.isDir &&
-                !["root", item.dirId, parentId].includes(i.id)
-            );
+            const afterFilterList =
+              resultQueryFileItem.data.driveListFiles.filter(
+                (i): i is TFileItem =>
+                  i !== null &&
+                  i.isDir &&
+                  !["root", item.dirId, parentId].includes(i.id)
+              );
             // console.log("afterFilterList", afterFilterList);
             if (!afterFilterList.length) return item;
             item.children = await Promise.all(
@@ -1283,7 +1284,7 @@ export default defineComponent({
             return item;
           };
           // res.data.driveListFiles 提取文件夹的出来
-          const resIsDirList = res.data.driveListFiles.filter(
+          const resIsDirList = resultQueryFile.data.driveListFiles.filter(
             (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
           );
           const withChildrensDirList = await Promise.all(
@@ -1350,10 +1351,10 @@ export default defineComponent({
               .then((resOfCopyList) => {
                 // resOfCopyList: [[res,err],[res,err]...]
                 // console.log("resOfCopyList", resOfCopyList);
-                resOfCopyList.forEach(([r, e]) => {
-                  if (e) {
+                resOfCopyList.forEach(({ err }) => {
+                  if (err) {
                     isAllSuccess = false;
-                    message.warning(e.message);
+                    message.warning(err.message);
                   }
                 });
               })
@@ -1372,10 +1373,10 @@ export default defineComponent({
               .then((resOfMoveList) => {
                 // resOfMoveList: [[res,err],[res,err]...]
                 // console.log("resOfMoveList", resOfMoveList);
-                resOfMoveList.forEach(([r, e]) => {
-                  if (e) {
+                resOfMoveList.forEach(({ err }) => {
+                  if (err) {
                     isAllSuccess = false;
-                    message.warning(e.message);
+                    message.warning(err.message);
                   }
                 });
               })
@@ -1437,13 +1438,13 @@ export default defineComponent({
       dirId: string
     ) => {
       return new Promise<void>((resolve, reject) => {
-        apiQueryFileByDir({ dirId }).then(([res, err]) => {
-          if (err || !res) {
+        apiQueryFileByDir({ dirId }).then((resultQueryFile) => {
+          if (resultQueryFile.err) {
             reject();
             return;
           }
           if (
-            res.data.driveListFiles.some(
+            resultQueryFile.data.driveListFiles.some(
               (i) => i && lastOfArray(i.fullName) === fileOrFolderName
             )
           ) {
@@ -1510,7 +1511,7 @@ export default defineComponent({
           const { type, expired, code } = shareFileModelRef;
           const { name, id: fileId } = currentShareFile;
           shareFileModalConfirmLoading.value = true;
-          const [res, err] = await apiShareCreate({
+          const resultShareCreate = await apiShareCreate({
             userFileId: fileId,
             day: expired,
             ...(type === "PRIVATE"
@@ -1520,15 +1521,15 @@ export default defineComponent({
               : {}),
           });
           shareFileModalConfirmLoading.value = false;
-          if (err) {
-            message.warning(err.message);
+          if (resultShareCreate.err) {
+            message.warning(resultShareCreate.err.message);
             return;
           }
           message.success("分享成功");
           isShowShareFileModal.value = false;
           // 开始显示分享成功后的分享信息弹窗 -start
           currentSuccessShare.name = name;
-          currentSuccessShare.url = `${window.location.href}?shareUri=${res?.data.driveCreateShare.uri}`;
+          currentSuccessShare.url = `${window.location.href}?shareUri=${resultShareCreate.data.driveCreateShare.uri}`;
           currentSuccessShare.code = code || "";
           currentSuccessShare.expired = expired;
           isShowSuccessShareModal.value = true;
@@ -1623,21 +1624,22 @@ export default defineComponent({
       getPublishOptionList = async () => {
         // 先清空原来的
         publishModalOptionList.value.length = 0;
-        const [res, err] = await apiQueryPublishList();
-        if (err || !res) {
+        const resultQueryPublishList = await apiQueryPublishList();
+        if (resultQueryPublishList.err) {
           return;
         }
-        publishModalOptionList.value = res.data.driveListPublishs.map((i) => ({
-          publishId: i.id,
-          collectCount: i.collectedCount,
-          txId: i.current.txid,
-          fileId: i.current.userFile.id,
-          fileName: lastOfArray(i.current.userFile.fullName),
-          version: i.current.version,
-          showText: `id-${i.id}/ 版本-${i.current.version}/ 收藏数-${
-            i.collectedCount
-          }/ ${lastOfArray(i.current.userFile.fullName)}`,
-        }));
+        publishModalOptionList.value =
+          resultQueryPublishList.data.driveListPublishs.map((i) => ({
+            publishId: i.id,
+            collectCount: i.collectedCount,
+            txId: i.current.txid,
+            fileId: i.current.userFile.id,
+            fileName: lastOfArray(i.current.userFile.fullName),
+            version: i.current.version,
+            showText: `id-${i.id}/ 版本-${i.current.version}/ 收藏数-${
+              i.collectedCount
+            }/ ${lastOfArray(i.current.userFile.fullName)}`,
+          }));
       };
       const {
         resetFields,
@@ -1650,7 +1652,7 @@ export default defineComponent({
           await validate();
           const { publishId, tag } = publishModelRef;
           publishModalConfirmLoading.value = true;
-          const [res, err] =
+          const resultPublishCreateOrUpdate =
             publishId === "new"
               ? await apiPublishCreate({
                   userFileId: currentPublish.id,
@@ -1660,8 +1662,8 @@ export default defineComponent({
                   id: publishId,
                 });
           publishModalConfirmLoading.value = false;
-          if (err) {
-            message.warning(err.message);
+          if (resultPublishCreateOrUpdate.err) {
+            message.warning(resultPublishCreateOrUpdate.err.message);
             return;
           }
           message.success(t("metanet.publishSuccess"));
@@ -1727,7 +1729,7 @@ export default defineComponent({
               type: isTxt ? "text/plain" : "text/markdown",
             });
             createFileModalConfirmLoading.value = true;
-            const [res, err] = await apiUploadSingle({
+            const resultUploadSingle = await apiUploadSingle({
               SourceFile: file,
               // 上传到不同的文件夹就要带上其名称在前面 (除了root)
               FullName: [
@@ -1741,8 +1743,8 @@ export default defineComponent({
               Action: "drive",
             });
             createFileModalConfirmLoading.value = false;
-            if (err) {
-              message.warning(err.message);
+            if (resultUploadSingle.err) {
+              message.warning(resultUploadSingle.err.message);
               return;
             }
             message.success("新建成功");
@@ -1817,7 +1819,7 @@ export default defineComponent({
                   apiMakeDirByRoot({
                     fullName: folderName,
                     description: folderDesc,
-                  }).then(([res, err]) => {
+                  }).then(({ err }) => {
                     err ? reject() : onResolvedAndCloseModal();
                   });
                 });
@@ -1831,7 +1833,7 @@ export default defineComponent({
                     fullName: folderName,
                     description: folderDesc,
                     parentId: curFolderId.value,
-                  }).then(([res, err]) => {
+                  }).then(({ err }) => {
                     err ? reject() : onResolvedAndCloseModal();
                   });
                 });
@@ -1858,12 +1860,12 @@ export default defineComponent({
           if (isMakeDirByRoot) {
             checkSameFileOrFolderNameByDirId("folder", folderName, "root").then(
               async () => {
-                const [res, err] = await apiMakeDirByRoot({
+                const resultMakeDirByRoot = await apiMakeDirByRoot({
                   fullName: folderName,
                   description: folderDesc,
                 });
-                if (err) {
-                  message.warning(err.message);
+                if (resultMakeDirByRoot.err) {
+                  message.warning(resultMakeDirByRoot.err.message);
                   return;
                 }
                 onFinishedAndCloseModal();
@@ -1875,13 +1877,13 @@ export default defineComponent({
               folderName,
               curFolderId.value
             ).then(async () => {
-              const [res, err] = await apiMakeDirByPath({
+              const resultMakeDirByPath = await apiMakeDirByPath({
                 fullName: folderName,
                 description: folderDesc,
                 parentId: curFolderId.value,
               });
-              if (err) {
-                message.warning(err.message);
+              if (resultMakeDirByPath.err) {
+                message.warning(resultMakeDirByPath.err.message);
                 return;
               }
               onFinishedAndCloseModal();
@@ -2047,14 +2049,14 @@ export default defineComponent({
       };
       const onRecordRenameConfirm = async (record: TFileItem) => {
         // api success clear
-        const [res, err] = await apiRename({
+        const resultRename = await apiRename({
           id: currentRenameId.value,
           newName: currentRenameString.value,
           space: "PRIVATE",
         });
-        if (err) {
+        if (resultRename.err) {
           onResetRecordRenameState();
-          message.warning(err.message);
+          message.warning(resultRename.err.message);
           return;
         }
         // 这里暂时赋值, 保证视觉连贯性
@@ -2074,11 +2076,11 @@ export default defineComponent({
           title: `是否删除${fileName}`,
           icon: createVNode(ExclamationCircleOutlined),
           onOk: async () => {
-            const [res, err] = await apiSingleDelete({
+            const resultSingleDelete = await apiSingleDelete({
               id: record.id,
               space: "PRIVATE",
             });
-            if (err || !res) return;
+            if (resultSingleDelete.err) return;
             // if (res.data.driveDeleteFile === 1) {
             // }
             message.success(t("metanet.deleted"));
@@ -2221,12 +2223,13 @@ export default defineComponent({
         selectedRows.value.length = 0;
         selectedRowKeys.value.length = 0;
         tableLoading.value = true;
-        apiQueryFileByDir({ dirId }).then(([res, err]) => {
-          if (err || !res?.data.driveListFiles) return;
+        apiQueryFileByDir({ dirId }).then((resultQueryFile) => {
+          if (resultQueryFile.err || !resultQueryFile.data.driveListFiles)
+            return;
           // 如果返回的 fullName 是空数组的话 代表是根目录
           // 排除null 和 fullName是当前目录的数据(当前目录若不是root , 要加...返回上一级)
           // console.log("网盘文件获取", res);
-          tableData.value = res.data.driveListFiles
+          tableData.value = resultQueryFile.data.driveListFiles
             // 排序 文件夹在前
             // 加上类型
             .map((i) => {
@@ -2266,9 +2269,9 @@ export default defineComponent({
         // Content-Disposition: attachment
         const hideLoadingMsg = message.loading("连接服务器中...", 0);
         apiGetPreviewToken()
-          .then(([res, err]) => {
-            if (err || !res) return;
-            const token = res.data.drivePreviewToken;
+          .then((resultPreviewToken) => {
+            if (resultPreviewToken.err) return;
+            const token = resultPreviewToken.data.drivePreviewToken;
             const url = `https://drive-s.owaf.io/download/${
               user.id
             }/${space.toLowerCase()}/${fileId}/${
@@ -2436,11 +2439,11 @@ export default defineComponent({
           slotBuyMoreDisk: "",
         });
         currenDetailInfo.value = diskDetail;
-        apiQueryMeSpace().then(([res, err]) => {
-          if (err || !res) return;
+        apiQueryMeSpace().then((resultQuerySpace) => {
+          if (resultQuerySpace.err) return;
           // currenDetailInfo.value.
           const { usedSpace, totalSpace, availableSpace } =
-            res.data.me.driveSetting;
+            resultQuerySpace.data.me.driveSetting;
           diskDetail.slotDiskUsageInfo = `${formatBytes(
             +usedSpace
           )} / ${formatBytes(+totalSpace)}`;

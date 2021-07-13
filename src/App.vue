@@ -39,16 +39,19 @@ export default defineComponent({
     const { t } = useI18n();
     async function trySignInWithLocalStorageAndRedirect() {
       const { signInWithLocalStorage } = useUserStore();
-      const [res, err] = await signInWithLocalStorage();
-      if (err) {
-        console.log("[从本地存储中登录失败] : ", err);
+      // const [res, err] = await signInWithLocalStorage();
+      const result = await signInWithLocalStorage();
+      if (result.err) {
+        console.log("[从本地存储中登录失败] : ", result.err);
         return;
       }
       notification.success({
         message: t("pageLogin.loginSuccessTitle"),
-        description: `${t("pageLogin.loginSuccessDesc")}: ${res?.username}`,
+        description: `${t("pageLogin.loginSuccessDesc")}: ${
+          result.data.username
+        }`,
       });
-      console.log("[从本地存储中登录成功] : ", res);
+      console.log("[从本地存储中登录成功] : ", result.data);
     }
     trySignInWithLocalStorageAndRedirect();
     /** 获取本地储存的语言配置 */

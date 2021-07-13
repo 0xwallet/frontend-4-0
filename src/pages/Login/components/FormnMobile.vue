@@ -83,11 +83,11 @@ export default defineComponent({
       validate(["email"])
         .then(async ({ email }) => {
           console.log("email", email);
-          const [res, err] = await apiSendSignInEmailCaptcha({ email });
-          if (err) {
+          const resultSendCaptcha = await apiSendSignInEmailCaptcha({ email });
+          if (resultSendCaptcha.err) {
             return;
           }
-          console.log("sendCaptcha-res", res);
+          console.log("sendCaptcha-res", resultSendCaptcha);
         })
         .catch((err) => console.log(err));
     };

@@ -23,87 +23,92 @@ import { chunk } from "lodash-es";
 import pLimit from "p-limit";
 import { useDelay } from "@/hooks";
 import dayjs from "dayjs";
-//
-export type CommonRes<T> = Promise<
-  [res: T | undefined, err: Error | undefined]
->;
-type TApiFn<T, R> = (params?: T) => CommonRes<R>;
+import { RootMutationTypeSigninArgs } from "@/@types/gqlTypes";
 
-// TAG : 封装一些 api
-type ParamsEmailLogin = {
-  email: string;
-  password: string;
-};
+/** 通用的api 请求返回类型 */
+export type TApiRes<T> = Promise<
+  | {
+      data: T;
+      err?: undefined;
+    }
+  | {
+      data?: undefined;
+      err: Error;
+    }
+>;
+/** 通用的api 函数类型 */
+type TApiFn<T, R> = (params?: T) => TApiRes<R>;
+
 type ResponseEmailLogin = {
-  data: {
-    signin: Session;
-  };
+  signin: Session;
 };
 
 /** 邮箱登录 */
-export const apiEmailLogin: TApiFn<ParamsEmailLogin, ResponseEmailLogin> =
-  async (params) => {
-    let res, err;
-    try {
-      res = await useApollo<ResponseEmailLogin>({
-        mode: "mutate",
-        gql: signIn,
-        variables: {
-          ...params,
-          code: "", // TODO 原来的代码拷贝过来的 不知道为啥要空字符串
-        },
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+export const apiEmailLogin = async (
+  params: RootMutationTypeSigninArgs
+): TApiRes<ResponseEmailLogin> => {
+  try {
+    const data = await useApollo<ResponseEmailLogin>({
+      mode: "mutate",
+      gql: signIn,
+      variables: {
+        ...params,
+        code: "", // TODO 原来的代码拷贝过来的 不知道为啥要空字符串
+      },
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
+
+// just test condi TODO delete
+async function test() {
+  const result = await apiEmailLogin({ email: "" });
+  if (result.err) {
+    return;
+  }
+  result.data.signin;
+}
 
 type ResponseNknOnline = {
-  data: {
-    nknOnline: string;
-  };
+  nknOnline: string;
 };
 /** nkn 登录获取 */
-export const apiNknOnline: TApiFn<undefined, ResponseNknOnline> = async () => {
-  let res, err;
+export const apiNknOnline = async (): TApiRes<ResponseNknOnline> => {
   try {
     const { wallet } = useUserStore();
-    res = await useApollo<ResponseNknOnline>({
+    const data = await useApollo<ResponseNknOnline>({
       mode: "mutate",
       gql: nknOnline,
       variables: { nknPublicKey: wallet?.getPublicKey() },
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsSendCaptcha = {
   email: string;
 };
 type ResponseSendCaptcha = {
-  data: {
-    sendLoginCode: string;
-  };
+  sendLoginCode: string;
 };
 /** 发送登录邮箱验证码 */
-export const apiSendSignInEmailCaptcha: TApiFn<
-  ParamsSendCaptcha,
-  ResponseSendCaptcha
-> = async (params) => {
-  let res, err;
+export const apiSendSignInEmailCaptcha = async (
+  params: ParamsSendCaptcha
+): TApiRes<ResponseSendCaptcha> => {
   try {
-    res = await useApollo<ResponseSendCaptcha>({
+    const data = await useApollo<ResponseSendCaptcha>({
       mode: "mutate",
       gql: sendLoginCode,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsSendSignUpEmailCaptcha = {
@@ -112,26 +117,22 @@ type ParamsSendSignUpEmailCaptcha = {
   nkn?: string;
 };
 type ResponseSendSignUpEmailCaptcha = {
-  data: {
-    sendLoginCode: string;
-  };
+  sendLoginCode: string;
 };
 /** 发送注册邮箱验证码 */
-export const apiSendSignUpEmailCaptcha: TApiFn<
-  ParamsSendSignUpEmailCaptcha,
-  ResponseSendSignUpEmailCaptcha
-> = async (params = { type: "ACTIVE_EMAIL" }) => {
-  let res, err;
+export const apiSendSignUpEmailCaptcha = async (
+  params: ParamsSendSignUpEmailCaptcha = { type: "ACTIVE_EMAIL" }
+): TApiRes<ResponseSendSignUpEmailCaptcha> => {
   try {
-    res = await useApollo<ResponseSendSignUpEmailCaptcha>({
+    const data = await useApollo<ResponseSendSignUpEmailCaptcha>({
       mode: "mutate",
       gql: sendVerifyCode,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsSignUp = {
@@ -142,25 +143,22 @@ type ParamsSignUp = {
   nknPublicKey: string;
 };
 type ResponseSignUp = {
-  data: {
-    msg: string;
-  };
+  msg: string;
 };
 /** 用户注册 */
-export const apiSignUp: TApiFn<ParamsSignUp, ResponseSignUp> = async (
-  params
-) => {
-  let res, err;
+export const apiSignUp = async (
+  params: ParamsSignUp
+): TApiRes<ResponseSignUp> => {
   try {
-    res = await useApollo<ResponseSignUp>({
+    const data = await useApollo<ResponseSignUp>({
       mode: "mutate",
       gql: signUp,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsResetPwd = {
@@ -170,25 +168,22 @@ type ParamsResetPwd = {
   nknPublicKey: string;
 };
 type ResponseResetPwd = {
-  data: {
-    msg: string;
-  };
+  msg: string;
 };
 /** 用户重置密码 */
-export const apiResetPwd: TApiFn<ParamsResetPwd, ResponseResetPwd> = async (
-  params
-) => {
-  let res, err;
+export const apiResetPwd = async (
+  params: ParamsResetPwd
+): TApiRes<ResponseResetPwd> => {
   try {
-    res = await useApollo<ResponseResetPwd>({
+    const data = await useApollo<ResponseResetPwd>({
       mode: "mutate",
       gql: resetPassword,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ResponseQureyMe = {
@@ -209,41 +204,36 @@ type ResponseQureyMe = {
 };
 // TODO 头像
 /** 查询用户信息 */
-export const apiQueryMe: TApiFn<undefined, ResponseQureyMe> = async () => {
-  let res, err;
+export const apiQueryMe = async (): TApiRes<ResponseQureyMe> => {
   try {
-    res = await useApollo<ResponseQureyMe>({
+    const data = await useApollo<ResponseQureyMe>({
       mode: "query",
       gql: me,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ResponseQueryMeSpace = {
-  data: {
-    me: {
-      driveSetting: DriveUserSetting;
-    };
+  me: {
+    driveSetting: DriveUserSetting;
   };
 };
 
 /** 查询我的空间使用信息 */
-export const apiQueryMeSpace: TApiFn<undefined, ResponseQueryMeSpace> =
-  async () => {
-    let res, err;
-    try {
-      res = await useApollo<ResponseQueryMeSpace>({
-        mode: "query",
-        gql: Basic.QueryMeSpace,
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+export const apiQueryMeSpace = async (): TApiRes<ResponseQueryMeSpace> => {
+  try {
+    const data = await useApollo<ResponseQueryMeSpace>({
+      mode: "query",
+      gql: Basic.QueryMeSpace,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 type ParamsQueryFileByDir = {
   dirId: string;
@@ -271,28 +261,22 @@ export type TFileItem = {
 export type TFileList = (TFileItem | null)[];
 
 type ResponseQueryFileByDir = {
-  data: {
-    driveListFiles: TFileList;
-  };
-  loading: boolean;
-  networkStatus: number;
+  driveListFiles: TFileList;
 };
 /** 网盘-查询我的文件 */
-export const apiQueryFileByDir: TApiFn<
-  ParamsQueryFileByDir,
-  ResponseQueryFileByDir
-> = async (params) => {
-  let res, err;
+export const apiQueryFileByDir = async (
+  params: ParamsQueryFileByDir
+): TApiRes<ResponseQueryFileByDir> => {
   try {
-    res = await useApollo<ResponseQueryFileByDir>({
+    const data = await useApollo<ResponseQueryFileByDir>({
       mode: "query",
       gql: Basic.FileList,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsUploadSingle = {
@@ -309,138 +293,134 @@ type ParamsUploadSingle = {
   SetProgress?: (percentNum: number, bytesPerSecond: number) => void;
 };
 type ResponseUploadSingle = {
-  data: string;
+  msg: string;
 };
 const limit = pLimit(1);
 /** 上传单个文件 */
-export const apiUploadSingle: TApiFn<ParamsUploadSingle, ResponseUploadSingle> =
-  async (params) => {
-    if (!params || !params.SourceFile) return [undefined, Error("noparams")];
-    // 1. 先调秒传
-    const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
-      SourceFile: params.SourceFile,
-      FullName: params.FullName,
-      Description: params.Description,
-    });
-    console.log("---先调秒传---", resSecondUpload);
-    if (resSecondUpload) {
-      // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
-      return [
-        // { data: `id is ${resSecondUpload.data.driveUploadByHash.id}` },
-        { data: `秒传成功-${resSecondUpload.data.driveUploadByHash.id}` },
-        undefined,
-      ];
-    }
-    // 2. 秒传失败则调session
-    // const { file } = params;
+export const apiUploadSingle = async (
+  params: ParamsUploadSingle
+): TApiRes<ResponseUploadSingle> => {
+  if (!params || !params.SourceFile) return { err: Error("noparams") };
+  // 1. 先调秒传
+  // const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
+  const resultSecondUpload = await apiSecondUpload({
+    SourceFile: params.SourceFile,
+    FullName: params.FullName,
+    Description: params.Description,
+  });
+  console.log("---先调秒传---", resultSecondUpload.data);
+  if (resultSecondUpload.data?.driveUploadByHash) {
+    // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
+    return { data: { msg: "秒传成功" } };
+  }
+  // 2. 秒传失败则调session
+  // const { file } = params;
 
-    // const clientSession = await getClientSession();
-    const { multiClient } = useUserStore();
-    if (!multiClient) return [undefined, Error("multiClient未初始化")];
-    // console.log(
-    //   "before-multiClient",
-    //   multiClient.isClosed,
-    //   multiClient.isReady
-    // );
-    console.time(`[性能 client.dial 时间]${params.SourceFile.name}`);
-    // 多个任务的时候要限制dial 的时间?
-    // const clientSession = await multiClient?.dial(REMOTE_ADDR);
-    // 尝试重拨dial 的次数, 防止爆栈
-    let dialTryTimes = 0;
-    const maxDialTimes = 10;
-    /** 如果是dial 超时就重新dial */
-    const neverTimeOutClientDial = async (): Promise<TSession | null> => {
-      let res;
-      try {
-        res = await multiClient.dial(REMOTE_ADDR, {
-          dialTimeout: 3000, // 3s dial 过期
-        });
-        // 过期就重试
-      } catch (error) {
-        console.error("clientDial-error-dialTryTimes", error, dialTryTimes);
-        if (dialTryTimes < maxDialTimes) {
-          dialTryTimes += 1;
-          res = await neverTimeOutClientDial();
-        } else {
-          res = null;
-        }
-      }
-      return res;
-    };
-    const clientSession = await limit(() => neverTimeOutClientDial());
-    // console.log("after-client-shakehand");
-    console.timeEnd(`[性能 client.dial 时间]${params.SourceFile.name}`);
-    if (!clientSession) return [undefined, Error("no clientSession")];
-    // console.log("准备开始发长度");
-    // 第一步，发长度，长度表示接下来的 msgpack 的长度
-    const encoded: Uint8Array = encode({
-      // File: "", // 需要传空字符串
-      FullName: params.FullName,
-      FileSize: params.FileSize,
-      UserId: params.UserId,
-      Space: params.Space,
-      Description: params.Description,
-      Action: params.Action,
-    });
-    const buffer = new ArrayBuffer(4);
-    const dv = new DataView(buffer);
-    dv.setUint32(0, encoded.length, true);
-    await clientSession.write(new Uint8Array(buffer));
-    // 第二步，发 msgpack
-    await clientSession.write(encoded);
-    // 第三步，发文件
-    const fileBuffer = await params.SourceFile.arrayBuffer();
-    // console.log("fileBuffer", fileBuffer);
-    const maxSendLength = fileBuffer.byteLength;
-    let startLen = 0;
-    let res, err;
-    const startTime = dayjs();
-    let diffSeconds = 0;
-    let toSetBytesPerSecond = 0;
+  // const clientSession = await getClientSession();
+  const { multiClient } = useUserStore();
+  if (!multiClient) return { err: Error("multiClient未初始化") };
+  // console.log(
+  //   "before-multiClient",
+  //   multiClient.isClosed,
+  //   multiClient.isReady
+  // );
+  console.time(`[性能 client.dial 时间]${params.SourceFile.name}`);
+  // 多个任务的时候要限制dial 的时间?
+  // const clientSession = await multiClient?.dial(REMOTE_ADDR);
+  // 尝试重拨dial 的次数, 防止爆栈
+  let dialTryTimes = 0;
+  const maxDialTimes = 10;
+  /** 如果是dial 超时就重新dial */
+  const neverTimeOutClientDial = async (): Promise<TSession | null> => {
+    let res;
     try {
-      while (startLen <= maxSendLength) {
-        const toWriteChunk = new Uint8Array(
-          fileBuffer.slice(
-            startLen,
-            // 到结尾了吗 不然接续加max
-            Math.min(startLen + MAX_MTU, maxSendLength)
-          )
-        );
-        // console.log(
-        //   "session-toWriteChunk",
-        //   clientSession.isClosed,
-        //   startLen,
-        //   toWriteChunk
-        // );
-        await clientSession.write(toWriteChunk);
-        // .catch((e) => console.log("session-write-error", e));
-        startLen += MAX_MTU;
-        if (params.SetProgress) {
-          // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
-          const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
-          const calcToSetBytesPerSecond = () => {
-            const curDiffSeconds = dayjs().diff(startTime, "second");
-            if (curDiffSeconds > diffSeconds) {
-              toSetBytesPerSecond =
-                startLen / dayjs().diff(startTime, "second");
-              diffSeconds = curDiffSeconds;
-            }
-            return toSetBytesPerSecond;
-          };
-          params.SetProgress(
-            toSetProgressVal < 90 ? toSetProgressVal : 90,
-            toSetProgressVal < 90 ? calcToSetBytesPerSecond() : 0
-          );
-        }
-      }
-      // console.log("escape while loop", startLen, maxSendLength);
-      res = { data: "session成功写入" };
+      res = await multiClient.dial(REMOTE_ADDR, {
+        dialTimeout: 3000, // 3s dial 过期
+      });
+      // 过期就重试
     } catch (error) {
-      console.error(error);
-      err = error;
+      console.error("clientDial-error-dialTryTimes", error, dialTryTimes);
+      if (dialTryTimes < maxDialTimes) {
+        dialTryTimes += 1;
+        res = await neverTimeOutClientDial();
+      } else {
+        res = null;
+      }
     }
-    return [res, err];
+    return res;
   };
+  const clientSession = await limit(() => neverTimeOutClientDial());
+  // console.log("after-client-shakehand");
+  console.timeEnd(`[性能 client.dial 时间]${params.SourceFile.name}`);
+  if (!clientSession) return { err: Error("no clientSession") };
+  // console.log("准备开始发长度");
+  // 第一步，发长度，长度表示接下来的 msgpack 的长度
+  const encoded: Uint8Array = encode({
+    // File: "", // 需要传空字符串
+    FullName: params.FullName,
+    FileSize: params.FileSize,
+    UserId: params.UserId,
+    Space: params.Space,
+    Description: params.Description,
+    Action: params.Action,
+  });
+  const buffer = new ArrayBuffer(4);
+  const dv = new DataView(buffer);
+  dv.setUint32(0, encoded.length, true);
+  await clientSession.write(new Uint8Array(buffer));
+  // 第二步，发 msgpack
+  await clientSession.write(encoded);
+  // 第三步，发文件
+  const fileBuffer = await params.SourceFile.arrayBuffer();
+  // console.log("fileBuffer", fileBuffer);
+  const maxSendLength = fileBuffer.byteLength;
+  let startLen = 0;
+  let res, err;
+  const startTime = dayjs();
+  let diffSeconds = 0;
+  let toSetBytesPerSecond = 0;
+  try {
+    while (startLen <= maxSendLength) {
+      const toWriteChunk = new Uint8Array(
+        fileBuffer.slice(
+          startLen,
+          // 到结尾了吗 不然接续加max
+          Math.min(startLen + MAX_MTU, maxSendLength)
+        )
+      );
+      // console.log(
+      //   "session-toWriteChunk",
+      //   clientSession.isClosed,
+      //   startLen,
+      //   toWriteChunk
+      // );
+      await clientSession.write(toWriteChunk);
+      // .catch((e) => console.log("session-write-error", e));
+      startLen += MAX_MTU;
+      if (params.SetProgress) {
+        // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
+        const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
+        const calcToSetBytesPerSecond = () => {
+          const curDiffSeconds = dayjs().diff(startTime, "second");
+          if (curDiffSeconds > diffSeconds) {
+            toSetBytesPerSecond = startLen / dayjs().diff(startTime, "second");
+            diffSeconds = curDiffSeconds;
+          }
+          return toSetBytesPerSecond;
+        };
+        params.SetProgress(
+          toSetProgressVal < 90 ? toSetProgressVal : 90,
+          toSetProgressVal < 90 ? calcToSetBytesPerSecond() : 0
+        );
+      }
+    }
+    // console.log("escape while loop", startLen, maxSendLength);
+    return { data: { msg: "session成功写入" } };
+  } catch (err) {
+    console.error(err);
+    return { err };
+  }
+};
 
 type ParamsSecondUpload = {
   SourceFile: File;
@@ -448,109 +428,97 @@ type ParamsSecondUpload = {
   Description: string;
 };
 type ResponseSecondUpload = {
-  data: {
-    driveUploadByHash: {
-      // id: "qDQt2b8Di1nZeDhN5cPWXE"
-      id: string;
-    };
+  driveUploadByHash: {
+    // id: "qDQt2b8Di1nZeDhN5cPWXE"
+    id: string;
   };
 };
 /** 秒传接口 */
-export const apiSecondUpload: TApiFn<ParamsSecondUpload, ResponseSecondUpload> =
-  async (params) => {
-    if (!params) return [undefined, Error("noparams")];
-    let res, err;
-    try {
-      // create hash
-      const hash = await getFileSHA256(params.SourceFile);
+export const apiSecondUpload = async (
+  params: ParamsSecondUpload
+): TApiRes<ResponseSecondUpload> => {
+  try {
+    // create hash
+    const hash = await getFileSHA256(params.SourceFile);
 
-      res = await useApollo<ResponseSecondUpload>({
-        mode: "mutate",
-        gql: Basic.Hash,
-        variables: {
-          hash,
-          fullName: params.FullName,
-          description: params.Description,
-        },
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+    const data = await useApollo<ResponseSecondUpload>({
+      mode: "mutate",
+      gql: Basic.Hash,
+      variables: {
+        hash,
+        fullName: params.FullName,
+        description: params.Description,
+      },
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 type ParamsBatchDelete = {
   ids: string[];
   space: "PRIVATE" | "PUBLIC";
 };
 type ResponseBatchDelete = {
-  data: {
-    driveDeleteFiles: number; // 实际服务器删除的数量
-  };
+  driveDeleteFiles: number; // 实际服务器删除的数量
 };
 /** 删除文件/文件夹 */
-export const apiBatchDelete: TApiFn<ParamsBatchDelete, ResponseBatchDelete> =
-  async (params) => {
-    if (!params) return [undefined, Error("noparams")];
-    let res, err;
-    try {
-      res = await useApollo<ResponseBatchDelete>({
-        mode: "mutate",
-        gql: Basic.DeleteFiles,
-        variables: params,
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+export const apiBatchDelete = async (
+  params: ParamsBatchDelete
+): TApiRes<ResponseBatchDelete> => {
+  try {
+    const data = await useApollo<ResponseBatchDelete>({
+      mode: "mutate",
+      gql: Basic.DeleteFiles,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 type ParamsSingleDelete = {
   id: string;
   space: "PRIVATE" | "PUBLIC";
 };
 type ResponseSingleDelete = {
-  data: {
-    driveDeleteFile: number; // 实际服务器删除的数量
-  };
+  driveDeleteFile: number; // 实际服务器删除的数量
 };
 /** 删除单个文件/文件夹
  * 这个接口可以成功删除文件夹,批量的那个暂时不可以
  *  */
-export const apiSingleDelete: TApiFn<ParamsSingleDelete, ResponseSingleDelete> =
-  async (params) => {
-    if (!params) return [undefined, Error("noparams")];
-    let res, err;
-    try {
-      res = await useApollo<ResponseSingleDelete>({
-        mode: "mutate",
-        gql: Basic.Delete,
-        variables: params,
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+export const apiSingleDelete = async (
+  params: ParamsSingleDelete
+): TApiRes<ResponseSingleDelete> => {
+  try {
+    const data = await useApollo<ResponseSingleDelete>({
+      mode: "mutate",
+      gql: Basic.Delete,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 type ResponseGetPreviewToken = {
-  data: {
-    drivePreviewToken: string;
-  };
+  drivePreviewToken: string;
 };
 /** 获取预览token */
-export const apiGetPreviewToken: TApiFn<undefined, ResponseGetPreviewToken> =
-  async () => {
-    let res, err;
+export const apiGetPreviewToken =
+  async (): TApiRes<ResponseGetPreviewToken> => {
     try {
-      res = await useApollo<ResponseGetPreviewToken>({
+      const data = await useApollo<ResponseGetPreviewToken>({
         mode: "mutate",
         gql: Basic.Token,
       });
-    } catch (error) {
-      err = error;
+      return { data };
+    } catch (err) {
+      return { err };
     }
-    return [res, err];
   };
 
 type ParamsGetShareToken = {
@@ -558,21 +526,16 @@ type ParamsGetShareToken = {
   code: string;
 };
 type ResponseGetShareToken = {
-  data: {
-    driveFindShare: {
-      token: string;
-    };
+  driveFindShare: {
+    token: string;
   };
 };
 /** 获取分享token */
-export const apiGetShareToken: TApiFn<
-  ParamsGetShareToken,
-  ResponseGetShareToken
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiGetShareToken = async (
+  params: ParamsGetShareToken
+): TApiRes<ResponseGetShareToken> => {
   try {
-    res = await useApollo<ResponseGetShareToken>({
+    const data = await useApollo<ResponseGetShareToken>({
       mode: "mutate",
       gql: Share.Find,
       variables: {
@@ -580,10 +543,10 @@ export const apiGetShareToken: TApiFn<
         code: params.code,
       },
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsMoveFileToDir = {
@@ -593,27 +556,22 @@ type ParamsMoveFileToDir = {
   toSpace: "PRIVATE" | "PUBLIC";
 };
 type ResponseMoveFileToDir = {
-  data: {
-    driveMoveFile: number; // 移动的文件数
-  };
+  driveMoveFile: number; // 移动的文件数
 };
 /** 移动文件 */
-export const apiMoveFileToDir: TApiFn<
-  ParamsMoveFileToDir,
-  ResponseMoveFileToDir
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiMoveFileToDir = async (
+  params: ParamsMoveFileToDir
+): TApiRes<ResponseMoveFileToDir> => {
   try {
-    res = await useApollo<ResponseMoveFileToDir>({
+    const data = await useApollo<ResponseMoveFileToDir>({
       mode: "mutate",
       gql: Basic.Move,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsCopyFileToDir = {
@@ -621,27 +579,22 @@ type ParamsCopyFileToDir = {
   toId: string;
 };
 type ResponseCopyFileToDir = {
-  data: {
-    driveCopyFile: number; // 修改的文件数
-  };
+  driveCopyFile: number; // 修改的文件数
 };
 /** 复制文件 */
-export const apiCopyFileToDir: TApiFn<
-  ParamsCopyFileToDir,
-  ResponseCopyFileToDir
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiCopyFileToDir = async (
+  params: ParamsCopyFileToDir
+): TApiRes<ResponseCopyFileToDir> => {
   try {
-    res = await useApollo<ResponseCopyFileToDir>({
+    const data = await useApollo<ResponseCopyFileToDir>({
       mode: "mutate",
       gql: Basic.Copy,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsMakeDirByRoot = {
@@ -649,30 +602,25 @@ type ParamsMakeDirByRoot = {
   description?: string;
 };
 type ResponseMakeDirByRoot = {
-  data: {
-    driveMakeDir: {
-      fullName: string[];
-      isDir: boolean;
-    };
+  driveMakeDir: {
+    fullName: string[];
+    isDir: boolean;
   };
 };
 /** 创建文件夹 */
-export const apiMakeDirByRoot: TApiFn<
-  ParamsMakeDirByRoot,
-  ResponseMakeDirByRoot
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiMakeDirByRoot = async (
+  params: ParamsMakeDirByRoot
+): TApiRes<ResponseMakeDirByRoot> => {
   try {
-    res = await useApollo<ResponseMakeDirByRoot>({
+    const data = await useApollo<ResponseMakeDirByRoot>({
       mode: "mutate",
       gql: Basic.MakeDir,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsMakeDirByPath = {
@@ -681,30 +629,25 @@ type ParamsMakeDirByPath = {
   description?: string;
 };
 type ResponseMakeDirByPath = {
-  data: {
-    driveMakeDirUnder: {
-      fullName: string[];
-      isDir: boolean;
-    };
+  driveMakeDirUnder: {
+    fullName: string[];
+    isDir: boolean;
   };
 };
 /** 在指定目录下创建文件夹 */
-export const apiMakeDirByPath: TApiFn<
-  ParamsMakeDirByPath,
-  ResponseMakeDirByPath
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiMakeDirByPath = async (
+  params: ParamsMakeDirByPath
+): TApiRes<ResponseMakeDirByPath> => {
   try {
-    res = await useApollo<ResponseMakeDirByPath>({
+    const data = await useApollo<ResponseMakeDirByPath>({
       mode: "mutate",
       gql: Basic.MakeDirUnder,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsRename = {
@@ -713,28 +656,24 @@ type ParamsRename = {
   space: "PRIVATE" | "PUBLIC";
 };
 type ResponseRename = {
-  data: {
-    driveRenameFile: {
-      id: string;
-    };
+  driveRenameFile: {
+    id: string;
   };
 };
 /** 重命名文件/夹 */
-export const apiRename: TApiFn<ParamsRename, ResponseRename> = async (
-  params
-) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiRename = async (
+  params: ParamsRename
+): TApiRes<ResponseRename> => {
   try {
-    res = await useApollo<ResponseRename>({
+    const data = await useApollo<ResponseRename>({
       mode: "mutate",
       gql: Basic.Rename,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsShareCreate = {
@@ -743,33 +682,30 @@ type ParamsShareCreate = {
   day: number;
 };
 type ResponseShareCreate = {
-  data: {
-    driveCreateShare: {
-      code: string;
-      token: string;
-      uri: string;
-      // code: "38px"
-      // token: "lYB28i-jPO9QF30464PWng"
-      // uri: "vkvgtGrbKeCZNtLokzgxpg"
-    };
+  driveCreateShare: {
+    code: string;
+    token: string;
+    uri: string;
+    // code: "38px"
+    // token: "lYB28i-jPO9QF30464PWng"
+    // uri: "vkvgtGrbKeCZNtLokzgxpg"
   };
 };
 /** 分享文件 */
-export const apiShareCreate: TApiFn<ParamsShareCreate, ResponseShareCreate> =
-  async (params) => {
-    if (!params) return [undefined, Error("noparams")];
-    let res, err;
-    try {
-      res = await useApollo<ResponseShareCreate>({
-        mode: "mutate",
-        gql: Share.Create,
-        variables: params,
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+export const apiShareCreate = async (
+  params: ParamsShareCreate
+): TApiRes<ResponseShareCreate> => {
+  try {
+    const data = await useApollo<ResponseShareCreate>({
+      mode: "mutate",
+      gql: Share.Create,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 export type QueryShareFileItem = {
   code: string | null;
@@ -785,51 +721,44 @@ export type QueryShareFileItem = {
 };
 
 type ResponseQueryShareFile = {
-  data: {
-    driveListShares: QueryShareFileItem[];
-  };
+  driveListShares: QueryShareFileItem[];
 };
 /** 获取分享文件列表 */
-export const apiQueryShareFile: TApiFn<undefined, ResponseQueryShareFile> =
-  async () => {
-    let res, err;
-    try {
-      res = await useApollo<ResponseQueryShareFile>({
-        mode: "query",
-        gql: Share.List,
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+export const apiQueryShareFile = async (): TApiRes<ResponseQueryShareFile> => {
+  try {
+    const data = await useApollo<ResponseQueryShareFile>({
+      mode: "query",
+      gql: Share.List,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 type ParamsDeleteShare = {
   id: string;
 };
 type ResponseDeleteShare = {
-  data: {
-    driveDeleteShare: {
-      id: string;
-    };
+  driveDeleteShare: {
+    id: string;
   };
 };
 /** 删除分享 */
-export const apiDeleteShare: TApiFn<ParamsDeleteShare, ResponseDeleteShare> =
-  async (params) => {
-    if (!params) return [undefined, Error("noparams")];
-    let res, err;
-    try {
-      res = await useApollo<ResponseDeleteShare>({
-        mode: "mutate",
-        gql: Share.Delete,
-        variables: params,
-      });
-    } catch (error) {
-      err = error;
-    }
-    return [res, err];
-  };
+export const apiDeleteShare = async (
+  params: ParamsDeleteShare
+): TApiRes<ResponseDeleteShare> => {
+  try {
+    const data = await useApollo<ResponseDeleteShare>({
+      mode: "mutate",
+      gql: Share.Delete,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 type TPublishHistoryItem = {
   id: string;
@@ -847,52 +776,44 @@ export type QueryPublishItem = {
 };
 
 type ResponseQueryPublishList = {
-  data: {
-    driveListPublishs: QueryPublishItem[];
-  };
+  driveListPublishs: QueryPublishItem[];
 };
 /** 查询发布列表 */
-export const apiQueryPublishList: TApiFn<undefined, ResponseQueryPublishList> =
-  async () => {
-    let res, err;
+export const apiQueryPublishList =
+  async (): TApiRes<ResponseQueryPublishList> => {
     try {
-      res = await useApollo<ResponseQueryPublishList>({
+      const data = await useApollo<ResponseQueryPublishList>({
         mode: "query",
         gql: Publish.List,
       });
-    } catch (error) {
-      err = error;
+      return { data };
+    } catch (err) {
+      return { err };
     }
-    return [res, err];
   };
 
 type ParamsPublishCreate = {
   userFileId: string;
 };
 type ResponsePublishCreate = {
-  data: {
-    driveCreatePublish: {
-      id: string;
-    };
+  driveCreatePublish: {
+    id: string;
   };
 };
 /** 发布新文件 */
-export const apiPublishCreate: TApiFn<
-  ParamsPublishCreate,
-  ResponsePublishCreate
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiPublishCreate = async (
+  params: ParamsPublishCreate
+): TApiRes<ResponsePublishCreate> => {
   try {
-    res = await useApollo<ResponsePublishCreate>({
+    const data = await useApollo<ResponsePublishCreate>({
       mode: "mutate",
       gql: Publish.Create,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsPublishUpdate = {
@@ -900,58 +821,48 @@ type ParamsPublishUpdate = {
   id: string;
 };
 type ResponsePublishUpdate = {
-  data: {
-    driveUpdatePublish: {
-      id: string;
-    };
+  driveUpdatePublish: {
+    id: string;
   };
 };
 /** 更新已发布id(文件) */
-export const apiPublishUpdate: TApiFn<
-  ParamsPublishUpdate,
-  ResponsePublishUpdate
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiPublishUpdate = async (
+  params: ParamsPublishUpdate
+): TApiRes<ResponsePublishUpdate> => {
   try {
-    res = await useApollo<ResponsePublishUpdate>({
+    const data = await useApollo<ResponsePublishUpdate>({
       mode: "mutate",
       gql: Publish.Update,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsPublishDelete = {
   id: string;
 };
 type ResponsePublishDelete = {
-  data: {
-    driveDeletePublish: {
-      id: string;
-    };
+  driveDeletePublish: {
+    id: string;
   };
 };
 /** 删除已发布id(文件) */
-export const apiPublishDelete: TApiFn<
-  ParamsPublishDelete,
-  ResponsePublishDelete
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiPublishDelete = async (
+  params: ParamsPublishDelete
+): TApiRes<ResponsePublishDelete> => {
   try {
-    res = await useApollo<ResponsePublishDelete>({
+    const data = await useApollo<ResponsePublishDelete>({
       mode: "mutate",
       gql: Publish.Delete,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsQueryCollectList = {
@@ -967,26 +878,22 @@ export type QueryCollectItem = {
   item: QueryShareFileItem | QueryPublishItem;
 };
 type ResponseQueryCollectList = {
-  data: {
-    driveListCollections: QueryCollectItem[];
-  };
+  driveListCollections: QueryCollectItem[];
 };
 /** 查询收藏列表 */
-export const apiQueryCollectList: TApiFn<
-  ParamsQueryCollectList,
-  ResponseQueryCollectList
-> = async (params) => {
-  let res, err;
+export const apiQueryCollectList = async (
+  params: ParamsQueryCollectList
+): TApiRes<ResponseQueryCollectList> => {
   try {
-    res = await useApollo<ResponseQueryCollectList>({
+    const data = await useApollo<ResponseQueryCollectList>({
       mode: "query",
       gql: Collection.List,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsCollectCreateByShare = {
@@ -995,29 +902,24 @@ type ParamsCollectCreateByShare = {
   code?: string;
 };
 type ResponseCollectCreateByShare = {
-  data: {
-    driveCreateShareCollection: {
-      id: string;
-    };
+  driveCreateShareCollection: {
+    id: string;
   };
 };
 /** 创建收藏by share */
-export const apiCollectCreateByShare: TApiFn<
-  ParamsCollectCreateByShare,
-  ResponseCollectCreateByShare
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiCollectCreateByShare = async (
+  params: ParamsCollectCreateByShare
+): TApiRes<ResponseCollectCreateByShare> => {
   try {
-    res = await useApollo<ResponseCollectCreateByShare>({
+    const data = await useApollo<ResponseCollectCreateByShare>({
       mode: "mutate",
       gql: Collection.CreateShare,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsCollectCreateByPublish = {
@@ -1025,56 +927,46 @@ type ParamsCollectCreateByPublish = {
   desc?: string;
 };
 type ResponseCollectCreateByPublish = {
-  data: {
-    driveCreatePublishCollection: {
-      id: string;
-    };
+  driveCreatePublishCollection: {
+    id: string;
   };
 };
 /** 创建收藏by publish */
-export const apiCollectCreateByPublish: TApiFn<
-  ParamsCollectCreateByPublish,
-  ResponseCollectCreateByPublish
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiCollectCreateByPublish = async (
+  params: ParamsCollectCreateByPublish
+): TApiRes<ResponseCollectCreateByPublish> => {
   try {
-    res = await useApollo<ResponseCollectCreateByPublish>({
+    const data = await useApollo<ResponseCollectCreateByPublish>({
       mode: "mutate",
       gql: Collection.CreatePublish,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
 
 type ParamsCollectDelete = {
   id: string;
 };
 type ResponseCollectDelete = {
-  data: {
-    driveDeleteCollection: {
-      id: string;
-    };
+  driveDeleteCollection: {
+    id: string;
   };
 };
 /** 删除已收藏 */
-export const apiCollectDelete: TApiFn<
-  ParamsCollectDelete,
-  ResponseCollectDelete
-> = async (params) => {
-  if (!params) return [undefined, Error("noparams")];
-  let res, err;
+export const apiCollectDelete = async (
+  params: ParamsCollectDelete
+): TApiRes<ResponseCollectDelete> => {
   try {
-    res = await useApollo<ResponseCollectDelete>({
+    const data = await useApollo<ResponseCollectDelete>({
       mode: "mutate",
       gql: Collection.Delete,
       variables: params,
     });
-  } catch (error) {
-    err = error;
+    return { data };
+  } catch (err) {
+    return { err };
   }
-  return [res, err];
 };
