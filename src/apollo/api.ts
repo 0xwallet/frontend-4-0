@@ -1,29 +1,19 @@
 import { DriveUserSetting, Session } from "../@types/apolloType";
 import { encode } from "@msgpack/msgpack";
 import { useUserStore } from "@/store";
-import { getClientSession } from "./nknConfig";
 import { useApollo } from "./action";
 import {
-  me,
-  nknOnline,
-  resetPassword,
-  sendLoginCode,
-  sendVerifyCode,
-  signIn,
-  signUp,
-  Basic,
-  Share,
-  Publish,
-  Collection,
-} from "./document";
+  User,
+  NetFile_Basic,
+  NetFile_Share,
+  NetFile_Publish,
+  NetFile_Collection,
+} from "./documents";
 import { TSession } from "nkn";
 import { MAX_MTU, REMOTE_ADDR } from "@/constants";
 import { getFileSHA256 } from "@/utils";
-import { chunk } from "lodash-es";
 import pLimit from "p-limit";
-import { useDelay } from "@/hooks";
 import dayjs from "dayjs";
-import { RootMutationTypeSigninArgs } from "@/@types/gqlTypes";
 
 /** 通用的api 请求返回类型 */
 export type TApiRes<T> = Promise<
@@ -36,8 +26,12 @@ export type TApiRes<T> = Promise<
       err: Error;
     }
 >;
-/** 通用的api 函数类型 */
-type TApiFn<T, R> = (params?: T) => TApiRes<R>;
+
+type ParamsEmailLogin = {
+  code?: string;
+  email: string;
+  password: string;
+};
 
 type ResponseEmailLogin = {
   signin: Session;
@@ -45,31 +39,19 @@ type ResponseEmailLogin = {
 
 /** 邮箱登录 */
 export const apiEmailLogin = async (
-  params: RootMutationTypeSigninArgs
+  params: ParamsEmailLogin
 ): TApiRes<ResponseEmailLogin> => {
   try {
     const data = await useApollo<ResponseEmailLogin>({
       mode: "mutate",
-      gql: signIn,
-      variables: {
-        ...params,
-        code: "", // TODO 原来的代码拷贝过来的 不知道为啥要空字符串
-      },
+      gql: User.signIn,
+      variables: params,
     });
     return { data };
   } catch (err) {
     return { err };
   }
 };
-
-// just test condi TODO delete
-async function test() {
-  const result = await apiEmailLogin({ email: "" });
-  if (result.err) {
-    return;
-  }
-  result.data.signin;
-}
 
 type ResponseNknOnline = {
   nknOnline: string;
@@ -80,7 +62,7 @@ export const apiNknOnline = async (): TApiRes<ResponseNknOnline> => {
     const { wallet } = useUserStore();
     const data = await useApollo<ResponseNknOnline>({
       mode: "mutate",
-      gql: nknOnline,
+      gql: User.nknOnline,
       variables: { nknPublicKey: wallet?.getPublicKey() },
     });
     return { data };
@@ -102,7 +84,7 @@ export const apiSendSignInEmailCaptcha = async (
   try {
     const data = await useApollo<ResponseSendCaptcha>({
       mode: "mutate",
-      gql: sendLoginCode,
+      gql: User.sendLoginCode,
       variables: params,
     });
     return { data };
@@ -126,7 +108,7 @@ export const apiSendSignUpEmailCaptcha = async (
   try {
     const data = await useApollo<ResponseSendSignUpEmailCaptcha>({
       mode: "mutate",
-      gql: sendVerifyCode,
+      gql: User.sendVerifyCode,
       variables: params,
     });
     return { data };
@@ -152,7 +134,7 @@ export const apiSignUp = async (
   try {
     const data = await useApollo<ResponseSignUp>({
       mode: "mutate",
-      gql: signUp,
+      gql: User.signUp,
       variables: params,
     });
     return { data };
@@ -177,7 +159,7 @@ export const apiResetPwd = async (
   try {
     const data = await useApollo<ResponseResetPwd>({
       mode: "mutate",
-      gql: resetPassword,
+      gql: User.resetPassword,
       variables: params,
     });
     return { data };
@@ -208,7 +190,7 @@ export const apiQueryMe = async (): TApiRes<ResponseQureyMe> => {
   try {
     const data = await useApollo<ResponseQureyMe>({
       mode: "query",
-      gql: me,
+      gql: NetFile_Basic.queryMeSpace,
     });
     return { data };
   } catch (err) {
@@ -227,7 +209,7 @@ export const apiQueryMeSpace = async (): TApiRes<ResponseQueryMeSpace> => {
   try {
     const data = await useApollo<ResponseQueryMeSpace>({
       mode: "query",
-      gql: Basic.QueryMeSpace,
+      gql: NetFile_Basic.queryMeSpace,
     });
     return { data };
   } catch (err) {
@@ -270,7 +252,7 @@ export const apiQueryFileByDir = async (
   try {
     const data = await useApollo<ResponseQueryFileByDir>({
       mode: "query",
-      gql: Basic.FileList,
+      gql: NetFile_Basic.driveListFiles,
       variables: params,
     });
     return { data };
@@ -443,7 +425,7 @@ export const apiSecondUpload = async (
 
     const data = await useApollo<ResponseSecondUpload>({
       mode: "mutate",
-      gql: Basic.Hash,
+      gql: NetFile_Basic.driveUploadByHash,
       variables: {
         hash,
         fullName: params.FullName,
@@ -470,7 +452,7 @@ export const apiBatchDelete = async (
   try {
     const data = await useApollo<ResponseBatchDelete>({
       mode: "mutate",
-      gql: Basic.DeleteFiles,
+      gql: NetFile_Basic.driveDeleteFiles,
       variables: params,
     });
     return { data };
@@ -495,7 +477,7 @@ export const apiSingleDelete = async (
   try {
     const data = await useApollo<ResponseSingleDelete>({
       mode: "mutate",
-      gql: Basic.Delete,
+      gql: NetFile_Basic.driveDeleteFile,
       variables: params,
     });
     return { data };
@@ -513,7 +495,7 @@ export const apiGetPreviewToken =
     try {
       const data = await useApollo<ResponseGetPreviewToken>({
         mode: "mutate",
-        gql: Basic.Token,
+        gql: NetFile_Basic.drivePreviewToken,
       });
       return { data };
     } catch (err) {
@@ -537,7 +519,7 @@ export const apiGetShareToken = async (
   try {
     const data = await useApollo<ResponseGetShareToken>({
       mode: "mutate",
-      gql: Share.Find,
+      gql: NetFile_Share.driveFindShare,
       variables: {
         uri: params.uri,
         code: params.code,
@@ -565,7 +547,7 @@ export const apiMoveFileToDir = async (
   try {
     const data = await useApollo<ResponseMoveFileToDir>({
       mode: "mutate",
-      gql: Basic.Move,
+      gql: NetFile_Basic.driveMoveFile,
       variables: params,
     });
     return { data };
@@ -588,7 +570,7 @@ export const apiCopyFileToDir = async (
   try {
     const data = await useApollo<ResponseCopyFileToDir>({
       mode: "mutate",
-      gql: Basic.Copy,
+      gql: NetFile_Basic.driveCopyFile,
       variables: params,
     });
     return { data };
@@ -614,7 +596,7 @@ export const apiMakeDirByRoot = async (
   try {
     const data = await useApollo<ResponseMakeDirByRoot>({
       mode: "mutate",
-      gql: Basic.MakeDir,
+      gql: NetFile_Basic.driveMakeDir,
       variables: params,
     });
     return { data };
@@ -641,7 +623,7 @@ export const apiMakeDirByPath = async (
   try {
     const data = await useApollo<ResponseMakeDirByPath>({
       mode: "mutate",
-      gql: Basic.MakeDirUnder,
+      gql: NetFile_Basic.driveMakeDirUnder,
       variables: params,
     });
     return { data };
@@ -667,7 +649,7 @@ export const apiRename = async (
   try {
     const data = await useApollo<ResponseRename>({
       mode: "mutate",
-      gql: Basic.Rename,
+      gql: NetFile_Basic.driveRenameFile,
       variables: params,
     });
     return { data };
@@ -698,7 +680,7 @@ export const apiShareCreate = async (
   try {
     const data = await useApollo<ResponseShareCreate>({
       mode: "mutate",
-      gql: Share.Create,
+      gql: NetFile_Share.driveCreateShare,
       variables: params,
     });
     return { data };
@@ -728,7 +710,7 @@ export const apiQueryShareFile = async (): TApiRes<ResponseQueryShareFile> => {
   try {
     const data = await useApollo<ResponseQueryShareFile>({
       mode: "query",
-      gql: Share.List,
+      gql: NetFile_Share.driveListShares,
     });
     return { data };
   } catch (err) {
@@ -751,7 +733,7 @@ export const apiDeleteShare = async (
   try {
     const data = await useApollo<ResponseDeleteShare>({
       mode: "mutate",
-      gql: Share.Delete,
+      gql: NetFile_Share.driveDeleteShare,
       variables: params,
     });
     return { data };
@@ -784,7 +766,7 @@ export const apiQueryPublishList =
     try {
       const data = await useApollo<ResponseQueryPublishList>({
         mode: "query",
-        gql: Publish.List,
+        gql: NetFile_Publish.driveListPublishs,
       });
       return { data };
     } catch (err) {
@@ -807,7 +789,7 @@ export const apiPublishCreate = async (
   try {
     const data = await useApollo<ResponsePublishCreate>({
       mode: "mutate",
-      gql: Publish.Create,
+      gql: NetFile_Publish.driveCreatePublish,
       variables: params,
     });
     return { data };
@@ -832,7 +814,7 @@ export const apiPublishUpdate = async (
   try {
     const data = await useApollo<ResponsePublishUpdate>({
       mode: "mutate",
-      gql: Publish.Update,
+      gql: NetFile_Publish.driveUpdatePublish,
       variables: params,
     });
     return { data };
@@ -856,7 +838,7 @@ export const apiPublishDelete = async (
   try {
     const data = await useApollo<ResponsePublishDelete>({
       mode: "mutate",
-      gql: Publish.Delete,
+      gql: NetFile_Publish.driveDeletePublish,
       variables: params,
     });
     return { data };
@@ -866,7 +848,7 @@ export const apiPublishDelete = async (
 };
 
 type ParamsQueryCollectList = {
-  type?: "SHARE" | "PUBLISH";
+  type?: "NetFile_Share" | "NetFile_Publish";
 };
 export type QueryCollectItem = {
   id: string;
@@ -887,7 +869,7 @@ export const apiQueryCollectList = async (
   try {
     const data = await useApollo<ResponseQueryCollectList>({
       mode: "query",
-      gql: Collection.List,
+      gql: NetFile_Collection.driveListCollections,
       variables: params,
     });
     return { data };
@@ -906,14 +888,14 @@ type ResponseCollectCreateByShare = {
     id: string;
   };
 };
-/** 创建收藏by share */
+/** 创建收藏by NetFile_Share */
 export const apiCollectCreateByShare = async (
   params: ParamsCollectCreateByShare
 ): TApiRes<ResponseCollectCreateByShare> => {
   try {
     const data = await useApollo<ResponseCollectCreateByShare>({
       mode: "mutate",
-      gql: Collection.CreateShare,
+      gql: NetFile_Collection.driveCreateShareCollection, // TODO 什么类型的创建
       variables: params,
     });
     return { data };
@@ -931,14 +913,14 @@ type ResponseCollectCreateByPublish = {
     id: string;
   };
 };
-/** 创建收藏by publish */
+/** 创建收藏by NetFile_Publish */
 export const apiCollectCreateByPublish = async (
   params: ParamsCollectCreateByPublish
 ): TApiRes<ResponseCollectCreateByPublish> => {
   try {
     const data = await useApollo<ResponseCollectCreateByPublish>({
       mode: "mutate",
-      gql: Collection.CreatePublish,
+      gql: NetFile_Collection.driveCreatePublishCollection,
       variables: params,
     });
     return { data };
@@ -962,7 +944,7 @@ export const apiCollectDelete = async (
   try {
     const data = await useApollo<ResponseCollectDelete>({
       mode: "mutate",
-      gql: Collection.Delete,
+      gql: NetFile_Collection.driveDeleteCollection,
       variables: params,
     });
     return { data };

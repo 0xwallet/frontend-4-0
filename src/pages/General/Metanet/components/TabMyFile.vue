@@ -1513,7 +1513,7 @@ export default defineComponent({
           shareFileModalConfirmLoading.value = true;
           const resultShareCreate = await apiShareCreate({
             userFileId: fileId,
-            day: expired,
+            expiredAfterDays: expired,
             ...(type === "PRIVATE"
               ? {
                   code: code,

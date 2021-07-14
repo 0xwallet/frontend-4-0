@@ -1,37 +1,4 @@
 import gql from "graphql-tag";
-// 用户结构体
-export const User = `
-  id
-  avatar
-  username
-  bio
-  email
-  messageNknAddress
-  personalInfo {
-    country
-    passport
-    phoneNumber
-  }
-  wallets{
-  id
-  tags
-  info{
-  publicKey
-  }
-  }
-  role
-  type
-`;
-//query
-export const me = gql`
-  query {
-    me{
-    ${User}
-    }
-  }
-`;
-
-// mutations
 
 // 邮件验证码
 export const sendVerifyCode = gql`
@@ -67,31 +34,13 @@ export const signIn = gql`
   mutation signin($email: String!, $password: String!, $code: String!) {
     signin(email: $email, password: $password, code: $code) {
       token
-      User {
+      user {
         id
         wallets {
           tags
         }
         username
       }
-    }
-  }
-`;
-
-export const bindNknAddress = gql`
-  mutation bindNknAddress(
-    $code: String
-    $nknPublicKey: String
-    $tag: WalletTag
-    $password: String!
-  ) {
-    bindNknAddress(
-      code: $code
-      nknPublicKey: $nknPublicKey
-      tag: $tag
-      password: $password
-    ) {
-      id
     }
   }
 `;

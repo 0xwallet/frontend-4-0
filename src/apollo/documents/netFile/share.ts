@@ -1,31 +1,7 @@
 import gql from "graphql-tag";
 
-const userFile = `
-  userFile {
-    fullName
-    hash
-    id
-    isDir
-    isShared
-    insertedAt
-    updatedAt
-    space
-    user{
-    id
-    driveSetting {
-          availableSpace
-          totalSpace
-          usedSpace
-        }
-    }
-    info {
-      size
-      description
-    }
-  }
-`;
 //分享文件列表
-const driveListShares = gql`
+export const driveListShares = gql`
   query {
     driveListShares {
       code
@@ -37,14 +13,30 @@ const driveListShares = gql`
       isCollected
       insertedAt
       updatedAt
-      ${userFile}
+      userFile {
+        fullName
+        hash
+        id
+        isDir
+        isShared
+        insertedAt
+        updatedAt
+        space
+        user {
+          id
+        }
+        info {
+          size
+          description
+        }
+      }
     }
   }
 `;
 
 //获取分享文件信息
-const driveFindShare = gql`
-  query($uri: String!, $code: String) {
+export const driveFindShare = gql`
+  query ($uri: String!, $code: String) {
     driveFindShare(uri: $uri, code: $code) {
       code
       id
@@ -52,23 +44,39 @@ const driveFindShare = gql`
       uri
       expiredAt
       collectedCount
-      ${userFile}
-      user{
-      id
+      userFile {
+        fullName
+        hash
+        id
+        isDir
+        isShared
+        insertedAt
+        updatedAt
+        space
+        user {
+          id
+        }
+        info {
+          size
+          description
+        }
+      }
+      user {
+        id
       }
     }
   }
 `;
 
 // 预览分享文件
-const drivePreviewShare = gql`
+export const drivePreviewShare = gql`
   query ($uri: String!) {
     drivePreviewShare(uri: $uri) {
       needCode
       expiredAt
       insertedAt
       updatedAt
-      UserPreview {
+      userPreview {
         avatar
         bio
         email
@@ -79,12 +87,12 @@ const drivePreviewShare = gql`
 `;
 
 // 分享文件
-const driveCreateShare = gql`
-  mutation ($code: String, $userFileId: String!, $day: Int) {
+export const driveCreateShare = gql`
+  mutation ($code: String, $userFileId: String!, $expiredAfterDays: Int) {
     driveCreateShare(
       userFileId: $userFileId
       code: $code
-      expiredAfterDays: $day
+      expiredAfterDays: $expiredAfterDays
     ) {
       uri
       token
@@ -94,7 +102,7 @@ const driveCreateShare = gql`
 `;
 
 // 删除分享文件
-const driveDeleteShare = gql`
+export const driveDeleteShare = gql`
   mutation ($id: ID!) {
     driveDeleteShare(id: $id) {
       id
@@ -103,19 +111,10 @@ const driveDeleteShare = gql`
 `;
 
 // 删除分享文件
-const driveEditShare = gql`
+export const driveEditShare = gql`
   mutation ($id: ID!, $code: String, $expiredAt: Int) {
     driveEditShare(id: $id, expiredAfterDays: $expiredAt, code: $code) {
       id
     }
   }
 `;
-
-export const Share = {
-  List: driveListShares,
-  Find: driveFindShare,
-  Preview: drivePreviewShare,
-  Create: driveCreateShare,
-  Delete: driveDeleteShare,
-  Edit: driveEditShare,
-};
