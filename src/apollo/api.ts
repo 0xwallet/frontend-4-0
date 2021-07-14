@@ -1,4 +1,4 @@
-import { DriveUserSetting, Session } from "../@types/apolloType";
+import { DriveUserSetting, IUser, Session } from "../@types/apolloType";
 import { encode } from "@msgpack/msgpack";
 import { useUserStore } from "@/store";
 import { useApollo } from "./action";
@@ -34,7 +34,10 @@ type ParamsEmailLogin = {
 };
 
 type ResponseEmailLogin = {
-  signin: Session;
+  signin: {
+    token: string;
+    user: IUser;
+  };
 };
 
 /** 邮箱登录 */
@@ -45,7 +48,10 @@ export const apiEmailLogin = async (
     const data = await useApollo<ResponseEmailLogin>({
       mode: "mutate",
       gql: User.signIn,
-      variables: params,
+      variables: {
+        ...params,
+        code: "",
+      },
     });
     return { data };
   } catch (err) {

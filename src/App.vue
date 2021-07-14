@@ -143,22 +143,41 @@ body,
 .po-password-strength-bar {
   background-color: rgba(0, 0, 0, 0.25);
 }
+// ant color
+@import "~ant-design-vue/lib/style/color/colors.less";
+
 .ant-color-blue {
-  color: #1890ff;
+  color: @blue-6;
 }
 .ant-color-uploading {
-  color: #faad14;
+  color: @gold-6;
 }
 .ant-color-success {
-  color: #1890ff;
+  color: @blue-6;
 }
 .ant-color-failed {
-  color: #ff4d4f;
+  color: @red-5;
 }
 .ant-color-danger {
-  color: #ff7875;
+  color: @red-4;
 }
 .ant-color-gray {
   color: rgba(0, 0, 0, 0.45);
+}
+.ant-btn-cyan {
+  color: #fff;
+  background-color: @cyan-6;
+  border-color: @cyan-6; // blue-6
+  &:hover,
+  &:focus {
+    color: #fff;
+    background-color: @cyan-5; //blue-5
+    border-color: @cyan-5;
+  }
+  &:active {
+    color: #fff;
+    background-color: @cyan-7; //blue-7
+    border-color: @cyan-7;
+  }
 }
 </style>

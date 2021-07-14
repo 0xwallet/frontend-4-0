@@ -14,6 +14,11 @@ export const driveListFiles = gql`
       space
       user {
         id
+        driveSetting {
+          availableSpace
+          totalSpace
+          usedSpace
+        }
       }
       info {
         size
@@ -36,6 +41,11 @@ export const driveSearch = gql`
       space
       user {
         id
+        driveSetting {
+          availableSpace
+          totalSpace
+          usedSpace
+        }
       }
       info {
         size

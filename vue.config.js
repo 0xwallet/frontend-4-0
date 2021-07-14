@@ -5,6 +5,14 @@ module.exports = {
   devServer: {
     port: 4000,
   },
+  css: {
+    loaderOptions: {
+      less: {
+        // 开启这个就能引入ant-design-vue 的colors.less 了
+        javascriptEnabled: true,
+      },
+    },
+  },
   configureWebpack: (config) => {
     const isEnv = process.env.NODE_ENV === "development";
     // 不生成 sourceMap

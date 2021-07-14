@@ -144,7 +144,7 @@ export default defineComponent({
           }
           console.log("apiEmailLogin", resultEmailLogin.data);
           const { token } = resultEmailLogin.data.signin;
-          const { id, username } = resultEmailLogin.data.signin.User;
+          const { id, username } = resultEmailLogin.data.signin.user;
           notification.success({
             message: t("pageLogin.loginSuccessTitle"),
             description: `${t("pageLogin.loginSuccessDesc")}: ${username}`,

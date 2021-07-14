@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- 功能区 -->
-    <div class="relative flex items-center mb-3">
+    <!-- 功能区 height 32px-->
+    <div class="relative h-8 flex items-center mb-3">
       <!-- 这个为隐藏的作为选择文件用的 -->
       <input
         multiple
@@ -19,68 +19,107 @@
         webkitdirectory
         @change="onChangeMultipleUploadFolder"
       />
-      <!-- 下拉 - 上传 -->
-      <a-dropdown class="mr-2">
-        <template #overlay>
-          <a-menu @click="onClickDropDownMenuUpload">
-            <a-menu-item key="file">{{ $t("metanet.uploadFile") }}</a-menu-item>
-            <a-menu-item key="folder">{{
-              $t("metanet.uploadFolder")
-            }}</a-menu-item>
-          </a-menu>
-        </template>
-        <a-button type="primary">
-          <CloudUploadOutlined />
-          {{ $t("metanet.uploadButton") }}
-        </a-button>
-      </a-dropdown>
-      <!-- 下拉 - 新建 -->
-      <a-dropdown class="mr-2">
-        <template #overlay>
-          <a-menu @click="onClickDropDownMenuCreate">
-            <!-- 新建文件 -->
-            <a-menu-item key="file">{{ $t("metanet.createFile") }}</a-menu-item>
-            <!-- 新建文件夹 -->
-            <a-menu-item key="folder">{{
-              $t("metanet.createFolder")
-            }}</a-menu-item>
-            <!-- 新建by 导入 -->
-            <a-menu-item key="import">{{
-              $t("metanet.createByImport")
-            }}</a-menu-item>
-          </a-menu>
-        </template>
-        <a-button type="primary">
-          <FolderAddOutlined />
-          {{ $t("metanet.create") }}
-        </a-button>
-      </a-dropdown>
+      <transition name="no-mode-fade">
+        <!-- different key forceUdpate -->
+        <div key="1" class="absolute" v-if="selectedRows.length === 0">
+          <!-- 下拉 - 上传 -->
+          <a-dropdown class="mr-2">
+            <template #overlay>
+              <a-menu @click="onClickDropDownMenuUpload">
+                <a-menu-item key="file">{{
+                  $t("metanet.uploadFile")
+                }}</a-menu-item>
+                <a-menu-item key="folder">{{
+                  $t("metanet.uploadFolder")
+                }}</a-menu-item>
+              </a-menu>
+            </template>
+            <a-button type="primary">
+              <CloudUploadOutlined />
+              {{ $t("metanet.uploadButton") }}
+            </a-button>
+          </a-dropdown>
+          <!-- 下拉 - 新建 -->
+          <a-dropdown class="mr-2">
+            <template #overlay>
+              <a-menu @click="onClickDropDownMenuCreate">
+                <!-- 新建文件 -->
+                <a-menu-item key="file">{{
+                  $t("metanet.createFile")
+                }}</a-menu-item>
+                <!-- 新建文件夹 -->
+                <a-menu-item key="folder">{{
+                  $t("metanet.createFolder")
+                }}</a-menu-item>
+                <!-- 新建by 导入 -->
+                <a-menu-item key="import">{{
+                  $t("metanet.createByImport")
+                }}</a-menu-item>
+              </a-menu>
+            </template>
+            <a-button type="primary">
+              <FolderAddOutlined />
+              {{ $t("metanet.create") }}
+            </a-button>
+          </a-dropdown>
+        </div>
+        <div key="2" class="absolute" v-else>
+          <!-- 移动 -->
+          <a-button
+            class="mr-2 ant-btn-cyan"
+            @click="
+              onCopyMoveModalPreAction(
+                'move',
+                selectedRows.map((i) => i.id)
+              )
+            "
+          >
+            <SendOutlined />
+            <!-- {{ $t("metanet.buttonMoveTo") }} -->
+            移动
+          </a-button>
+          <!-- 下拉 - 新建 -->
+          <a-dropdown class="mr-2">
+            <template #overlay>
+              <a-menu>
+                <!-- 复制 -->
+                <a-menu-item
+                  key="file"
+                  @click="
+                    onCopyMoveModalPreAction(
+                      'copy',
+                      selectedRows.map((i) => i.id)
+                    )
+                  "
+                  >复制</a-menu-item
+                >
+                <!-- 删除 -->
+                <a-menu-item key="folder" @click="onBatchDelete"
+                  >删除</a-menu-item
+                >
+              </a-menu>
+            </template>
+            <a-button class="ant-btn-cyan">
+              <BarsOutlined />
+              更多
+            </a-button>
+          </a-dropdown>
+        </div>
+      </transition>
+
       <!-- 刷新按钮 -->
-      <a-button class="mr-2" @click="onRefreshTableData">
+      <!-- <a-button class="mr-2" @click="onRefreshTableData">
         <SyncOutlined :spin="tableLoading" />
         {{ $t("metanet.refresh") }}
-      </a-button>
+      </a-button> -->
 
       <!-- 处理选中数据按钮集合 -->
       <!-- TODO 分享多个? -->
       <!-- 下载 删除 重命名 复制到 移动到 -->
-      <a-button-group class="mr-2" v-show="selectedRows.length">
+      <!-- <a-button-group class="mr-2" v-show="selectedRows.length">
         <a-button type="danger" @click="onBatchDelete">
-          <!-- <DeleteOutlined /> -->
           {{ $t("metanet.delete") }}
         </a-button>
-        <!-- 选中有文件夹的话禁用下载按钮(因为还没有下载文件夹功能) -->
-        <!-- <DownloadOutlined /> -->
-        <!-- <a-button
-          @click="onDownloadBatch"
-          :disabled="selectedRows.some((i) => i.isDir)"
-        >
-          {{ $t("metanet.downloadButton") }}
-        </a-button> -->
-        <!-- 选中多个的时候禁用重命名 -->
-        <!-- <a-button @click="onDownload" :disabled="selectedRows.length > 1">
-          {{ $t("metanet.rename") }}
-        </a-button> -->
         <a-button
           @click="
             onCopyMoveModalPreAction(
@@ -101,13 +140,52 @@
         >
           {{ $t("metanet.buttonMoveTo") }}
         </a-button>
-      </a-button-group>
+      </a-button-group> -->
+      <div :style="{ width: '180px' }"></div>
+      <!-- 网盘使用信息 -->
+      <a-tooltip title="网盘信息">
+        <div
+          class="cursor-pointer inline-block mr-2"
+          @click="onShowDiskDetail"
+          :style="{
+            height: '32px',
+            'line-height': '38px',
+          }"
+        >
+          <DatabaseOutlined />
+        </div>
+      </a-tooltip>
+      <!-- 面包屑 目录历史索引 -->
+      <a-breadcrumb
+        :style="{
+          height: '32px',
+          'line-height': '42px',
+        }"
+      >
+        <template #separator>/</template>
+        <template v-if="historyDir.length > 1">
+          <a-breadcrumb-item
+            v-for="hItem in historyDir.slice(0, -1)"
+            :key="hItem.id"
+          >
+            <a
+              @click="onClickHistoryDirUpperLevel(hItem)"
+              style="color: #1890ff"
+              >{{ hItem.name }}</a
+            >
+          </a-breadcrumb-item>
+        </template>
+        <a-breadcrumb-item>{{
+          $lastOfArray(historyDir).name
+        }}</a-breadcrumb-item>
+        /
+      </a-breadcrumb>
       <!-- 临时加的显示进度抽屉的按钮 -->
       <div class="flex items-center absolute right-1 cursor-pointer">
-        <!-- 网盘使用信息 -->
-        <a-tooltip title="网盘信息">
-          <div class="inline-block mr-2" @click="onShowDiskDetail">
-            <DatabaseOutlined />
+        <!-- 刷新按钮 -->
+        <a-tooltip :title="$t('metanet.refresh')">
+          <div class="inline-block mr-2" @click="onRefreshTableData">
+            <SyncOutlined :spin="tableLoading" />
           </div>
         </a-tooltip>
         <!-- 上传信息 -->
@@ -138,23 +216,6 @@
         </a-tooltip>
       </div>
     </div>
-    <!-- 面包屑 目录历史索引 -->
-    <a-breadcrumb class="pl-2 mb-1">
-      <template #separator>></template>
-      <template v-if="historyDir.length > 1">
-        <a-breadcrumb-item
-          v-for="hItem in historyDir.slice(0, -1)"
-          :key="hItem.id"
-        >
-          <a
-            @click="onClickHistoryDirUpperLevel(hItem)"
-            style="color: #1890ff"
-            >{{ hItem.name }}</a
-          >
-        </a-breadcrumb-item>
-      </template>
-      <a-breadcrumb-item>{{ $lastOfArray(historyDir).name }}</a-breadcrumb-item>
-    </a-breadcrumb>
     <!-- 表格 -->
     <TableFiles
       rowKey="id"
@@ -761,6 +822,8 @@ import {
 import {
   DownOutlined,
   CloudUploadOutlined,
+  SendOutlined,
+  BarsOutlined,
   SyncOutlined,
   FolderAddOutlined,
   DeleteOutlined,
@@ -876,6 +939,8 @@ export default defineComponent({
     // icon
     // DownOutlined,
     CloudUploadOutlined,
+    SendOutlined,
+    BarsOutlined,
     SyncOutlined,
     FolderAddOutlined,
     EllipsisOutlined,
@@ -1513,7 +1578,7 @@ export default defineComponent({
           shareFileModalConfirmLoading.value = true;
           const resultShareCreate = await apiShareCreate({
             userFileId: fileId,
-            expiredAfterDays: expired,
+            day: expired,
             ...(type === "PRIVATE"
               ? {
                   code: code,
@@ -2108,7 +2173,7 @@ export default defineComponent({
     const historyDir = ref<THistoryDirItem[]>([
       {
         id: "root",
-        name: t("metanet.allFiles"),
+        name: "~",
       },
     ]);
     // 当前目录
@@ -2523,5 +2588,15 @@ export default defineComponent({
   &:hover {
     opacity: 1;
   }
+}
+
+.no-mode-fade-enter-active,
+.no-mode-fade-leave-active {
+  transition: opacity 0.5s;
+}
+
+.no-mode-fade-enter-from,
+.no-mode-fade-leave-to {
+  opacity: 0;
 }
 </style>
