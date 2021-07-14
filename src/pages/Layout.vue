@@ -15,7 +15,7 @@
         <div id="siderLogoBox" class="flex h-12 items-center justify-center">
           <div id="siderLogoSvg" v-html="svgLogoStr"></div>
           <div id="siderLogoText" class="text-white text-lg font-bold pl-3">
-            {{ PRODUCT_NAME }}
+            <!-- {{ PRODUCT_NAME }} -->
           </div>
         </div>
         <!-- 切换黑白主题 -->
@@ -28,10 +28,10 @@
           v-model:selectedKeys="selectedKeys"
           @click="onMenuSelect"
         >
-          <!-- <a-menu-item key="1">
+          <a-menu-item key="dashboard">
             <PieChartOutlined />
-            <span>Option 1</span>
-          </a-menu-item> -->
+            <span>Dashboard</span>
+          </a-menu-item>
           <!-- <a-sub-menu key="sub1">
             <template #title>
               <span class="flex items-center">
@@ -44,19 +44,28 @@
             <a-menu-item key="7">Option 7</a-menu-item>
             <a-menu-item key="8">Option 8</a-menu-item>
           </a-sub-menu> -->
-          <a-sub-menu key="general">
+          <a-sub-menu key="metanet">
             <template #title>
               <span class="flex items-center">
                 <AppstoreAddOutlined />
-                <span>{{ $t("common.GENERAL") }}</span>
+                <span>网盘</span>
               </span>
             </template>
             <!-- TODO 跟路由相关联 v-for -->
-            <a-menu-item key="account">{{ $t("common.account") }}</a-menu-item>
+            <a-menu-item key="file">{{ $t("metanet.file") }}</a-menu-item>
+            <a-menu-item key="share">{{
+              $t("metanet.shareButton")
+            }}</a-menu-item>
+            <a-menu-item key="publish">{{ $t("metanet.publish") }}</a-menu-item>
+            <a-menu-item key="collect">{{
+              $t("metanet.collectionButton")
+            }}</a-menu-item>
+            <a-menu-item key="recycle">{{ $t("metanet.recycle") }}</a-menu-item>
+            <!-- <a-menu-item key="account">{{ $t("common.account") }}</a-menu-item>
             <a-menu-item key="metanet">{{ $t("common.metanet") }}</a-menu-item>
             <a-menu-item key="security">{{
               $t("common.security")
-            }}</a-menu-item>
+            }}</a-menu-item> -->
           </a-sub-menu>
         </a-menu>
       </a-layout-sider>
@@ -74,10 +83,10 @@
               @click="() => (collapsed = !collapsed)"
             />
             <!-- 面包屑 sub/item -->
-            <a-breadcrumb class="inline-block">
+            <!-- <a-breadcrumb class="inline-block">
               <a-breadcrumb-item>
                 <a href="javascript:;">{{
-                  $t(`common.${computedBreadcrumpObj.subKey}`)
+                  $t(`${computedBreadcrumpObj.subKey}`)
                 }}</a>
                 <template #overlay>
                   <a-menu>
@@ -86,16 +95,16 @@
                       :key="item.path"
                     >
                       <router-link :to="item.path">{{
-                        $t(`common.${item.meta.title}`)
+                        $t(`${item.meta.title}`)
                       }}</router-link>
                     </a-menu-item>
                   </a-menu>
                 </template>
               </a-breadcrumb-item>
               <a-breadcrumb-item>{{
-                $t(`common.${computedBreadcrumpObj.curRouteTitle}`)
+                $t(`${computedBreadcrumpObj.curRouteTitle}`)
               }}</a-breadcrumb-item>
-            </a-breadcrumb>
+            </a-breadcrumb> -->
             <!-- 撑开中间 -->
             <div class="flex-1"></div>
             <div class="flex items-center h-full px-4">
@@ -129,8 +138,11 @@
               </div>
               <template #overlay>
                 <a-menu @click="onAvatarDropdownMenuClick">
+                  <a-menu-item class="flex items-center"> 账户 </a-menu-item>
+                  <a-menu-item class="flex items-center"> 安全 </a-menu-item>
                   <a-menu-item class="flex items-center">
-                    <LogoutOutlined />{{ $t("common.dropdownItemLoginOut") }}
+                    登出
+                    <!-- <LogoutOutlined />{{ $t("common.dropdownItemLoginOut") }} -->
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -163,7 +175,7 @@
               }"
             >
               <span class="text-xs">
-                {{ $t(`common.${item.title}`) }}
+                {{ $t(`${item.title}`) }}
               </span>
               <!-- 当只有一个的时候不能关闭 -->
               <!-- 预留个15.15的box -->
@@ -190,7 +202,7 @@
             minHeight: '280px',
           }"
         >
-          <router-view></router-view>
+          <router-view class="p-4 pb-6"></router-view>
         </a-layout-content>
       </a-layout>
     </a-layout>
@@ -214,6 +226,7 @@ import {
   LogoutOutlined,
   CloseOutlined,
   ExclamationCircleOutlined,
+  PieChartOutlined,
 } from "@ant-design/icons-vue";
 import { pick, remove } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
@@ -254,6 +267,7 @@ export default defineComponent({
     UserOutlined,
     LogoutOutlined,
     CloseOutlined,
+    PieChartOutlined,
     // ExclamationCircleOutlined,
     //
     XLocaleSwither,
@@ -269,59 +283,70 @@ export default defineComponent({
       return { PRODUCT_NAME, svgLogoStr: useSvgWhiteLogo() };
     }
     /** 面包屑区 */
-    function useBreadcrumb() {
-      const insideRouteObj = router
-        .getRoutes()
-        .filter((i) => !["/", "/login"].includes(i.path))
-        .map((i) => pick(i, ["path", "name", "meta"]) as TBreadcrumb)
-        .reduce<{
-          [key: string]: TBreadcrumb[];
-        }>((acc, cur) => {
-          const [s, subKey, itemKey] = cur.path.split("/");
-          acc[subKey] = acc[subKey] ? [...acc[subKey], cur] : [cur];
-          return acc;
-        }, {});
-      // general: Array(3)
-      // 0: {path: "/general/account", name: "GeneralAccount", meta: {…}}
-      // 1: {path: "/general/metanet", name: "GeneralMetanet", meta: {…}}
-      // 2: {path: "/general/security
-      // console.log("insideRouteObj", insideRouteObj, route);
-      // 根据route.path 来computed
-      const computedBreadcrumpObj = computed(() => {
-        const [s, curRouteSubKey, curRouteKey] = route.path.split("/");
-        return {
-          // 翻译文件里有  general: "全部" 和  GENERAL: "通用" 这里用大写的
-          subKey: curRouteSubKey.toUpperCase(),
-          subMenuItems: insideRouteObj[curRouteSubKey],
-          curRouteTitle: route.meta.title,
-        };
-      });
-      // console.log("computedBreadcrumpObj", computedBreadcrumpObj);
-      return { computedBreadcrumpObj };
-    }
+    // function useBreadcrumb() {
+    //   const insideRouteObj = router
+    //     .getRoutes()
+    //     .filter((i) => !["/", "/login"].includes(i.path))
+    //     .map((i) => pick(i, ["path", "name", "meta"]) as TBreadcrumb)
+    //     .reduce<{
+    //       [key: string]: TBreadcrumb[];
+    //     }>((acc, cur) => {
+    //       const [s, subKey, itemKey] = cur.path.split("/");
+    //       acc[subKey] = acc[subKey] ? [...acc[subKey], cur] : [cur];
+    //       return acc;
+    //     }, {});
+    //   // general: Array(3)
+    //   // 0: {path: "/general/account", name: "GeneralAccount", meta: {…}}
+    //   // 1: {path: "/general/metanet", name: "GeneralMetanet", meta: {…}}
+    //   // 2: {path: "/general/security
+    //   // console.log("insideRouteObj", insideRouteObj, route);
+    //   // 根据route.path 来computed
+    //   const computedBreadcrumpObj = computed(() => {
+    //     const [s, curRouteSubKey, curRouteKey] = route.path.split("/");
+    //     return {
+    //       // 翻译文件里有  general: "全部" 和  GENERAL: "通用" 这里用大写的
+    //       subKey: curRouteSubKey.toUpperCase(),
+    //       subMenuItems: insideRouteObj[curRouteSubKey],
+    //       curRouteTitle: route.meta.title,
+    //     };
+    //   });
+    //   // console.log("computedBreadcrumpObj", computedBreadcrumpObj);
+    //   return { computedBreadcrumpObj };
+    // }
     /** 菜单数据 */
     function useLayoutMenu() {
       // console.log("route", route);
-      const openKeys = ref([""]);
+      // 默认打开网盘
+      const openKeys = ref(["metanet"]);
       const selectedKeys = ref([""]);
       // 观察路由path 改变菜单
       watch(
         () => route,
         (newRoute) => {
           const pathStr = newRoute.path;
+          console.log("routeNewVal", pathStr, openKeys.value);
           // console.log("pathStr", pathStr);
           // /general/account
           const [s, subKey, itemKey] = pathStr.split("/");
-          openKeys.value = [subKey];
-          selectedKeys.value = [itemKey];
+          // 这里先针对dashboard 特殊处理
+          /** 是否dashboard 路由 */
+          const isDashBoard = subKey === "dashboard";
+          // openKeys.value = [subKey];
+          if (isDashBoard) {
+            selectedKeys.value = [subKey];
+          } else {
+            selectedKeys.value = [itemKey];
+          }
           // 控制tab 栏
           const newRouteTitle = newRoute.meta.title as string;
           activeNavKey.value = newRouteTitle;
           if (!navList.some((v) => v.title === newRouteTitle)) {
-            navList.push({
+            const item: TNavItem = {
               routeName: newRoute.name as string,
               title: newRouteTitle,
-            });
+            };
+            // 保证dashboard 是第一个
+            isDashBoard ? navList.unshift(item) : navList.push(item);
           }
         },
         {
@@ -410,7 +435,7 @@ export default defineComponent({
       };
     }
     return {
-      ...useBreadcrumb(),
+      // ...useBreadcrumb(),
       ...useNavTabs(),
       ...useLayoutMenu(),
       ...useSvgLogo(),
@@ -471,8 +496,10 @@ export default defineComponent({
 .navItemClose {
   display: none;
 }
-.navTabBox:hover {
-  .navItemClose {
+.navTabBox {
+  height: 25px;
+  line-height: 20px;
+  &:hover .navItemClose {
     display: inline-block;
   }
 }

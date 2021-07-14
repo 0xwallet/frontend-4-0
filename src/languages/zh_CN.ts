@@ -20,6 +20,8 @@ export default {
     file: "文件",
     release: "发布",
     signIn: "登录",
+    dashboard: "Dashboard",
+    DASHBOARD: "Dashboard",
     okText: "确认",
     closeText: "关闭",
     cancelText: "取消",

@@ -20,6 +20,8 @@ export default {
     release: "Release",
     file: "File",
     signIn: "sign in",
+    dashboard: "Dashboard",
+    DASHBOARD: "Dashboard",
     okText: "OK",
     closeText: "Close",
     cancelText: "Cancel",

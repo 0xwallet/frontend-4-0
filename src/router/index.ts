@@ -6,11 +6,16 @@ import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import { useUserStore } from "../store";
 // vue 文件
 import Login from "../pages/Login/index.vue";
+import Dashboard from "../pages/Dashboard/index.vue";
+import Account from "../pages/Account/index.vue";
+import Security from "../pages/Security/index.vue";
+//
 import Layout from "../pages/Layout.vue";
-import GeneralAccount from "../pages/General/Account/index.vue";
-import GeneralSecurity from "../pages/General/Security/index.vue";
-import GeneralMetanet from "../pages/General/Metanet/index.vue";
-
+import MetanetFile from "../pages/Metanet/File.vue";
+import MetanetShare from "../pages/Metanet/Share.vue";
+import MetanetPublish from "../pages/Metanet/Publish.vue";
+import MetanetCollect from "../pages/Metanet/Collect.vue";
+import MetanetRecycle from "../pages/Metanet/Recycle.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -25,38 +30,111 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     component: Layout,
-    redirect: "/general/metanet",
+    redirect: "/metanet/file", // TODO change it
+    // redirect: "/general/metanet", // TODO change it
     children: [
       {
-        // GeneralAccount will be rendered inside Layout's <router-view>
-        // when /general/account is matched
-        // 如果 path 是 / 开头就是根路径
-        path: "general/account",
-        name: "GeneralAccount",
+        path: "dashboard",
+        name: "Dashboard",
         meta: {
           needAuth: true,
-          title: "account",
+          title: "common.dashboard",
         },
-        component: GeneralAccount,
+        component: Dashboard,
       },
       {
-        path: "general/metanet",
-        name: "GeneralMetanet",
+        path: "account",
+        name: "Account",
         meta: {
           needAuth: true,
-          title: "metanet",
+          title: "common.account",
         },
-        component: GeneralMetanet,
+        component: Account,
       },
       {
-        path: "general/security",
-        name: "GeneralSecurity",
+        path: "security",
+        name: "Security",
         meta: {
           needAuth: true,
-          title: "security",
+          title: "common.security",
         },
-        component: GeneralSecurity,
+        component: Security,
       },
+      {
+        path: "metanet/file",
+        name: "MetanetFile",
+        meta: {
+          needAuth: true,
+          title: "metanet.file",
+        },
+        component: MetanetFile,
+      },
+      {
+        path: "metanet/share",
+        name: "MetanetShare",
+        meta: {
+          needAuth: true,
+          title: "metanet.shareButton",
+        },
+        component: MetanetShare,
+      },
+      {
+        path: "metanet/publish",
+        name: "MetanetPublish",
+        meta: {
+          needAuth: true,
+          title: "metanet.publish",
+        },
+        component: MetanetPublish,
+      },
+      {
+        path: "metanet/collect",
+        name: "MetanetCollect",
+        meta: {
+          needAuth: true,
+          title: "metanet.collectionButton",
+        },
+        component: MetanetCollect,
+      },
+      {
+        path: "metanet/recycle",
+        name: "MetanetRecycle",
+        meta: {
+          needAuth: true,
+          title: "metanet.recycle",
+        },
+        component: MetanetRecycle,
+      },
+      // {
+      //   // GeneralAccount will be rendered inside Layout's <router-view>
+      //   // when /general/account is matched
+      //   // 如果 path 是 / 开头就是根路径
+      //   path: "general/account",
+      //   name: "GeneralAccount",
+      //   meta: {
+      //     needAuth: true,
+      //     title: "account",
+      //   },
+      //   component: GeneralAccount,
+      // },
+      // {
+      //   path: "general/metanet",
+      //   name: "GeneralMetanet",
+      //   meta: {
+      //     needAuth: true,
+      //     title: "metanet",
+      //   },
+      //   component: GeneralMetanet,
+      // },
+      // {
+      //   path: "general/security",
+      //   name: "GeneralSecurity",
+      //   meta: {
+      //     needAuth: true,
+      //     title: "security",
+      //   },
+      //   component: GeneralSecurity,
+      // },
     ],
   },
   // {
@@ -92,7 +170,7 @@ router.beforeEach((to, from) => {
 });
 // 守卫-浏览器标题
 router.beforeEach((to, from) => {
-  const textPath = `common.${to.meta.title}`;
+  const textPath = `${to.meta.title}`;
   useTitle(`${i18n.global.t(textPath)} - ${PRODUCT_NAME}`);
 });
 
