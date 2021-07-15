@@ -146,7 +146,11 @@ body,
 // ant color
 @import "~ant-design-vue/lib/style/color/colors.less";
 
-.ant-color-blue {
+.ant-color-blue-1 {
+  // table 里的hover
+  color: @blue-1;
+}
+.ant-color-blue-6 {
   color: @blue-6;
 }
 .ant-color-uploading {
@@ -179,5 +183,18 @@ body,
     background-color: @cyan-7; //blue-7
     border-color: @cyan-7;
   }
+}
+</style>
+
+<style lang="less">
+// vue 动画
+.no-mode-fade-enter-active,
+.no-mode-fade-leave-active {
+  transition: opacity 0.5s;
+}
+
+.no-mode-fade-enter-from,
+.no-mode-fade-leave-to {
+  opacity: 0;
 }
 </style>

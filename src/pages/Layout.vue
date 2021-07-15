@@ -83,31 +83,14 @@
               @click="() => (collapsed = !collapsed)"
             />
             <!-- 面包屑 sub/item -->
-            <!-- <a-breadcrumb class="inline-block">
-              <a-breadcrumb-item>
-                <a href="javascript:;">{{
-                  $t(`${computedBreadcrumpObj.subKey}`)
-                }}</a>
-                <template #overlay>
-                  <a-menu>
-                    <a-menu-item
-                      v-for="item in computedBreadcrumpObj.subMenuItems"
-                      :key="item.path"
-                    >
-                      <router-link :to="item.path">{{
-                        $t(`${item.meta.title}`)
-                      }}</router-link>
-                    </a-menu-item>
-                  </a-menu>
-                </template>
+            <a-breadcrumb class="inline-block">
+              <a-breadcrumb-item v-for="item in breadArr" :key="item">
+                {{ item }}
               </a-breadcrumb-item>
-              <a-breadcrumb-item>{{
-                $t(`${computedBreadcrumpObj.curRouteTitle}`)
-              }}</a-breadcrumb-item>
-            </a-breadcrumb> -->
+            </a-breadcrumb>
             <!-- 撑开中间 -->
             <div class="flex-1"></div>
-            <div class="flex items-center h-full px-4">
+            <div class="flex items-center h-full w-12 hover:bg-gray-100">
               <XLocaleSwither class="text-base text-gray-600 localeSwitcher" />
             </div>
             <!-- <div class="px-2 mr-4 h-full flex items-center cursor-pointer"> -->
@@ -138,9 +121,13 @@
               </div>
               <template #overlay>
                 <a-menu @click="onAvatarDropdownMenuClick">
-                  <a-menu-item class="flex items-center"> 账户 </a-menu-item>
-                  <a-menu-item class="flex items-center"> 安全 </a-menu-item>
-                  <a-menu-item class="flex items-center">
+                  <a-menu-item key="Account" class="flex items-center">
+                    账户
+                  </a-menu-item>
+                  <a-menu-item key="Security" class="flex items-center">
+                    安全
+                  </a-menu-item>
+                  <a-menu-item key="Logout" class="flex items-center">
                     登出
                     <!-- <LogoutOutlined />{{ $t("common.dropdownItemLoginOut") }} -->
                   </a-menu-item>
@@ -158,7 +145,6 @@
               :key="item.routeName"
               @click="onClickNavTab(item)"
               class="
-                navTabBox
                 border-solid border
                 rounded-sm
                 py-px
@@ -168,10 +154,15 @@
                 mr-2
               "
               :class="{
+                navTabBox: item.routeName !== 'Dashboard',
                 'border-transparent': activeNavKey === item.title,
                 'bg-blue-600': activeNavKey === item.title,
                 'text-white': activeNavKey === item.title,
                 'border-gray-200': activeNavKey !== item.title,
+              }"
+              :style="{
+                height: '25px',
+                'line-height': '20px',
               }"
             >
               <span class="text-xs">
@@ -209,15 +200,7 @@
   </div>
 </template>
 <script lang="ts">
-import {
-  computed,
-  createVNode,
-  defineComponent,
-  reactive,
-  Ref,
-  ref,
-  watch,
-} from "vue";
+import { createVNode, defineComponent, reactive, Ref, ref, watch } from "vue";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -282,52 +265,27 @@ export default defineComponent({
     function useSvgLogo() {
       return { PRODUCT_NAME, svgLogoStr: useSvgWhiteLogo() };
     }
-    /** 面包屑区 */
-    // function useBreadcrumb() {
-    //   const insideRouteObj = router
-    //     .getRoutes()
-    //     .filter((i) => !["/", "/login"].includes(i.path))
-    //     .map((i) => pick(i, ["path", "name", "meta"]) as TBreadcrumb)
-    //     .reduce<{
-    //       [key: string]: TBreadcrumb[];
-    //     }>((acc, cur) => {
-    //       const [s, subKey, itemKey] = cur.path.split("/");
-    //       acc[subKey] = acc[subKey] ? [...acc[subKey], cur] : [cur];
-    //       return acc;
-    //     }, {});
-    //   // general: Array(3)
-    //   // 0: {path: "/general/account", name: "GeneralAccount", meta: {…}}
-    //   // 1: {path: "/general/metanet", name: "GeneralMetanet", meta: {…}}
-    //   // 2: {path: "/general/security
-    //   // console.log("insideRouteObj", insideRouteObj, route);
-    //   // 根据route.path 来computed
-    //   const computedBreadcrumpObj = computed(() => {
-    //     const [s, curRouteSubKey, curRouteKey] = route.path.split("/");
-    //     return {
-    //       // 翻译文件里有  general: "全部" 和  GENERAL: "通用" 这里用大写的
-    //       subKey: curRouteSubKey.toUpperCase(),
-    //       subMenuItems: insideRouteObj[curRouteSubKey],
-    //       curRouteTitle: route.meta.title,
-    //     };
-    //   });
-    //   // console.log("computedBreadcrumpObj", computedBreadcrumpObj);
-    //   return { computedBreadcrumpObj };
-    // }
     /** 菜单数据 */
     function useLayoutMenu() {
       // console.log("route", route);
       // 默认打开网盘
       const openKeys = ref(["metanet"]);
       const selectedKeys = ref([""]);
+      /** 面包屑 */
+      const breadArr = ref<string[]>([]);
       // 观察路由path 改变菜单
       watch(
         () => route,
         (newRoute) => {
           const pathStr = newRoute.path;
-          console.log("routeNewVal", pathStr, openKeys.value);
+          // console.log("routeNewVal", pathStr, openKeys.value);
           // console.log("pathStr", pathStr);
           // /general/account
           const [s, subKey, itemKey] = pathStr.split("/");
+          // filter undefinde itemKey
+          breadArr.value = [subKey, itemKey]
+            .filter((i) => !!i)
+            .map((i) => t(`metanet.${i}`));
           // 这里先针对dashboard 特殊处理
           /** 是否dashboard 路由 */
           const isDashBoard = subKey === "dashboard";
@@ -368,32 +326,41 @@ export default defineComponent({
           router.push(toRoute);
         }
       };
-      return { openKeys, selectedKeys, collapsed, onMenuSelect };
+      return { breadArr, openKeys, selectedKeys, collapsed, onMenuSelect };
     }
     /** TODO 用api query回来带有头像的数据 */
     function useUserDetailInfo() {
-      const onAvatarDropdownMenuClick = () => {
-        Modal.confirm({
-          icon: createVNode(ExclamationCircleOutlined),
-          title: t("common.logoutTip"),
-          content: t("common.logoutMessage"),
-          onOk: signOutAndClear,
-        });
+      const onAvatarDropdownMenuClick = ({ key }: { key: string }) => {
+        // console.log("onAvatarDropdownMenuClick-key", key);
+        if (key === "Logout") {
+          Modal.confirm({
+            icon: createVNode(ExclamationCircleOutlined),
+            title: t("common.logoutTip"),
+            content: t("common.logoutMessage"),
+            onOk: signOutAndClear,
+          });
+        } else {
+          router.push({ name: key });
+        }
       };
       return {
         username,
         onAvatarDropdownMenuClick,
       };
     }
-    let activeNavKey: Ref<string>;
-    let navList: TNavItem[];
+    const activeNavKey = ref("");
+    // 默认显示dashboard
+    const navList: TNavItem[] = reactive([
+      {
+        routeName: "Dashboard",
+        title: "common.dashboard",
+      },
+    ]);
     /** nav tab栏 */
     function useNavTabs() {
       // console.log("route", route);
       // activeNavKey = ref(route.meta.title as string);
       // navList = reactive([route.meta.title as string]);
-      activeNavKey = ref("");
-      navList = reactive([]);
       const onClickNavTab = (item: TNavItem) => {
         // router.push()
         // console.log("onClickNavTab", item);
@@ -435,7 +402,6 @@ export default defineComponent({
       };
     }
     return {
-      // ...useBreadcrumb(),
       ...useNavTabs(),
       ...useLayoutMenu(),
       ...useSvgLogo(),
@@ -457,9 +423,9 @@ export default defineComponent({
 #global-layout-component .trigger:hover {
   color: #1890ff;
 }
-#global-layout-component .localeSwitcher:hover {
+/* #global-layout-component .localeSwitcher:hover {
   color: #1890ff;
-}
+} */
 /* 
 .site-layout .site-layout-background {
   background: #fff;
@@ -497,8 +463,6 @@ export default defineComponent({
   display: none;
 }
 .navTabBox {
-  height: 25px;
-  line-height: 20px;
   &:hover .navItemClose {
     display: inline-block;
   }

@@ -667,7 +667,7 @@ export const apiRename = async (
 type ParamsShareCreate = {
   code?: string;
   userFileId: string;
-  day: number;
+  expiredAfterDays: number;
 };
 type ResponseShareCreate = {
   driveCreateShare: {

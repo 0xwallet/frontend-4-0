@@ -1,6 +1,7 @@
 <template>
   <a-dropdown placement="bottomRight">
-    <i>
+    <!-- 宽高由引用他的组件来决定 -->
+    <div class="w-full h-full flex items-center justify-center">
       <svg
         viewBox="0 0 24 24"
         focusable="false"
@@ -15,7 +16,7 @@
           class="css-c4d79v"
         ></path>
       </svg>
-    </i>
+    </div>
     <template #overlay>
       <a-menu v-model:selectedKeys="localeObj.localeSelectedKeys">
         <a-menu-item v-for="locale in localeObj.availableLocales" :key="locale">

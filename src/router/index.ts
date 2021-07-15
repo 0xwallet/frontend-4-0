@@ -137,6 +137,12 @@ const routes: RouteRecordRaw[] = [
       // },
     ],
   },
+  {
+    // TODO 4040 找不到叶妙
+    // path: "*",
+    path: "/:catchAll(.*)",
+    redirect: "/metanet/file",
+  },
   // {
   //   path: "/about",
   //   name: "About",

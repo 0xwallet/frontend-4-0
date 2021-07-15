@@ -1,16 +1,31 @@
 <template>
   <div>
-    <div class="mb-3">
-      <!-- 刷新按钮 -->
-      <a-button class="mr-2" @click="onRefreshTableData">
-        <SyncOutlined :spin="tableLoading" />
-        {{ $t("metanet.refresh") }}
-      </a-button>
-      <a-button-group class="mr-2" v-show="selectedRows.length">
-        <a-button type="danger" @click="onBatchDelete">
-          {{ $t("metanet.delete") }}
-        </a-button>
-      </a-button-group>
+    <!-- 功能区 height 32px-->
+    <div class="relative h-8 flex items-center mb-3 pr-1">
+      <div class="relative h-full" :style="{ width: '180px' }">
+        <transition name="no-mode-fade">
+          <a-button
+            v-if="selectedRows.length"
+            type="danger"
+            @click="onBatchDelete"
+          >
+            {{ $t("metanet.delete") }}
+          </a-button>
+        </transition>
+      </div>
+      <div class="flex-1"></div>
+      <div>
+        <!-- 刷新按钮 -->
+        <a-tooltip :title="$t('metanet.refresh')">
+          <a
+            href="javascript:;"
+            class="inline-block"
+            @click="onRefreshTableData"
+          >
+            <SyncOutlined :spin="tableLoading" />
+          </a>
+        </a-tooltip>
+      </div>
     </div>
     <!-- 表格 -->
     <TableFiles
