@@ -209,7 +209,7 @@
             <a-tag
               class="cursor-pointer"
               color="#3b5999"
-              :style="{ margin: 0 }"
+              :style="{ margin: 0, padding: 0 }"
             >
               <template #icon>
                 <!-- <GlobalOutlined /> -->
