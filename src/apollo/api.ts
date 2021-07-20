@@ -297,7 +297,7 @@ export const apiUploadSingle = async (
     Description: params.Description,
   });
   console.log("---先调秒传---", resultSecondUpload.data);
-  if (resultSecondUpload.data?.driveUploadByHash) {
+  if (resultSecondUpload.data?.driveUploadByHash?.id) {
     // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
     return { data: { msg: "秒传成功" } };
   }

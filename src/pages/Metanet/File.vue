@@ -1249,7 +1249,7 @@ export default defineComponent({
           taskItem.status = "failed";
           return;
         }
-        if (resultUploadSingle.data.msg) {
+        if (resultUploadSingle.data.msg === "秒传成功") {
           message.success(t("metanet.uploadSuccess"));
           setTaskItemProgress(100, 0);
           taskItem.status = "success";
