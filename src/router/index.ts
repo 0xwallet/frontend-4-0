@@ -12,6 +12,7 @@ import Security from "../pages/Security/index.vue";
 //
 import Layout from "../pages/Layout.vue";
 import MetanetFile from "../pages/Metanet/File.vue";
+import MetanetTransport from "../pages/Metanet/Transport/index.vue";
 import MetanetShare from "../pages/Metanet/Share.vue";
 import MetanetPublish from "../pages/Metanet/Publish.vue";
 import MetanetCollect from "../pages/Metanet/Collect.vue";
@@ -68,6 +69,15 @@ const routes: RouteRecordRaw[] = [
           title: "metanet.file",
         },
         component: MetanetFile,
+      },
+      {
+        path: "metanet/transport",
+        name: "MetanetTransport",
+        meta: {
+          needAuth: true,
+          title: "metanet.transport",
+        },
+        component: MetanetTransport,
       },
       {
         path: "metanet/share",

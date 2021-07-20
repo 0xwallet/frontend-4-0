@@ -145,6 +145,7 @@
               :key="item.routeName"
               @click="onClickNavTab(item)"
               class="
+                relative
                 border-solid border
                 rounded-sm
                 py-px
@@ -161,10 +162,35 @@
                 'border-gray-200': activeNavKey !== item.title,
               }"
               :style="{
+                transition: '.3s',
                 height: '25px',
                 'line-height': '20px',
               }"
             >
+              <i
+                v-if="
+                  item.routeName === 'MetanetTransport' && uploadingCount > 0
+                "
+                class="
+                  absolute
+                  flex
+                  items-center
+                  justify-center
+                  w-5
+                  h-5
+                  bg-red-600
+                  rounded-full
+                  text-white
+                "
+                :style="{
+                  right: '-2px',
+                  top: '-10px',
+                  'font-size': '12px',
+                  'font-style': 'normal',
+                  transform: 'scale(.8)',
+                }"
+                >{{ uploadingCount }}</i
+              >
               <span class="text-xs">
                 {{ $t(`${item.title}`) }}
               </span>
@@ -193,14 +219,26 @@
             minHeight: '280px',
           }"
         >
-          <router-view class="p-4 pb-6"></router-view>
+          <router-view class="p-4 pb-6" v-slot="{ Component }">
+            <keep-alive :include="keepAliveList">
+              <component :is="Component" />
+            </keep-alive>
+          </router-view>
         </a-layout-content>
       </a-layout>
     </a-layout>
   </div>
 </template>
 <script lang="ts">
-import { createVNode, defineComponent, reactive, Ref, ref, watch } from "vue";
+import {
+  computed,
+  createVNode,
+  defineComponent,
+  reactive,
+  Ref,
+  ref,
+  watch,
+} from "vue";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -216,7 +254,7 @@ import { useRoute, useRouter } from "vue-router";
 import { PRODUCT_NAME } from "@/constants";
 import { useSvgWhiteLogo } from "@/hooks";
 import { XLocaleSwither } from "@/components";
-import { useUserStore } from "@/store";
+import { useTransportStore, useUserStore } from "@/store";
 import { Modal } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 
@@ -259,6 +297,7 @@ export default defineComponent({
     const router = useRouter();
     const route = useRoute();
     const { t } = useI18n();
+    const transPortStore = useTransportStore();
     const { username, signOutAndClear } = useUserStore();
     // console.log("router", router);
     /** logo区域 */
@@ -355,6 +394,11 @@ export default defineComponent({
         routeName: "Dashboard",
         title: "common.dashboard",
       },
+      {
+        // TODO 删除这个
+        routeName: "MetanetTransport",
+        title: "metanet.transport",
+      },
     ]);
     /** nav tab栏 */
     function useNavTabs() {
@@ -366,9 +410,7 @@ export default defineComponent({
         // console.log("onClickNavTab", item);
         // 如果不是当前的路由的tab , 就跳转
         if (item.title !== route.meta.title) {
-          router.push({
-            name: item.routeName,
-          });
+          router.push({ name: item.routeName });
         }
       };
       const onCloseNavItem = (itemTitle: string) => {
@@ -386,19 +428,34 @@ export default defineComponent({
                   navList[foundIndex - 1].routeName
                 : // 没有前一项,push用下一项(也就是删除后的foundIndex的位置)
                   navList[foundIndex].routeName;
-            router.push({
-              name: toPushRouteName,
-            });
+            router.push({ name: toPushRouteName });
           }
         } else {
           remove(navList, (v) => v.title === itemTitle);
         }
       };
+      const uploadingCount = computed(() => {
+        // return 10;
+        return transPortStore.uploadingList.length;
+      });
+      /** 需要keep-alive 的组件 ,组件的name === 路由里注册的name,根据navTab 动态改变 */
+      // const keepAliveList = [
+      //   "MetanetFile",
+      //   "MetanetShare",
+      //   "MetanetPublish",
+      //   "MetanetCollect",
+      //   "MetanetRecycle",
+      // ];
+      const keepAliveList = computed(() =>
+        navList.map((i) => i.routeName).filter((i) => i !== "Dashboard")
+      );
       return {
         activeNavKey,
         navList,
         onClickNavTab,
         onCloseNavItem,
+        uploadingCount,
+        keepAliveList,
       };
     }
     return {

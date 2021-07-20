@@ -66,7 +66,7 @@
 </template>
 
 <script lang="ts">
-import { createVNode, defineComponent, ref } from "vue";
+import { createVNode, defineComponent, onActivated, ref } from "vue";
 import { SyncOutlined, ExclamationCircleOutlined } from "@ant-design/icons-vue";
 import { XFileTypeIcon } from "@/components";
 import TableFiles from "./components/TableFiles.vue";
@@ -82,6 +82,7 @@ import { getFileType } from "@/utils";
 import { cloneDeep } from "lodash-es";
 
 export default defineComponent({
+  name: "MetanetPublish",
   components: {
     XFileTypeIcon,
     SyncOutlined,
@@ -149,7 +150,9 @@ export default defineComponent({
         });
       });
     };
-    onRefreshTableData(); // first run
+    onActivated(() => {
+      onRefreshTableData(); // first run
+    });
     /** 表格里名字的点击 */
     const onClickTableItemName = (record: QueryPublishItem) => {
       console.log("clicktablename", record);

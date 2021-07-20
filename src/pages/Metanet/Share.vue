@@ -37,26 +37,91 @@
       v-model:selectedRowKeys="selectedRowKeys"
     >
       <template #name="{ record }">
-        <!-- 空白就是blank 文件夹就是folder -->
-        <XFileTypeIcon class="w-6 h-6" :type="record.userFile.fileType" />
-        <a
-          href="javascript:;"
-          class="ml-2"
-          :title="record.userFile.fullName[0]"
-          @click="onClickTableItemName(record)"
-        >
-          {{ record.userFile.fullName[0] }}
-        </a>
+        <div class="relative">
+          <!-- 空白就是blank 文件夹就是folder -->
+          <XFileTypeIcon class="w-6 h-6" :type="record.userFile.fileType" />
+          <a
+            href="javascript:;"
+            class="ml-2"
+            :title="record.userFile.fullName[0]"
+            @click="onClickTableItemName(record)"
+          >
+            {{ record.userFile.fullName[0] }}
+          </a>
+          <!-- hover 才显示的shortCut栏 -->
+          <!-- 非上级目录 -->
+          <div class="tableShortcut hidden inline-block absolute right-0">
+            <!-- 详情 -->
+            <a-tooltip title="详情">
+              <a
+                class="renameButton ml-1"
+                href="javascript:;"
+                @click="onRecordDetail(record)"
+                ><InfoCircleOutlined
+              /></a>
+            </a-tooltip>
+            <!-- 详情 -->
+            <a-tooltip title="复制链接和分享码">
+              <a
+                class="renameButton ml-1"
+                href="javascript:;"
+                @click="onRecordCopyShare(record)"
+                ><CopyOutlined
+              /></a>
+            </a-tooltip>
+            <!-- 删除 -->
+            <a-tooltip title="删除">
+              <a
+                class="renameButton ml-1 ant-color-danger"
+                href="javascript:;"
+                @click="onRecordDelete(record)"
+                ><DeleteOutlined
+              /></a>
+            </a-tooltip>
+          </div>
+        </div>
       </template>
       <template #action="{ record }">
-        <a-button-group size="small">
-          <a-button @click="onRecordInfo(record)">
+        <!-- <a-button-group size="small">
+          <a-button @click="onRecordDetail(record)">
             {{ $t("metanet.detail") }}
           </a-button>
           <a-button type="danger" @click="onRecordDelete(record)">
             {{ $t("metanet.delete") }}
           </a-button>
-        </a-button-group>
+        </a-button-group> -->
+
+        <a-dropdown placement="bottomRight">
+          <div class="text-center">
+            <!-- <a href="javascript:void(0)" class="ant-color-blue-6">...</a> -->
+            <EllipsisOutlined />
+          </div>
+          <template #overlay>
+            <a-menu>
+              <!-- 详情 -->
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordDetail(record)"
+              >
+                详情
+              </a-menu-item>
+              <!-- 复制 -->
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordCopyShare(record)"
+              >
+                复制
+              </a-menu-item>
+              <!-- 删除 -->
+              <a-menu-item
+                class="px-4 flex items-center text-red-500"
+                @click="onRecordDelete(record)"
+              >
+                {{ $t("metanet.delButton") }}
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
       </template>
     </TableFiles>
     <!-- 详情卡片 -->
@@ -66,8 +131,22 @@
 </template>
 
 <script lang="ts">
-import { createVNode, defineComponent, reactive, ref, watch } from "vue";
-import { SyncOutlined, ExclamationCircleOutlined } from "@ant-design/icons-vue";
+import {
+  createVNode,
+  defineComponent,
+  onActivated,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import {
+  SyncOutlined,
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  EllipsisOutlined,
+} from "@ant-design/icons-vue";
 import { XFileTypeIcon } from "@/components";
 import TableFiles from "./components/TableFiles.vue";
 import { useI18n } from "vue-i18n";
@@ -83,19 +162,27 @@ import {
   formatBytes,
   getFileLocation,
   getFileType,
+  getShareInfoByUriAndCode,
   lastOfArray,
 } from "@/utils";
 import { cloneDeep } from "lodash-es";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
+import { useUserStore } from "@/store";
+import { useClipboard } from "@vueuse/core";
 
 type TTableShareFileItem = QueryShareFileItem & {
   userFile: TFileItem;
 };
 
 export default defineComponent({
+  name: "MetanetShare",
   components: {
     XFileTypeIcon,
     SyncOutlined,
+    InfoCircleOutlined,
+    DeleteOutlined,
+    CopyOutlined,
+    EllipsisOutlined,
     TableFiles,
     ModalDetail,
   },
@@ -172,7 +259,9 @@ export default defineComponent({
           });
       });
     };
-    onRefreshTableData(); // first run
+    onActivated(() => {
+      onRefreshTableData(); // first run
+    });
     /** 表格里名字的点击 */
     const onClickTableItemName = (record: TTableShareFileItem) => {
       console.log("clicktablename", record);
@@ -202,8 +291,8 @@ export default defineComponent({
       });
     };
     /** 表格里单项详情 */
-    const onRecordInfo = (record: TTableShareFileItem) => {
-      console.log("onRecordInfo", record);
+    const onRecordDetail = (record: TTableShareFileItem) => {
+      console.log("onRecordDetail", record);
       // 链接	Hash	类型	位置	修改时间	创建时间	描述(直接显示)
       currenDetailInfo.value = {
         type: getFileType({
@@ -219,6 +308,18 @@ export default defineComponent({
         desc: record.userFile.info.description || "无",
       };
       isShowDetailModal.value = true;
+    };
+    /** 复制链接和分享码 */
+    const onRecordCopyShare = (record: TTableShareFileItem) => {
+      const shareInfo = getShareInfoByUriAndCode({
+        uri: record.uri,
+        code: record.code || "",
+        username: useUserStore().username,
+      });
+      console.log("复制链接和分享码", shareInfo);
+      useClipboard({ read: false })
+        .copy(shareInfo)
+        .then(() => message.success(t("metanet.copySuccess")));
     };
     /** 表格里单项删除 */
     const onRecordDelete = (record: TTableShareFileItem) => {
@@ -259,7 +360,8 @@ export default defineComponent({
       onClickTableItemName,
       onRefreshTableData,
       onBatchDelete,
-      onRecordInfo,
+      onRecordDetail,
+      onRecordCopyShare,
       onRecordDelete,
       currenDetailInfo,
       isShowDetailModal,

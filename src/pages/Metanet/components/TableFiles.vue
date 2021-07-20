@@ -2,6 +2,7 @@
   <a-table
     class="TableFiles"
     size="small"
+    :showHeader="showHeader"
     :bordered="false"
     :rowKey="rowKey"
     :loading="loading"
@@ -57,6 +58,14 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => [],
     },
+    disableSelect: {
+      type: Boolean,
+      default: false,
+    },
+    showHeader: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ["update:selectedRows", "update:selectedRowKeys"],
   setup(props, { emit }) {
@@ -65,22 +74,24 @@ export default defineComponent({
     const slots = props.columns
       .filter((i) => i.slots)
       .map((i) => i.slots?.customRender);
-    const rowSelection = {
-      onChange: (selectedRowKeys: string[], selectedRows: TFileItem[]) => {
-        // console.log(
-        //   `selectedRowKeys: ${selectedRowKeys}`,
-        //   "selectedRows: ",
-        //   selectedRows
-        // );
-        emit("update:selectedRowKeys", selectedRowKeys);
-        emit("update:selectedRows", selectedRows);
-      },
-      getCheckboxProps: (record: TFileItem) => ({
-        // 禁选上级目录
-        disabled: record.fullName && record.fullName[0] === "...", // Column configuration not to be checked
-        // name: record.name,
-      }),
-    };
+    const rowSelection = props.disableSelect
+      ? null
+      : {
+          onChange: (selectedRowKeys: string[], selectedRows: TFileItem[]) => {
+            // console.log(
+            //   `selectedRowKeys: ${selectedRowKeys}`,
+            //   "selectedRows: ",
+            //   selectedRows
+            // );
+            emit("update:selectedRowKeys", selectedRowKeys);
+            emit("update:selectedRows", selectedRows);
+          },
+          getCheckboxProps: (record: TFileItem) => ({
+            // 禁选上级目录
+            disabled: record.fullName && record.fullName[0] === "...", // Column configuration not to be checked
+            // name: record.name,
+          }),
+        };
 
     return {
       slots,
