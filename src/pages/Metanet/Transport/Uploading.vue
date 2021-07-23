@@ -22,17 +22,34 @@
           <a-progress :showInfo="true" :percent="totalPercent" />
         </div>
       </div>
-      <div>
-        <a-button class="mr-2" type="primary" @click="onTestUploadFile"
+      <div class="pl-4">
+        <!-- <a-button
+          size="small"
+          class="mr-2"
+          type="primary"
+          @click="onTestUploadFile"
           >测试上传</a-button
-        >
-        <a-button class="mr-2" :disabled="disabledAllBeginBtn"
+        > -->
+        <a-button
+          size="small"
+          class="mr-2"
+          :disabled="disabledAllBeginBtn"
+          @click="onBatchStart"
           >全部开始</a-button
         >
-        <a-button class="mr-2" :disabled="disabledAllPauseBtn"
+        <a-button
+          size="small"
+          class="mr-2"
+          :disabled="disabledAllPauseBtn"
+          @click="onBatchPause"
           >全部暂停</a-button
         >
-        <a-button :disabled="disabledAllCancelBtn">全部取消</a-button>
+        <a-button
+          size="small"
+          :disabled="disabledAllCancelBtn"
+          @click="onBatchCancel"
+          >全部取消</a-button
+        >
       </div>
     </div>
     <!-- 表格区 -->
@@ -52,7 +69,7 @@
         </div>
       </template>
       <template #fileInfo="{ record }">
-        <div>
+        <div class="text-gray-400">
           {{ formatBytes(record.fileSize) }}
         </div>
       </template>
@@ -66,7 +83,7 @@
       </template>
       <template #statusText="{ record }">
         <div class="text-gray-400">
-          {{ calcStatusText(record) }}
+          {{ calcStatusText(record.status) }}
         </div>
       </template>
       <template #startOrPause="{ record }">
@@ -151,7 +168,7 @@ export default defineComponent({
             isDir: false,
             fileName,
           }),
-          fullName: [fileName],
+          fullName: ["12", fileName],
           description: "",
         });
         console.log("resultUploadSingle", resultUploadSingle);
@@ -240,7 +257,6 @@ export default defineComponent({
         const onGoingList = [
           "queueing",
           "uploading",
-          "pause",
           "waiting",
           "failed",
         ];
@@ -264,14 +280,14 @@ export default defineComponent({
           tableData.value.every((i) => ["waiting"].includes(i.status))
         );
       });
+      const canResumeStatusKeys: UploadStatus[] = ["pause", "failed"];
+      const canPauseStatusKeys: UploadStatus[] = [
+        "queueing",
+        "uploading",
+        // "failed", // 失败的也可以重新开启?
+      ];
       const onRecordStartOrPause = (record: UploadItem) => {
         console.log("onRecordStartOrPause", record);
-        const canResumeStatusKeys: UploadStatus[] = ["pause", "failed"];
-        const canPauseStatusKeys: UploadStatus[] = [
-          "queueing",
-          "uploading",
-          // "failed", // 失败的也可以重新开启?
-        ];
         if (canResumeStatusKeys.includes(record.status)) {
           transPortStore.resumeItem(record.fileHash);
         } else if (canPauseStatusKeys.includes(record.status)) {
@@ -282,15 +298,33 @@ export default defineComponent({
         console.log("onRecordCancel", record);
         transPortStore.cancelItem(record.fileHash);
       };
-      const calcStatusText = (record: UploadItem) => {
+      const onBatchStart = () => {
+        // console.log("onBatchStart");
+        transPortStore.uploadingList
+          .filter((i) => canResumeStatusKeys.includes(i.status))
+          .forEach((i) => transPortStore.resumeItem(i.fileHash));
+      };
+      const onBatchPause = () => {
+        // console.log("onBatchPause");
+        transPortStore.uploadingList
+          .filter((i) => canPauseStatusKeys.includes(i.status))
+          .forEach((i) => transPortStore.pauseItem(i.fileHash));
+      };
+      const onBatchCancel = () => {
+        // console.log("onBatchCancel");
+        transPortStore.uploadingList
+          .filter((i) => i.status !== "waiting")
+          .forEach((i) => transPortStore.cancelItem(i.fileHash));
+      };
+      const calcStatusText = (status: UploadStatus) => {
         const mapText: { [key in UploadStatus]?: string } = {
           queueing: "排队中",
           uploading: "上传中",
-          pause: "暂停中",
+          pause: "暂停",
           waiting: "等待ws确认",
           failed: "失败",
         };
-        return mapText[record.status];
+        return mapText[status];
       };
       return {
         tableLoading,
@@ -303,6 +337,9 @@ export default defineComponent({
         disabledAllCancelBtn,
         onRecordStartOrPause,
         onRecordCancel,
+        onBatchStart,
+        onBatchPause,
+        onBatchCancel,
         calcStatusText,
       };
     }
@@ -321,9 +358,9 @@ export default defineComponent({
 }
 :deep(.ant-progress-bg) {
   height: 14px !important;
-  border-radius: 0 !important;
+  // border-radius: 0 !important;
 }
-:deep(.ant-progress-inner) {
-  border-radius: 0 !important;
-}
+// :deep(.ant-progress-inner) {
+//   border-radius: 0 !important;
+// }
 </style>

@@ -25,6 +25,7 @@ import Uploading from "./Uploading.vue";
 import UploadFinished from "./UploadFinished.vue";
 import PeerTransfer from "./PeerTransfer.vue";
 import { useTransportStore } from "@/store";
+import { useRoute, useRouter } from "vue-router";
 
 type TabKey = "Uploading" | "UploadFinished" | "PeerTransfer";
 
@@ -37,6 +38,26 @@ export default defineComponent({
   },
   setup() {
     const activeKey = ref<TabKey>("Uploading");
+    const router = useRouter();
+    const route = useRoute();
+    // activeKey 与路由query 绑定 -start
+    const queryTab = route.query.tab as TabKey;
+    const queryTabKeys: TabKey[] = [
+      "Uploading",
+      "UploadFinished",
+      "PeerTransfer",
+    ];
+    if (!queryTab || !queryTabKeys.includes(queryTab)) {
+      activeKey.value = "Uploading";
+      router.replace({ query: { tab: "Uploading" } });
+    } else {
+      activeKey.value = queryTab;
+    }
+    watch(
+      () => activeKey.value,
+      (newVal) => router.replace({ query: { tab: newVal } })
+    );
+    // activeKey 与路由query 绑定 -end
     const tabKeyNameMap: { [key in TabKey]: string } = {
       Uploading: "正在上传",
       UploadFinished: "传输完成",

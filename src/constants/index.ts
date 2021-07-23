@@ -17,3 +17,5 @@ export const FILE_TYPE_MAP = {
 export const MAX_MTU = 1024 * 20;
 /** nkn multiclient 数量 */
 export const NKN_SUB_CLIENT_COUNT = 4;
+/** 表示 [header长度] 的uint8Array 的长度 */
+export const LEN_OF_HEADER_U8_LENGTH = 4;

@@ -92,12 +92,26 @@ declare module "nkn" {
     wallet: ClassWallet;
   }
 
+  export type TMessageType = {
+    isEncrypted: boolean;
+    messageId: Uint8Array;
+    noReply: boolean;
+    payload: string;
+    payloadType: number;
+    src: string;
+  };
+
   export class classMultiClient {
     constructor();
     dial(id: string, options?: { dialTimeout: number }): Promise<TSession>;
     clients: {
       [key: string]: classNknClient;
     };
+    on: (msgType: string, fn: (any) => void) => void;
+    onSession: (fn: (session: TSession) => void) => void;
+    onMessage: (fn: (msgObj: TMessageType) => void) => void;
+    listen: () => void;
+    send: (remoteAddr: string, msg: string) => Promise<void>;
     readyClientIDs(): string[];
     defaultClient: classNknClient;
     msgCache: typeof CacheClass;
@@ -132,6 +146,7 @@ declare module "nkn" {
     localAddr: string;
     remoteAddr: string;
     write(ArrayBuffer): Promise<void>;
+    read(maxSize?: number): Promise<Uint8Array>;
     close(): Promise<void>;
     getWritableStream(boolean): WritableStream;
     setLinger(number): void;

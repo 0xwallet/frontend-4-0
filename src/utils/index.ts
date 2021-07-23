@@ -1,5 +1,7 @@
 import SHA256 from "crypto-js/sha256";
 import WordArray from "crypto-js/lib-typedarrays";
+import { classMultiClient, TSession } from "nkn";
+import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
 
 /** 获取同类数组的最后一个元素 */
 export function lastOfArray<T>(arr: T[]) {
@@ -56,4 +58,88 @@ export function getShareInfoByUriAndCode({
   const userInfo = username ? `\n--来自0xWallet ${username}的分享` : "";
   const text = `链接: ${url} ${codeText} ${userInfo}`;
   return text;
+}
+/** 返回重复dial 的闭包函数 */
+export function getRepeatlyClientDialFn(
+  client: classMultiClient,
+  addr: string
+): () => Promise<TSession | null> {
+  let dialTryTimes = 0;
+  const maxDialTimes = 10;
+  const repeatlyClientDial = async (): Promise<TSession | null> => {
+    let res;
+    try {
+      res = await client.dial(addr, { dialTimeout: 3000 });
+      // 过期就重试
+    } catch (error) {
+      console.error("clientDial-error-dialTryTimes", error, dialTryTimes);
+      if (dialTryTimes < maxDialTimes) {
+        dialTryTimes += 1;
+        res = await repeatlyClientDial();
+      } else {
+        res = null;
+      }
+    }
+    return res;
+  };
+  return repeatlyClientDial;
+}
+
+/** 读取session 中的头部信息 */
+export async function readHeaderInSession(session: TSession) {
+  // 1 读取header 的长度
+  const uint8ArrayOfHeaderLength = await session.read(LEN_OF_HEADER_U8_LENGTH);
+  const dv = new DataView(uint8ArrayOfHeaderLength.buffer);
+  const headerLength = dv.getUint32(0, true);
+  // 2 读取header
+  const header = await session.read(headerLength);
+  return header;
+}
+
+/** 在session 中写入头部信息:1写入表示信息长度的固定buf, 2写入信息buf */
+export async function writeHeaderInSession(
+  session: TSession,
+  header: Uint8Array
+) {
+  const bufOfHeaderlength = new ArrayBuffer(LEN_OF_HEADER_U8_LENGTH);
+  const dv = new DataView(bufOfHeaderlength);
+  dv.setUint32(0, header.length, true);
+  // 1 写入header 的长度
+  await session.write(new Uint8Array(bufOfHeaderlength));
+  // 2 写入header
+  await session.write(header);
+}
+/** 合并两个uint8array */
+export function mergeUint8Array(head: Uint8Array, tail: Uint8Array) {
+  const merged = new Uint8Array(head.length + tail.length);
+  merged.set(head);
+  merged.set(tail, head.length);
+  return merged;
+}
+
+/** 通过blob 下载文件 */
+export function downloadFileByBlob(blob: Blob, fileName: string) {
+  if (window.navigator.msSaveBlob) {
+    window.navigator.msSaveBlob(blob, fileName);
+  } else {
+    const url = window.URL.createObjectURL(blob);
+    downloadFileByUrl(url, fileName);
+  }
+}
+
+/** 通过url 创建a标签下载文件 */
+export function downloadFileByUrl(
+  url: string,
+  fileName: string,
+  target = "_blank"
+) {
+  const link = document.createElement("a");
+  link.style.visibility = "hidden";
+  // fireFox 要求el 在body中
+  document.body.appendChild(link);
+  link.setAttribute("href", url);
+  link.setAttribute("download", fileName);
+  link.setAttribute("target", target);
+  link.click();
+  link.remove();
 }

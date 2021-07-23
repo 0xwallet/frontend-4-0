@@ -18,7 +18,7 @@ export type UploadStatus =
   | "failed";
 
 export type UploadItem = {
-  file: File; //文件本身
+  file?: File; //文件本身
   fileHash: string; // 文件的id
   fullName: string[]; // 文件名称
   fileType: string;
@@ -26,6 +26,7 @@ export type UploadItem = {
   progress: number;
   status: UploadStatus;
   description: string;
+  isSecondUpload?: boolean; // 是否急速上传
   speed: number; // 显示的时候要转换成 bytes / s
   closeSessionFn?: () => Promise<void>; // close 用来上传的session
 };
@@ -71,6 +72,7 @@ export default defineStore({
     /** 恢复上传 */
     resumeItem(hash: string) {
       const item = this.uploadHashMap[hash];
+      if (!item.file) return;
       this.setUploadItemProgressSpeedStatus(
         hash,
         item.progress,
@@ -185,14 +187,14 @@ export default defineStore({
       fileHash: string;
       description: string;
     }) {
-      console.log(
-        "uploadFile-params",
-        file,
-        fullName,
-        fileType,
-        fileHash,
-        description
-      );
+      // console.log(
+      //   "uploadFile-params",
+      //   file,
+      //   fullName,
+      //   fileType,
+      //   fileHash,
+      //   description
+      // );
       // 如果任务列表里没有, 就初始化(加上)
       if (!this.uploadHashMap[fileHash]) {
         this.uploadHashMap[fileHash] = {
@@ -217,14 +219,24 @@ export default defineStore({
           space: "PRIVATE",
           description: description,
           action: "drive",
+          setSecondUpload: this.setUploadItemByAssign.bind(this, fileHash, {
+            isSecondUpload: true,
+          }),
           registStoreCloseSessionFn: this.registCloseSessionFn.bind(this),
           // 中间状态(0-99) 传递给api 函数调用
           setProgressSpeedStatus:
             this.setUploadItemProgressSpeedStatus.bind(this),
         })
       );
-      console.log("resultUploadSingle", resultUploadSingle);
+      // console.log("resultUploadSingle", resultUploadSingle);
       if (resultUploadSingle.err) {
+        const errMsg = resultUploadSingle.err.message;
+        this.setUploadItemProgressSpeedStatus(
+          fileHash,
+          this.uploadHashMap[fileHash].progress,
+          0,
+          errMsg === "任务暂停" ? "pause" : "failed"
+        );
         return { err: resultUploadSingle.err };
       }
       // 非秒传成功 的要等websocket 返回确认信息
@@ -237,7 +249,8 @@ export default defineStore({
         }
       }
       this.setUploadItemProgressSpeedStatus(fileHash, 100, 0, "success");
-      console.log("store", this);
+      this.uploadHashMap[fileHash].file = undefined; // 清空file 释放内存
+      // console.log("store", this);
       return { data: "上传文件成功" };
     },
   },

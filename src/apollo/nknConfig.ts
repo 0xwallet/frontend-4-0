@@ -6,6 +6,7 @@ import { useUserStore } from "@/store";
 import { MAX_MTU, NKN_SUB_CLIENT_COUNT } from "@/constants";
 
 const NKN_CONFIG = {
+  worker: true,
   numSubClients: NKN_SUB_CLIENT_COUNT,
   reconnectIntervalMin: 300, // 300ms 失败自动重连
   // msgHoldingSeconds: 3, // 等3秒, 等rpc 重莲?

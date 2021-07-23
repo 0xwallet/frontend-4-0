@@ -394,11 +394,11 @@ export default defineComponent({
         routeName: "Dashboard",
         title: "common.dashboard",
       },
-      {
-        // TODO 删除这个
-        routeName: "MetanetTransport",
-        title: "metanet.transport",
-      },
+      // {
+      //   // TODO 删除这个
+      //   routeName: "MetanetTransport",
+      //   title: "metanet.transport",
+      // },
     ]);
     /** nav tab栏 */
     function useNavTabs() {

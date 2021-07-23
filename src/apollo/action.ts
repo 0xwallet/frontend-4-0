@@ -18,6 +18,8 @@ import { onError } from "@apollo/client/link/error";
 // import { getMainDefinition } from '@apollo/client/utilities';
 // // @ts-ignore
 import router from "@/router";
+import { TSession } from "nkn";
+import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
 
 // 与 API 的 HTTP 连接
 type TClient = ApolloClient<NormalizedCacheObject>;

@@ -11,7 +11,7 @@ import {
 } from "./documents";
 import { TSession } from "nkn";
 import { MAX_MTU, REMOTE_ADDR } from "@/constants";
-import { getFileSHA256 } from "@/utils";
+import { getFileSHA256, writeHeaderInSession } from "@/utils";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
 import { UploadStatus } from "@/store/transport";
@@ -225,7 +225,8 @@ export const apiQueryMeSpace = async (): TApiRes<ResponseQueryMeSpace> => {
 };
 
 type ParamsQueryFileByDir = {
-  dirId: string;
+  dirId?: string;
+  fullName?: string[];
 };
 export type TFileItem = {
   fullName: string[];
@@ -279,6 +280,7 @@ export type ParamsUploadSingle = {
   space: "PRIVATE" | "PUBLIC";
   description: string;
   action: "drive";
+  setSecondUpload?: () => void;
   registStoreCloseSessionFn?: (
     fileHash: string,
     fn: () => Promise<void>
@@ -294,6 +296,7 @@ export type ParamsUploadSingle = {
 type ResponseUploadSingle = {
   msg: string;
 };
+/** 多个任务请求session 时限制同时一个 */
 const sessionLimit = pLimit(1);
 /** 上传单个文件 */
 export const apiUploadSingle = async (
@@ -303,8 +306,12 @@ export const apiUploadSingle = async (
   const transportStore = useTransportStore();
   /** 当前上传的文件状态是否已经暂停 */
   const isCurrentUploadStatusPause = () => {
+    if (!transportStore.uploadHashMap[params.fileHash]) return true;
     return transportStore.uploadHashMap[params.fileHash].status === "pause";
   };
+  if (isCurrentUploadStatusPause()) {
+    return { err: Error("任务暂停") };
+  }
   if (params.setProgressSpeedStatus) {
     // 从初始的 排队 状态切换为上传状态
     params.setProgressSpeedStatus(params.fileHash, 0, 0, "uploading");
@@ -328,6 +335,7 @@ export const apiUploadSingle = async (
     if (params.setProgressSpeedStatus) {
       params.setProgressSpeedStatus(params.fileHash, 100, 0, "uploading");
     }
+    if (params.setSecondUpload) params.setSecondUpload();
     return { data: { msg: "秒传成功" } };
   }
   if (driveUploadByHash.offset) {
@@ -356,7 +364,7 @@ export const apiUploadSingle = async (
   let dialTryTimes = 0;
   const maxDialTimes = 10;
   /** 如果是dial 超时就重新dial */
-  const neverTimeOutClientDial = async (): Promise<TSession | null> => {
+  const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
     try {
       // 如果在dial 的过程中暂停了, 就不要再dial 了
@@ -368,17 +376,22 @@ export const apiUploadSingle = async (
       });
       // 过期就重试
     } catch (error) {
-      console.error("clientDial-error-dialTryTimes", error, dialTryTimes);
+      console.error(
+        "clientDial:remoteAddr-error-dialTryTimes",
+        REMOTE_ADDR,
+        error,
+        dialTryTimes
+      );
       if (dialTryTimes < maxDialTimes) {
         dialTryTimes += 1;
-        res = await neverTimeOutClientDial();
+        res = await repeatlyClientDial();
       } else {
         res = null;
       }
     }
     return res;
   };
-  const clientSession = await sessionLimit(() => neverTimeOutClientDial());
+  const clientSession = await sessionLimit(() => repeatlyClientDial());
   // console.log("after-client-shakehand");
   console.timeEnd(`[性能 client.dial 时间]${params.file.name}`);
   if (!clientSession) return { err: Error("no clientSession") };
@@ -388,9 +401,9 @@ export const apiUploadSingle = async (
       clientSession.close.bind(clientSession)
     );
   }
-  // console.log("准备开始发长度");
-  // 第一步，发长度，长度表示接下来的 msgpack 的长度
-  const encoded: Uint8Array = encode({
+  // console.log("写入头部信息");
+  // 第一步，写入头部信息
+  const encodedHeader: Uint8Array = encode({
     // File: "", // 需要传空字符串
     FullName: params.fullName,
     FileSize: params.file.size,
@@ -399,13 +412,8 @@ export const apiUploadSingle = async (
     Description: params.description,
     Action: params.action,
   });
-  const buffer = new ArrayBuffer(4);
-  const dv = new DataView(buffer);
-  dv.setUint32(0, encoded.length, true);
-  await clientSession.write(new Uint8Array(buffer));
-  // 第二步，发 msgpack
-  await clientSession.write(encoded);
-  // 第三步，发文件
+  await writeHeaderInSession(clientSession, encodedHeader);
+  // 第二步，发文件
   const fileBuffer = await params.file.arrayBuffer();
   // console.log("fileBuffer", fileBuffer);
   const maxSendLength = fileBuffer.byteLength;
@@ -417,7 +425,7 @@ export const apiUploadSingle = async (
   try {
     while (startLen <= maxSendLength) {
       if (clientSession.isClosed || isCurrentUploadStatusPause()) {
-        return { err: Error("clientSession closed") };
+        return { err: Error("任务暂停") };
       }
       const toWriteChunk = new Uint8Array(
         fileBuffer.slice(
@@ -426,13 +434,13 @@ export const apiUploadSingle = async (
           Math.min(startLen + MAX_MTU, maxSendLength)
         )
       );
-      console.log(
-        "sessionIsClosed-正在传的chunk开始长度-总长度",
-        clientSession.isClosed,
-        startLen,
-        // toWriteChunk
-        maxSendLength
-      );
+      // console.log(
+      //   "sessionIsClosed-正在传的chunk开始长度-总长度",
+      //   clientSession.isClosed,
+      //   startLen,
+      //   // toWriteChunk
+      //   maxSendLength
+      // );
       await clientSession.write(toWriteChunk);
       // clientSession.close
       // .catch((e) => console.log("session-write-error", e));
@@ -451,7 +459,9 @@ export const apiUploadSingle = async (
             params.fileHash,
             toSetProgressVal,
             toSetBytesPerSecond,
-            "uploading"
+            clientSession.isClosed || isCurrentUploadStatusPause()
+              ? "pause"
+              : "uploading"
           );
         } else {
           params.setProgressSpeedStatus(
@@ -467,8 +477,8 @@ export const apiUploadSingle = async (
     // console.log("escape while loop", startLen, maxSendLength);
     return { data: { msg: "session成功写入" } };
   } catch (err) {
-    console.error(err);
-    return { err };
+    // console.log(err);
+    return { err: Error("任务暂停") };
   }
 };
 

@@ -131,5 +131,24 @@ export default defineStore({
           console.error(err);
         });
     },
+    /** 获取client */
+    getMultiClient() {
+      return new Promise<classMultiClient | null>((resolve) => {
+        if (this.multiClient) resolve(this.multiClient);
+        else {
+          let counter = 0;
+          const id = setInterval(() => {
+            counter++;
+            if (this.multiClient) {
+              clearInterval(id);
+              resolve(this.multiClient);
+            } else if (counter > 100) {
+              clearInterval(id);
+              resolve(null);
+            }
+          }, 300);
+        }
+      });
+    },
   },
 });

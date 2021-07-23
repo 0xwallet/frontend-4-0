@@ -786,7 +786,13 @@ import { assign } from "lodash-es";
 import { message, Modal } from "ant-design-vue";
 import { useTransportStore, useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
-import { formatBytes, getFileSHA256, getFileType, lastOfArray } from "@/utils";
+import {
+  downloadFileByUrl,
+  formatBytes,
+  getFileSHA256,
+  getFileType,
+  lastOfArray,
+} from "@/utils";
 import {
   FILE_TYPE_MAP,
   MAX_UPLOAD_SIZE,
@@ -796,8 +802,9 @@ import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useClipboard } from "@vueuse/core";
 import router from "@/router";
+import { useRoute } from "vue-router";
 
-type THistoryDirItem = {
+export type THistoryDirItem = {
   id: string;
   name: string;
   isShared: boolean;
@@ -1002,7 +1009,8 @@ export default defineComponent({
       // 路由到传输应用
       const onRouteToTransport = () => {
         router.push({
-          name: "Transport",
+          name: "MetanetTransport",
+          query: { tab: "Uploading" },
         });
       };
       // TODO input 上传成功后清除文件?
@@ -1039,9 +1047,11 @@ export default defineComponent({
           return;
         }
         try {
-          const resOfAll = await Promise.all(
-            sizeCanUploadFiles.map((i) => onUploadSingleFile(i))
-          );
+          Promise.all(sizeCanUploadFiles.map((i) => onUploadSingleFile(i)));
+          router.push({
+            name: "MetanetTransport",
+            query: { tab: "Uploading" },
+          });
           // console.log("resOfAll", resOfAll);
         } catch (error) {
           console.log("上传文件错误", error);
@@ -1072,11 +1082,15 @@ export default defineComponent({
           return;
         }
         try {
-          const resOfAll = await Promise.all(
+          Promise.all(
             sizeCanUploadFiles.map((i) =>
               onUploadSingleFile(i, i.webkitRelativePath.split("/"))
             )
           );
+          router.push({
+            name: "MetanetTransport",
+            query: { tab: "Uploading" },
+          });
           // console.log("resOfAll", resOfAll);
         } catch (error) {
           console.log("上传文件错误", error);
@@ -2168,6 +2182,15 @@ export default defineComponent({
         });
       };
       onActivated(() => {
+        const route = useRoute();
+        // 如果是从传输-传输完成哪里点击跳转过来的
+        // console.log("activated-route", route);
+        const unParseFolderArrStr = route.params.folderArrStr as string;
+        if (unParseFolderArrStr) {
+          // historyDir.value = route.params.folderId;
+          historyDir.value.splice(1);
+          historyDir.value.push(...JSON.parse(unParseFolderArrStr));
+        }
         getAndSetTableDataFn(curFolderId.value);
       });
       /** 清除当前组件的select数据, 然后重新获取表格数据 */
@@ -2187,15 +2210,7 @@ export default defineComponent({
             }/${space.toLowerCase()}/${fileId}/${
               fullName.slice(-1)[0]
             }?token=${token}`;
-            let el = document.createElement("a");
-            // fireFox 要求el 在body中
-            document.body.appendChild(el);
-            el.type = "download";
-            el.href = url;
-            // TODO 优化,不开新窗口的下载
-            el.target = "_blank";
-            el.click();
-            el.remove();
+            downloadFileByUrl(url, fullName.slice(-1)[0]);
           })
           .finally(hideLoadingMsg);
       };
