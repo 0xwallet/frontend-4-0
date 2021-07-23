@@ -132,6 +132,7 @@ declare module "nkn" {
     localAddr: string;
     remoteAddr: string;
     write(ArrayBuffer): Promise<void>;
+    close(): Promise<void>;
     getWritableStream(boolean): WritableStream;
     setLinger(number): void;
   };

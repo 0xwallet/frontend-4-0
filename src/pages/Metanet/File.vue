@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 功能区 height 32px-->
-    <div class="relative h-8 flex items-center mb-3 pr-1">
+    <div class="relative h-8 flex items-center mb-3">
       <!-- 这个为隐藏的作为选择文件用的 -->
       <input
         multiple
@@ -143,7 +143,16 @@
           {{ $t("metanet.buttonMoveTo") }}
         </a-button>
       </a-button-group> -->
-
+      <!-- 刷新按钮 -->
+      <a-tooltip :title="$t('metanet.refresh')">
+        <a
+          href="javascript:;"
+          class="inline-block mr-2"
+          @click="onRefreshTableData"
+        >
+          <SyncOutlined :spin="tableLoading" />
+        </a>
+      </a-tooltip>
       <div
         class="flex-1 flex items-center mr-2 px-3"
         :style="{
@@ -152,8 +161,14 @@
           'background-color': '#f7f7f8',
         }"
       >
+        <!-- 网盘使用信息 -->
+        <a-tooltip title="网盘信息">
+          <a class="mr-2" href="javascript:;" @click="onShowDiskDetail">
+            <DatabaseOutlined />
+          </a>
+        </a-tooltip>
         <!-- 面包屑 目录历史索引 -->
-        <a-breadcrumb>
+        <a-breadcrumb class="flex-1">
           <template #separator>/</template>
           <template v-if="historyDir.length > 1">
             <a-breadcrumb-item
@@ -170,72 +185,48 @@
           <a-breadcrumb-item>{{
             $lastOfArray(historyDir).name
           }}</a-breadcrumb-item>
-          /
         </a-breadcrumb>
+        <a-tooltip :title="isCurFolderShared ? '已分享' : '未分享'">
+          <a href="javascript:;" @click="onShowDiskDetail">
+            <BulbFilled
+              v-if="isCurFolderShared"
+              :style="{ color: '#faad14' }"
+            />
+            <BulbOutlined v-else />
+          </a>
+        </a-tooltip>
       </div>
 
       <!-- 临时加的显示进度抽屉的按钮 -->
       <div class="flex items-center cursor-pointer">
-        <!-- 网盘使用信息 -->
-        <a-tooltip title="网盘信息">
-          <a class="mr-2" href="javascript:;" @click="onShowDiskDetail">
-            <DatabaseOutlined />
-          </a>
-        </a-tooltip>
-        <!-- 刷新按钮 -->
-        <a-tooltip :title="$t('metanet.refresh')">
-          <a
-            href="javascript:;"
-            class="inline-block mr-2"
-            @click="onRefreshTableData"
-          >
-            <SyncOutlined :spin="tableLoading" />
-          </a>
-        </a-tooltip>
         <!-- 传输应用 (上传信息) -->
         <!-- :title="$t('metanet.uploadStatusInfo')" -->
         <a-tooltip title="传输">
           <a
             href="javascript:;"
             class="inline-block mr-2"
-            @click="onToggleIsShowProgressDrawer"
+            @click="onRouteToTransport"
           >
-            <RocketOutlined />
+            <CloudUploadOutlined />
           </a>
         </a-tooltip>
         <!-- nkn节点状态 -->
-        <a-tooltip title="nknClient状态">
-          <a-dropdown>
-            <a-tag
-              class="cursor-pointer"
-              color="#3b5999"
-              :style="{ margin: 0, padding: 0 }"
-            >
-              <template #icon>
-                <!-- <GlobalOutlined /> -->
-                <img
-                  class="inline-block object-fill"
-                  :style="{
-                    width: '20px',
-                    height: '20px',
-                    'vertical-align': 'middle',
-                    transform: 'scale(.6)',
-                  }"
-                  src="~@/assets/images/nkn_white.png"
-                />
-              </template>
-              <span class="inline-block w-16 text-center">
-                {{ nknClientConnectStatusShowText }}
-              </span>
-            </a-tag>
-            <template #overlay>
-              <a-menu>
-                <a-menu-item class="text-xs" @click="onResetNknMultiClient">
-                  重置Client
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
+        <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`">
+          <a
+            href="javascript:;"
+            class="inline-block mr-2"
+            @click="onResetNknMultiClient"
+          >
+            <img
+              :src="
+                require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
+              "
+              :style="{
+                width: '14px',
+                height: '14px',
+              }"
+            />
+          </a>
         </a-tooltip>
       </div>
     </div>
@@ -350,6 +341,13 @@
           </div>
           <template #overlay>
             <a-menu>
+              <!-- 详情 -->
+              <a-menu-item
+                class="px-4 flex items-center"
+                @click="onRecordDetail(record)"
+              >
+                详情
+              </a-menu-item>
               <!-- 分享 -->
               <a-menu-item
                 class="px-4 flex items-center"
@@ -413,112 +411,6 @@
         </a-dropdown>
       </template>
     </TableFiles>
-    <!-- 抽屉 上传进度 -->
-    <a-drawer
-      id="uploadDrawer"
-      height="auto"
-      :wrapStyle="{
-        width: '520px',
-        left: 'auto',
-        right: '40px',
-      }"
-      :drawerStyle="{
-        'max-height': '400px',
-        overflow: 'hidden',
-        'overflow-y': 'scroll',
-      }"
-      :headerStyle="{
-        padding: '8px 12px',
-        'background-color': '#F7F7F8',
-      }"
-      :bodyStyle="{
-        padding: '12px',
-      }"
-      placement="bottom"
-      :closable="true"
-      :mask="false"
-      :visible="isShowProgressDrawer"
-      @close="onCloseProgressDrawer"
-    >
-      <template #title>
-        <!-- <a-button type="primary">fuck u</a-button> -->
-        <!-- 一个circle 总体进度 -->
-        <!-- TODO 根据情况变动背景颜色? -->
-        <div
-          class="
-            inline-block
-            w-16
-            text-center
-            py-1
-            rounded-2xl
-            bg-blue-400
-            text-white
-          "
-          :style="{
-            'background-color': '#1890FF',
-          }"
-        >
-          {{ uploadTaskTotalProgress }}%
-        </div>
-        <a-tooltip :title="$t('metanet.uploadDrawerClearAll')">
-          <a-button
-            class="ml-4"
-            shape="circle"
-            size="small"
-            @click="onRemoveTaskList"
-          >
-            <template #icon><DeleteOutlined /></template>
-          </a-button>
-        </a-tooltip>
-      </template>
-      <div v-for="taskItem in uploadTaskList" :key="taskItem.id">
-        <div class="flex items-center">
-          <!-- icon/name/size/status -->
-          <XFileTypeIcon class="w-6 h-6 mr-2" :type="taskItem.fileType" />
-          <div
-            :style="{
-              'max-width': '275px',
-              'text-overflow': 'ellipsis',
-              overflow: 'hidden',
-              'white-space': 'nowrap',
-            }"
-            :title="taskItem.fileName"
-          >
-            {{ taskItem.fileName }}
-          </div>
-          <div class="flex-1 ml-4 text-xs text-gray-400">
-            | &nbsp; {{ taskItem.fileSize
-            }}{{ taskItem.status === "uploading" ? `(${taskItem.speed})` : "" }}
-            <a-tooltip :title="$t('metanet.uploadDrawerClearItem')">
-              <DeleteOutlined @click="onRemoveTaskItem(taskItem)" />
-            </a-tooltip>
-          </div>
-          <div
-            :class="{
-              'ant-color-uploading': taskItem.status === 'uploading',
-              'ant-color-success': taskItem.status === 'success',
-              'ant-color-failed': taskItem.status === 'failed',
-            }"
-          >
-            {{ transformStatusText(taskItem.status) }}
-          </div>
-        </div>
-        <!-- progress -->
-        <!-- status	状态，可选: success exception normal active -->
-        <a-progress
-          :strokeWidth="3"
-          :showInfo="false"
-          :percent="taskItem.progress"
-          :status="
-            taskItem.status === 'failed'
-              ? 'exception'
-              : taskItem.progress < 100
-              ? 'active'
-              : 'success'
-          "
-        />
-      </div>
-    </a-drawer>
     <!-- 弹窗 分享文件 -->
     <a-modal
       :destroyOnClose="true"
@@ -841,6 +733,7 @@ import {
   onUnmounted,
   toRaw,
   nextTick,
+  onActivated,
 } from "vue";
 import {
   DownOutlined,
@@ -860,6 +753,8 @@ import {
   CloseSquareOutlined,
   EditOutlined,
   ShareAltOutlined,
+  BulbFilled,
+  BulbOutlined,
   DownloadOutlined,
 } from "@ant-design/icons-vue";
 import TableFiles from "./components/TableFiles.vue";
@@ -889,7 +784,7 @@ import {
 import dayjs from "dayjs";
 import { assign } from "lodash-es";
 import { message, Modal } from "ant-design-vue";
-import { useUserStore } from "@/store";
+import { useTransportStore, useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
 import { formatBytes, getFileSHA256, getFileType, lastOfArray } from "@/utils";
 import {
@@ -897,24 +792,25 @@ import {
   MAX_UPLOAD_SIZE,
   NKN_SUB_CLIENT_COUNT,
 } from "@/constants";
-import pLimit from "p-limit";
 import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useClipboard } from "@vueuse/core";
+import router from "@/router";
 
 type THistoryDirItem = {
   id: string;
   name: string;
+  isShared: boolean;
 };
-type TUploadTaskItem = {
-  fileHash: string; // 文件的id
-  fileName: string; // 文件名称
-  fileType: string;
-  fileSize: string;
-  progress: number;
-  status: "uploading" | "success" | "failed";
-  speed: string; // 2m / s
-};
+// type UploadItem = {
+//   fileHash: string; // 文件的id
+//   fileName: string; // 文件名称
+//   fileType: string;
+//   fileSize: string;
+//   progress: number;
+//   status: "uploading" | "success" | "failed";
+//   speed: string; // 2m / s
+// };
 type TDir = {
   dirId: string;
   dirName: string;
@@ -959,6 +855,7 @@ function sortByDirType(a: TFileItem, b: TFileItem) {
   return a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1;
 }
 export default defineComponent({
+  name: "MetanetFile",
   components: {
     // icon
     // DownOutlined,
@@ -977,6 +874,8 @@ export default defineComponent({
     CloseSquareOutlined,
     EditOutlined,
     ShareAltOutlined,
+    BulbFilled,
+    BulbOutlined,
     DownloadOutlined,
     //
     TableFiles,
@@ -1100,6 +999,12 @@ export default defineComponent({
         //   },
         // });
       };
+      // 路由到传输应用
+      const onRouteToTransport = () => {
+        router.push({
+          name: "Transport",
+        });
+      };
       // TODO input 上传成功后清除文件?
       /** 文件对话框选完文件后就会触发这个函数 */
       const onChangeMultipleUploadFile = async (e: Event) => {
@@ -1178,8 +1083,6 @@ export default defineComponent({
         }
         input.value = "";
       };
-      // 并发管理器 只允许两个文件同时上传
-      const limitUploadFiles = pLimit(2);
       /** 上传单个文件 */
       const onUploadSingleFile = async (
         file: File,
@@ -1193,124 +1096,29 @@ export default defineComponent({
         // type: ""
         // webkitRelativePath: ""
         // 弹出上传drawer
-        isShowProgressDrawer.value = true;
         const fileName = file.name;
         const fileHash = await getFileSHA256(file);
-        const taskItem: TUploadTaskItem = reactive({
+        const resultUploadSingle = await useTransportStore().uploadFile({
+          file,
           fileHash,
-          fileName,
-          fileSize: formatBytes(+file.size),
           fileType: getFileType({
             isDir: false,
             fileName,
           }),
-          progress: 0,
-          status: "uploading",
-          speed: "0 Bytes /s",
+          fullName: [
+            ...historyDir.value.slice(1).map((i) => i.name),
+            ...(withPathFileNameArr?.length ? withPathFileNameArr : [fileName]),
+          ],
+          description: "",
         });
-        const setTaskItemProgress = (
-          percentNum: number,
-          bytesPerSecond: number
-        ) => {
-          // console.log(
-          //   "bytesPerSecond",
-          //   bytesPerSecond,
-          //   typeof bytesPerSecond,
-          //   formatBytes(bytesPerSecond)
-          // );
-          // console.log("setTaskItemProgress", v);
-          taskItem.progress = percentNum;
-          if (percentNum === 100) taskItem.status = "success";
-          taskItem.speed = `${formatBytes(bytesPerSecond)} /s`;
-        };
-        uploadTaskList.value.push(taskItem);
-        // TODO 上传完后清除?
-        // const [res, err] = await apiUploadSingle({
-        const resultUploadSingle = await limitUploadFiles(() =>
-          apiUploadSingle({
-            // File: new Uint8Array(await file.arrayBuffer()),
-            SourceFile: file,
-            // 上传到不同的文件夹就要带上其名称在前面 (除了root)
-            FullName: [
-              ...historyDir.value.slice(1).map((i) => i.name),
-              ...(withPathFileNameArr?.length
-                ? withPathFileNameArr
-                : [fileName]),
-            ],
-            FileSize: file.size,
-            UserId: useUserStore().id,
-            Space: "PRIVATE",
-            Description: "",
-            Action: "drive",
-            SetProgress: setTaskItemProgress,
-          })
-        );
-        if (resultUploadSingle.err) {
-          taskItem.status = "failed";
-          return;
-        }
-        if (resultUploadSingle.data.msg === "秒传成功") {
-          message.success(t("metanet.uploadSuccess"));
-          setTaskItemProgress(100, 0);
-          taskItem.status = "success";
-          getAndSetTableDataFn(curFolderId.value);
-          return;
-        }
-        // 处理秒传
-        // 同步添加新的事件监听 然后解除监听
-        const hide = message.loading(
-          `上传${fileName}成功,等待websocket 返回确认信息`,
-          0
-        );
-        let timer: number;
-        const { channel } = useUserStore();
-        if (!channel) throw Error("no channel");
-        // console.log("channel", channel);
-        let removeListener = channel.on(
-          "file_uploaded",
-          (fileUploadInfo: {
-            // full_name: ["testTrace.go"]
-            // hash: "1e926583a18c6a0a8e26372a5055c9ec748d983c1458c43d125154a74eee7b83"
-            // id: "zrEK5LckpjNr2bsRJoT6p0"
-            // space: 2
-            full_name: string[];
-            hash: string;
-            id: string;
-            space: number;
-          }) => {
-            // console.log("包括remove的listen", fileUploadInfo);
-            if (fileUploadInfo.hash === fileHash) {
-              useDelay().then(() => {
-                clearTimeout(timer);
-                message.success(t("metanet.uploadSuccess"));
-                setTaskItemProgress(100, 0);
-                taskItem.status = "success";
-                getAndSetTableDataFn(curFolderId.value);
-                // console.log("getAndSetTableDataFn", getAndSetTableDataFn);
-                channel.off("file_uploaded", removeListener);
-                hide();
-              });
-            }
-          }
-        );
-        // 设置超时
-        timer = window.setTimeout(() => {
-          channel.off("file_uploaded", removeListener);
-          hide();
-          clearTimeout(timer);
-          // TODO 国际化提示
-          message.warn(t("metanet.errorUpload"));
-          taskItem.status = "failed";
-          // getAndSetTableDataFn(curFolderId.value);
-        }, 60000);
-        // 重新刷新数据?
-        // console.log("writestream---", res, input);
+        console.log("resultUploadSingle", resultUploadSingle);
       };
       return {
         onClickDropDownMenuCreate,
         onClickDropDownMenuUpload,
         onBatchDelete,
         onDownloadBatch,
+        onRouteToTransport,
         onChangeMultipleUploadFile,
         onChangeMultipleUploadFolder,
       };
@@ -1663,8 +1471,9 @@ export default defineComponent({
         const { username } = useUserStore();
         const codeText = code ? `访问码: ${code}` : "";
         const text = `链接: ${url} ${codeText} \n--来自0xWallet ${username}的分享`;
-        const { copy } = useClipboard({ read: false });
-        copy(text).then(() => message.success(t("metanet.copySuccess")));
+        useClipboard({ read: false })
+          .copy(text)
+          .then(() => message.success(t("metanet.copySuccess")));
       };
       /** 重置当前分享成功信息 */
       const onResetSuccessShareModalForm = () => {
@@ -1819,18 +1628,19 @@ export default defineComponent({
               type: isTxt ? "text/plain" : "text/markdown",
             });
             createFileModalConfirmLoading.value = true;
+            const fileHash = await getFileSHA256(file);
             const resultUploadSingle = await apiUploadSingle({
-              SourceFile: file,
+              file: file,
               // 上传到不同的文件夹就要带上其名称在前面 (除了root)
-              FullName: [
+              fullName: [
                 ...historyDir.value.slice(1).map((i) => i.name),
                 fullFileName,
               ],
-              FileSize: file.size,
-              UserId: useUserStore().id,
-              Space: "PRIVATE",
-              Description: fileDesc,
-              Action: "drive",
+              fileHash,
+              userId: useUserStore().id,
+              space: "PRIVATE",
+              description: fileDesc,
+              action: "drive",
             });
             createFileModalConfirmLoading.value = false;
             if (resultUploadSingle.err) {
@@ -2199,12 +2009,18 @@ export default defineComponent({
       {
         id: "root",
         name: "~",
+        isShared: false,
       },
     ]);
-    // 当前目录
+    /** 当前目录id */
     const curFolderId = computed(() => {
       const dirArr = historyDir.value;
       return lastOfArray(dirArr).id;
+    });
+    /** 当前目录是否分享 */
+    const isCurFolderShared = computed(() => {
+      const dirArr = historyDir.value;
+      return lastOfArray(dirArr).isShared;
     });
 
     function useTableData() {
@@ -2222,6 +2038,7 @@ export default defineComponent({
         fileType: e,
         id,
         fullName,
+        isShared,
       }: TFileItem) => {
         if (!e) return;
         // console.log("点击的当前record", e, id);
@@ -2234,6 +2051,7 @@ export default defineComponent({
             historyDir.value.push({
               id,
               name: lastOfArray(fullName),
+              isShared,
             });
           }
           onRefreshTableData();
@@ -2349,7 +2167,9 @@ export default defineComponent({
           tableLoading.value = false;
         });
       };
-      getAndSetTableDataFn(curFolderId.value);
+      onActivated(() => {
+        getAndSetTableDataFn(curFolderId.value);
+      });
       /** 清除当前组件的select数据, 然后重新获取表格数据 */
       const onRefreshTableData = () => {
         getAndSetTableDataFn(curFolderId.value);
@@ -2381,6 +2201,7 @@ export default defineComponent({
       };
       return {
         historyDir,
+        isCurFolderShared,
         onClickTableItemName,
         onClickHistoryDirUpperLevel,
         onRefreshTableData,
@@ -2390,64 +2211,7 @@ export default defineComponent({
         tableLoading,
       };
     }
-    const uploadTaskList = ref<TUploadTaskItem[]>([]);
-    const uploadTaskTotalProgress = computed(() => {
-      const taskList = uploadTaskList.value.map((i) => i.progress);
-      if (!taskList.length) return 0;
-      const totalPercent = taskList.length * 100;
-      const currentProgress = taskList.reduce((a, b) => a + b);
-      return Math.floor((currentProgress / totalPercent) * 100);
-    });
-    /** 清除列表中非上传状态的数据 */
-    const onRemoveTaskList = () => {
-      const listOfUploading = uploadTaskList.value.filter(
-        (v) => v.status === "uploading"
-      );
-      uploadTaskList.value.length = 0;
-      if (listOfUploading.length) {
-        message.warning("上传中的数据无法清除");
-        uploadTaskList.value.push(...listOfUploading);
-      }
-    };
-    /** 清除这条记录 */
-    const onRemoveTaskItem = (item: TUploadTaskItem) => {
-      if (item.status === "uploading") {
-        message.warning("上传中,无法清除");
-        return;
-      }
-      const foundIndex = uploadTaskList.value.findIndex(
-        // 同文件不同名文件?
-        (v) => v.fileName === item.fileName && v.fileHash === item.fileHash
-      );
-      if (foundIndex !== -1) uploadTaskList.value.splice(foundIndex, 1);
-    };
-    const isShowProgressDrawer = ref(false);
-    /** 上传进度抽屉 */
-    function useDrawer() {
-      const onCloseProgressDrawer = () => {
-        // console.log("onCloseProgressDrawer", onCloseProgressDrawer);
-        isShowProgressDrawer.value = false;
-      };
 
-      const onToggleIsShowProgressDrawer = () => {
-        isShowProgressDrawer.value = !isShowProgressDrawer.value;
-      };
-      const transformStatusText = (s: TUploadTaskItem["status"]) => {
-        if (s === "uploading") return t("metanet.uploadStatusUploading");
-        if (s === "success") return t("metanet.uploadStatusSuccess");
-        if (s === "failed") return t("metanet.uploadStatusFailed");
-      };
-      return {
-        uploadTaskList,
-        onRemoveTaskList,
-        onRemoveTaskItem,
-        uploadTaskTotalProgress,
-        isShowProgressDrawer,
-        onCloseProgressDrawer,
-        onToggleIsShowProgressDrawer,
-        transformStatusText,
-      };
-    }
     /** nkn client 连接状态 */
     function useNknStatus() {
       // 连接中 3/4
@@ -2479,6 +2243,7 @@ export default defineComponent({
             // 30秒后
             if (nknClientConnectStatusMap.count === 0) {
               // 一个都没成功就自动重置
+              counterOfNknCLient = 0; // 重新计数 , 下一轮才reset
               useUserStore().resetMultiClient();
               nknClientConnectStatusMap.text = "重连中";
             } else {
@@ -2493,24 +2258,32 @@ export default defineComponent({
         clearInterval(timer);
       });
       intervalGetClientCount();
-      const nknClientConnectStatusShowText = computed(() => {
-        const { count, text } = nknClientConnectStatusMap;
-        return `${text} ${count}/${NKN_SUB_CLIENT_COUNT}`;
-      });
+      // const nknClientConnectStatusShowText = computed(() => {
+      //   const { count, text } = nknClientConnectStatusMap;
+      //   // return `${text} ${count}/${NKN_SUB_CLIENT_COUNT}`;
+      //   return `${count}/${NKN_SUB_CLIENT_COUNT}`;
+      // });
       /** 重置nkn client */
       const onResetNknMultiClient = () => {
-        Modal.confirm({
-          title: "是否重置nkn multiClient?",
-          icon: createVNode(ExclamationCircleOutlined),
-          onOk: () => {
-            counterOfNknCLient = 0;
-            nknClientConnectStatusMap.text = "连接中";
-            useUserStore().resetMultiClient();
-            // console.log("重置nkn multiClient", useUserStore().multiClient);
-          },
-        });
+        // 如果节点小于等于2个, 直接重置
+        if (nknClientConnectStatusMap.count <= 2) {
+          counterOfNknCLient = 0;
+          useUserStore().resetMultiClient();
+        } else {
+          console.log("节点大于2,不进行重置");
+        }
+        // Modal.confirm({
+        //   title: "是否重置nkn multiClient?",
+        //   icon: createVNode(ExclamationCircleOutlined),
+        //   onOk: () => {
+        //     counterOfNknCLient = 0;
+        //     nknClientConnectStatusMap.text = "连接中";
+        //     useUserStore().resetMultiClient();
+        //     // console.log("重置nkn multiClient", useUserStore().multiClient);
+        //   },
+        // });
       };
-      return { nknClientConnectStatusShowText, onResetNknMultiClient };
+      return { nknClientConnectStatusMap, onResetNknMultiClient };
     }
     /** 当前详情数据 */
     const currenDetailInfo = ref<TDetailInfo>({});
@@ -2572,7 +2345,6 @@ export default defineComponent({
       // ...useImportModal(),
       ...useActions(),
       ...useTableData(),
-      ...useDrawer(),
       ...useNknStatus(),
       ...useModalDetail(),
     };

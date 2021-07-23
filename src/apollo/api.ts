@@ -1,6 +1,6 @@
 import { DriveUserSetting, IUser, Session } from "../@types/apolloType";
 import { encode } from "@msgpack/msgpack";
-import { useUserStore } from "@/store";
+import { useTransportStore, useUserStore } from "@/store";
 import { useApollo } from "./action";
 import {
   User,
@@ -14,6 +14,7 @@ import { MAX_MTU, REMOTE_ADDR } from "@/constants";
 import { getFileSHA256 } from "@/utils";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
+import { UploadStatus } from "@/store/transport";
 
 /** 通用的api 请求返回类型 */
 export type TApiRes<T> = Promise<
@@ -267,39 +268,75 @@ export const apiQueryFileByDir = async (
   }
 };
 
-type ParamsUploadSingle = {
+export type ParamsUploadSingle = {
   // file: File;
   // File: Uint8Array;
-  SourceFile?: File;
-  File?: Uint8Array;
-  FullName: string[];
-  FileSize: number;
-  UserId: string;
-  Space: "PRIVATE" | "PUBLIC";
-  Description: string;
-  Action: "drive";
-  SetProgress?: (percentNum: number, bytesPerSecond: number) => void;
+  file?: File;
+  fullName: string[];
+  fileHash: string;
+  // FileSize: number;
+  userId: string;
+  space: "PRIVATE" | "PUBLIC";
+  description: string;
+  action: "drive";
+  registStoreCloseSessionFn?: (
+    fileHash: string,
+    fn: () => Promise<void>
+  ) => void;
+  setProgressSpeedStatus?: (
+    hash: string,
+    progress: number,
+    speed: number,
+    status: UploadStatus
+  ) => void;
+  // setProgress?: (percentNum: number, bytesPerSecond: number) => void;
 };
 type ResponseUploadSingle = {
   msg: string;
 };
-const limit = pLimit(1);
+const sessionLimit = pLimit(1);
 /** 上传单个文件 */
 export const apiUploadSingle = async (
   params: ParamsUploadSingle
 ): TApiRes<ResponseUploadSingle> => {
-  if (!params || !params.SourceFile) return { err: Error("noparams") };
+  if (!params || !params.file) return { err: Error("noparams") };
+  const transportStore = useTransportStore();
+  /** 当前上传的文件状态是否已经暂停 */
+  const isCurrentUploadStatusPause = () => {
+    return transportStore.uploadHashMap[params.fileHash].status === "pause";
+  };
+  if (params.setProgressSpeedStatus) {
+    // 从初始的 排队 状态切换为上传状态
+    params.setProgressSpeedStatus(params.fileHash, 0, 0, "uploading");
+  }
   // 1. 先调秒传
   // const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
+  // 从那个位置开始传输
+  let startOffset = 0;
   const resultSecondUpload = await apiSecondUpload({
-    SourceFile: params.SourceFile,
-    FullName: params.FullName,
-    Description: params.Description,
+    fullName: params.fullName,
+    fileHash: params.fileHash,
+    description: params.description,
   });
-  console.log("---先调秒传---", resultSecondUpload.data);
-  if (resultSecondUpload.data?.driveUploadByHash?.id) {
+  if (resultSecondUpload.err) {
+    return { err: resultSecondUpload.err };
+  }
+  const { driveUploadByHash } = resultSecondUpload.data;
+  console.log("-秒传返回--", driveUploadByHash);
+  if (driveUploadByHash.id) {
     // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
+    if (params.setProgressSpeedStatus) {
+      params.setProgressSpeedStatus(params.fileHash, 100, 0, "uploading");
+    }
     return { data: { msg: "秒传成功" } };
+  }
+  if (driveUploadByHash.offset) {
+    console.log(
+      "秒传失败,接口有返回offset",
+      driveUploadByHash.offset,
+      "将从这个开始上传"
+    );
+    startOffset = driveUploadByHash.offset;
   }
   // 2. 秒传失败则调session
   // const { file } = params;
@@ -312,7 +349,7 @@ export const apiUploadSingle = async (
   //   multiClient.isClosed,
   //   multiClient.isReady
   // );
-  console.time(`[性能 client.dial 时间]${params.SourceFile.name}`);
+  console.time(`[性能 client.dial 时间]${params.file.name}`);
   // 多个任务的时候要限制dial 的时间?
   // const clientSession = await multiClient?.dial(REMOTE_ADDR);
   // 尝试重拨dial 的次数, 防止爆栈
@@ -322,6 +359,10 @@ export const apiUploadSingle = async (
   const neverTimeOutClientDial = async (): Promise<TSession | null> => {
     let res;
     try {
+      // 如果在dial 的过程中暂停了, 就不要再dial 了
+      if (isCurrentUploadStatusPause()) {
+        return null;
+      }
       res = await multiClient.dial(REMOTE_ADDR, {
         dialTimeout: 3000, // 3s dial 过期
       });
@@ -337,20 +378,26 @@ export const apiUploadSingle = async (
     }
     return res;
   };
-  const clientSession = await limit(() => neverTimeOutClientDial());
+  const clientSession = await sessionLimit(() => neverTimeOutClientDial());
   // console.log("after-client-shakehand");
-  console.timeEnd(`[性能 client.dial 时间]${params.SourceFile.name}`);
+  console.timeEnd(`[性能 client.dial 时间]${params.file.name}`);
   if (!clientSession) return { err: Error("no clientSession") };
+  if (params.registStoreCloseSessionFn) {
+    params.registStoreCloseSessionFn(
+      params.fileHash,
+      clientSession.close.bind(clientSession)
+    );
+  }
   // console.log("准备开始发长度");
   // 第一步，发长度，长度表示接下来的 msgpack 的长度
   const encoded: Uint8Array = encode({
     // File: "", // 需要传空字符串
-    FullName: params.FullName,
-    FileSize: params.FileSize,
-    UserId: params.UserId,
-    Space: params.Space,
-    Description: params.Description,
-    Action: params.Action,
+    FullName: params.fullName,
+    FileSize: params.file.size,
+    UserId: params.userId,
+    Space: params.space,
+    Description: params.description,
+    Action: params.action,
   });
   const buffer = new ArrayBuffer(4);
   const dv = new DataView(buffer);
@@ -359,16 +406,19 @@ export const apiUploadSingle = async (
   // 第二步，发 msgpack
   await clientSession.write(encoded);
   // 第三步，发文件
-  const fileBuffer = await params.SourceFile.arrayBuffer();
+  const fileBuffer = await params.file.arrayBuffer();
   // console.log("fileBuffer", fileBuffer);
   const maxSendLength = fileBuffer.byteLength;
-  let startLen = 0;
-  let res, err;
+  // 从前面标记的位置开始上传
+  let startLen = startOffset;
   const startTime = dayjs();
   let diffSeconds = 0;
   let toSetBytesPerSecond = 0;
   try {
     while (startLen <= maxSendLength) {
+      if (clientSession.isClosed || isCurrentUploadStatusPause()) {
+        return { err: Error("clientSession closed") };
+      }
       const toWriteChunk = new Uint8Array(
         fileBuffer.slice(
           startLen,
@@ -376,31 +426,43 @@ export const apiUploadSingle = async (
           Math.min(startLen + MAX_MTU, maxSendLength)
         )
       );
-      // console.log(
-      //   "session-toWriteChunk",
-      //   clientSession.isClosed,
-      //   startLen,
-      //   toWriteChunk
-      // );
+      console.log(
+        "sessionIsClosed-正在传的chunk开始长度-总长度",
+        clientSession.isClosed,
+        startLen,
+        // toWriteChunk
+        maxSendLength
+      );
       await clientSession.write(toWriteChunk);
+      // clientSession.close
       // .catch((e) => console.log("session-write-error", e));
       startLen += MAX_MTU;
-      if (params.SetProgress) {
+      // 设置进度 start
+      if (params.setProgressSpeedStatus) {
         // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
         const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
-        const calcToSetBytesPerSecond = () => {
+        if (toSetProgressVal < 98) {
           const curDiffSeconds = dayjs().diff(startTime, "second");
           if (curDiffSeconds > diffSeconds) {
             toSetBytesPerSecond = startLen / dayjs().diff(startTime, "second");
             diffSeconds = curDiffSeconds;
           }
-          return toSetBytesPerSecond;
-        };
-        params.SetProgress(
-          toSetProgressVal < 90 ? toSetProgressVal : 90,
-          toSetProgressVal < 90 ? calcToSetBytesPerSecond() : 0
-        );
+          params.setProgressSpeedStatus(
+            params.fileHash,
+            toSetProgressVal,
+            toSetBytesPerSecond,
+            "uploading"
+          );
+        } else {
+          params.setProgressSpeedStatus(
+            params.fileHash,
+            98,
+            0,
+            "waiting" // 等待ws 返回确认
+          );
+        }
       }
+      // 设置进度 end
     }
     // console.log("escape while loop", startLen, maxSendLength);
     return { data: { msg: "session成功写入" } };
@@ -411,14 +473,15 @@ export const apiUploadSingle = async (
 };
 
 type ParamsSecondUpload = {
-  SourceFile: File;
-  FullName: string[];
-  Description: string;
+  fullName: string[];
+  fileHash: string;
+  description: string;
 };
 type ResponseSecondUpload = {
   driveUploadByHash: {
     // id: "qDQt2b8Di1nZeDhN5cPWXE"
-    id: string;
+    id?: string;
+    offset?: number;
   };
 };
 /** 秒传接口 */
@@ -426,16 +489,13 @@ export const apiSecondUpload = async (
   params: ParamsSecondUpload
 ): TApiRes<ResponseSecondUpload> => {
   try {
-    // create hash
-    const hash = await getFileSHA256(params.SourceFile);
-
     const data = await useApollo<ResponseSecondUpload>({
       mode: "mutate",
       gql: NetFile_Basic.driveUploadByHash,
       variables: {
-        hash,
-        fullName: params.FullName,
-        description: params.Description,
+        hash: params.fileHash,
+        fullName: params.fullName,
+        description: params.description,
       },
     });
     return { data };

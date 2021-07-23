@@ -40,8 +40,20 @@ export function getFileLocation(fileFullName: string[]): string {
   return "~" + arr.join("/") + "/";
 }
 
-/** 根据分享文件的uri 拼接成分享链接 */
-export function getShareUrlByUri(uri: string): string {
-  
-  return "";
+/** 根据分享文件的uri,code 拼接成分享链接,code可能是无或空字符串 */
+export function getShareInfoByUriAndCode({
+  uri,
+  code,
+  username,
+}: {
+  uri: string;
+  code: string;
+  username?: string;
+}): string {
+  const isCodeEmpty = code.length === 0 || code === "无";
+  const url = `${window.location.href}?shareUri=${uri}`;
+  const codeText = isCodeEmpty ? "" : `访问码: ${code}`;
+  const userInfo = username ? `\n--来自0xWallet ${username}的分享` : "";
+  const text = `链接: ${url} ${codeText} ${userInfo}`;
+  return text;
 }

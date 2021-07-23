@@ -6,6 +6,7 @@
 import { defineComponent } from "vue";
 
 export default defineComponent({
+  name: "MetanetCollect",
   setup() {
     return {};
   },
