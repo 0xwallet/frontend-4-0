@@ -1,24 +1,23 @@
 <template>
   <div>
     <!-- 功能区 -->
-    <div class="mb-3 flex items-center justify-between">
-      <div>
-        共传输完成
-        <span class="ant-color-blue-6">{{ uploadSuccessList.length }}</span>
-        个文件!
-      </div>
+    <div class="mb-3 flex items-center">
       <a-button
+        class="mr-2"
         :disabled="uploadSuccessList.length === 0"
-        size="small"
         @click="onBatchClear"
       >
         清除所有记录
       </a-button>
+      <div v-if="uploadSuccessList.length > 0">
+        共传输完成
+        <span class="ant-color-blue-6">{{ uploadSuccessList.length }}</span>
+        个文件!
+      </div>
     </div>
     <TableFiles
       rowKey="fileHash"
       :disableSelect="true"
-      :showHeader="false"
       :columns="columns"
       :data="tableData"
       :loading="tableLoading"
@@ -30,7 +29,7 @@
           <span>{{ $lastOfArray(record.fullName) }}</span>
         </div>
       </template>
-      <template #fileInfo="{ record }">
+      <template #fileSize="{ record }">
         <div class="text-gray-400">
           {{ formatBytes(record.fileSize) }}
         </div>
@@ -40,37 +39,38 @@
           {{ fullNameToFileDir(record) }}
         </div>
       </template>
-      <template #successIcon="{ record }">
+      <template #status="{ record }">
         <!-- success_upload -->
-        <div
-          v-if="record.isSecondUpload"
-          class="flex items-center justify-center"
-        >
+        <div v-if="record.isSecondUpload" class="flex items-center">
           <div class="w-3.5 h-3.5 mr-2">
             <img src="~@/assets/images/success_rocket.png" alt="" />
           </div>
-          <div>急速秒传</div>
+          <div class="text-gray-400">极速秒传</div>
         </div>
-        <div v-else class="flex items-center justify-center">
+        <div v-else class="flex items-center">
           <div class="w-3.5 h-3.5 mr-2">
             <img src="~@/assets/images/success_upload.png" alt="" />
           </div>
-          <div>上传成功</div>
+          <div class="text-gray-400">上传成功</div>
         </div>
       </template>
-      <template #openDir="{ record }">
-        <a href="javascript:;" @click="onRecordOpenDir(record)">
-          <a-tooltip title="打开所在文件夹">
-            <FolderOutlined />
-          </a-tooltip>
-        </a>
-      </template>
-      <template #clear="{ record }">
-        <a href="javascript:;" @click="onRecordClear(record)">
-          <a-tooltip title="清除记录">
-            <ClearOutlined />
-          </a-tooltip>
-        </a>
+      <template #action="{ record }">
+        <div class="flex items-center text-gray-600">
+          <a
+            class="flex-1"
+            href="javascript:;"
+            @click="onRecordOpenDir(record)"
+          >
+            <a-tooltip title="打开所在文件夹">
+              <FolderOutlined />
+            </a-tooltip>
+          </a>
+          <a class="flex-1" href="javascript:;" @click="onRecordClear(record)">
+            <a-tooltip title="清除记录">
+              <ClearOutlined />
+            </a-tooltip>
+          </a>
+        </div>
       </template>
     </TableFiles>
   </div>
@@ -100,6 +100,28 @@ export default defineComponent({
     const { t } = useI18n();
     const router = useRouter();
     const transPortStore = useTransportStore();
+    // 测试用个
+    // transPortStore.uploadHashMap["22"] = {
+    //   fileHash: "22",
+    //   fullName: ["fake.jpg"],
+    //   fileType: "jpg",
+    //   fileSize: 2000,
+    //   progress: 100,
+    //   status: "success",
+    //   description: "sdfs",
+    //   speed: 500,
+    // };
+    // transPortStore.uploadHashMap["23"] = {
+    //   fileHash: "23",
+    //   fullName: ["fake.jpg"],
+    //   fileType: "jpg",
+    //   fileSize: 2000,
+    //   progress: 100,
+    //   status: "success",
+    //   description: "sdfs",
+    //   isSecondUpload: true,
+    //   speed: 1028,
+    // };
     const uploadSuccessList = computed(() => {
       return transPortStore.uploadSuccessList;
     });
@@ -110,29 +132,25 @@ export default defineComponent({
         slots: { customRender: "name" },
       },
       {
-        title: "fileInfo",
-        slots: { customRender: "fileInfo" },
+        title: "文件大小",
+        slots: { customRender: "fileSize" },
         width: 100,
       },
       {
-        title: "fileDir",
+        title: "文件路径",
         slots: { customRender: "fileDir" },
         width: 300,
       },
       {
-        title: "successIcon",
-        slots: { customRender: "successIcon" },
+        title: "状态",
+        slots: { customRender: "status" },
         width: 150,
       },
       {
-        title: "openDir",
-        slots: { customRender: "openDir" },
-        width: 50,
-      },
-      {
-        title: "clear",
-        slots: { customRender: "clear" },
-        width: 50,
+        title: t("metanet.action"),
+        fixed: "right",
+        width: 100,
+        slots: { customRender: "action" },
       },
     ];
     const tableData = computed(() => {

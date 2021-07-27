@@ -1,5 +1,5 @@
 <template>
-  <a-dropdown placement="bottomRight">
+  <a-dropdown placement="bottomRight" :trigger="['hover', 'click']">
     <!-- 宽高由引用他的组件来决定 -->
     <div class="w-full h-full flex items-center justify-center">
       <svg

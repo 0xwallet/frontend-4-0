@@ -1,16 +1,45 @@
 <template>
   <div>
-    <input
-      multiple
-      class="hidden"
-      type="file"
-      id="singleInput"
-      @change="onChangeMultipleUploadFile"
-    />
     <!-- 功能区 -->
     <div class="mb-3 flex items-center">
-      <!-- 上传总进度 -->
-      <div class="mr-2 flex flex-1">
+      <!-- 按钮区 -->
+      <div class="mr-2 flex items-center" :style="{ height: '32px' }">
+        <div
+          :style="{
+            width: '82px',
+          }"
+          class="h-full relative inline-block mr-2"
+        >
+          <transition name="no-mode-fade">
+            <a-button
+              :disabled="selectedRows.length === 0"
+              v-if="isShowBatchStartBtn"
+              key="start"
+              class="absolute"
+              @click="onBatchStart"
+            >
+              <RightCircleOutlined />
+              开始</a-button
+            >
+            <a-button
+              :disabled="selectedRows.length === 0"
+              v-else
+              key="pause"
+              class="absolute"
+              @click="onBatchPause"
+            >
+              <PauseOutlined />
+              暂停</a-button
+            >
+          </transition>
+        </div>
+        <a-button :disabled="selectedRows.length === 0" @click="onBatchCancel">
+          <CloseCircleOutlined />
+          取消</a-button
+        >
+      </div>
+      <!-- 进度区 -->
+      <div class="mr-2 flex flex-1 px-1">
         <div class="mr-2 whitespace-nowrap text-gray-400">总进度</div>
         <div class="flex-1 relative">
           <!-- <div
@@ -19,47 +48,39 @@
           >
             {{ `${totalPercent}/%` }}
           </div> -->
-          <a-progress :showInfo="true" :percent="totalPercent" />
+          <a-progress :showInfo="false" :percent="totalPercent" />
         </div>
       </div>
-      <div class="pl-4">
-        <!-- <a-button
-          size="small"
-          class="mr-2"
-          type="primary"
-          @click="onTestUploadFile"
-          >测试上传</a-button
-        > -->
-        <a-button
-          size="small"
-          class="mr-2"
-          :disabled="disabledAllBeginBtn"
-          @click="onBatchStart"
-          >全部开始</a-button
-        >
-        <a-button
-          size="small"
-          class="mr-2"
-          :disabled="disabledAllPauseBtn"
-          @click="onBatchPause"
-          >全部暂停</a-button
-        >
-        <a-button
-          size="small"
-          :disabled="disabledAllCancelBtn"
-          @click="onBatchCancel"
-          >全部取消</a-button
-        >
+      <!-- 状态区 -->
+      <div>
+        <!-- nkn节点状态 -->
+        <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`">
+          <a
+            href="javascript:;"
+            class="inline-block mr-2"
+            @click="onResetNknMultiClient"
+          >
+            <img
+              :src="
+                require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
+              "
+              :style="{
+                width: '14px',
+                height: '14px',
+              }"
+            />
+          </a>
+        </a-tooltip>
       </div>
     </div>
     <!-- 表格区 -->
     <TableFiles
       rowKey="fileHash"
-      :disableSelect="true"
-      :showHeader="false"
       :columns="columns"
       :data="tableData"
       :loading="tableLoading"
+      v-model:selectedRows="selectedRows"
+      v-model:selectedRowKeys="selectedRowKeys"
     >
       <template #name="{ record }">
         <!-- <div>55----{{ record }}</div> -->
@@ -68,73 +89,92 @@
           <span>{{ $lastOfArray(record.fullName) }}</span>
         </div>
       </template>
-      <template #fileInfo="{ record }">
+      <template #fileSize="{ record }">
         <div class="text-gray-400">
+          {{ formatBytes(record.fileSize * (record.progress / 100)) }} /
           {{ formatBytes(record.fileSize) }}
         </div>
       </template>
-      <template #speed="{ record }">
-        <div class="text-gray-400">
-          {{ `${formatBytes(record.speed)} / s` }}
+      <template #status="{ record }">
+        <div class="text-gray-400 trProgressBox">
+          <a-progress
+            :style="{
+              height: '10px',
+              'margin-top': '-2px',
+              'margin-down': '-2px',
+            }"
+            :percent="record.progress"
+            :showInfo="false"
+          ></a-progress>
+          <div
+            :style="{
+              'margin-top': '-4px',
+            }"
+          >
+            {{ calcStatusText(record.status) }}
+            <template v-if="record.status === 'uploading'">
+              -
+              {{ formatBytes(record.speed) }} / s
+            </template>
+          </div>
         </div>
       </template>
-      <template #uploadProgressBar="{ record }">
-        <a-progress :percent="record.progress" :showInfo="false"></a-progress>
-      </template>
-      <template #statusText="{ record }">
-        <div class="text-gray-400">
-          {{ calcStatusText(record.status) }}
+      <template #action="{ record }">
+        <div class="flex items-center text-gray-600">
+          <a
+            class="flex-1"
+            href="javascript:;"
+            @click="onRecordStartOrPause(record)"
+          >
+            <template v-if="['pause'].includes(record.status)">
+              <a-tooltip title="开始">
+                <RightSquareOutlined />
+              </a-tooltip>
+            </template>
+            <template v-if="['queueing', 'uploading'].includes(record.status)">
+              <a-tooltip title="暂停">
+                <PauseOutlined />
+              </a-tooltip>
+            </template>
+            <template v-if="['failed'].includes(record.status)">
+              <a-tooltip title="重试">
+                <ReloadOutlined />
+              </a-tooltip>
+            </template>
+          </a>
+          <a
+            class="flex-1"
+            href="javascript:;"
+            v-if="!['waiting'].includes(record.status)"
+            @click="onRecordCancel(record)"
+          >
+            <a-tooltip title="取消">
+              <CloseOutlined />
+            </a-tooltip>
+          </a>
         </div>
-      </template>
-      <template #startOrPause="{ record }">
-        <a href="javascript:;" @click="onRecordStartOrPause(record)">
-          <template v-if="['pause'].includes(record.status)">
-            <a-tooltip title="开始">
-              <RightSquareOutlined />
-            </a-tooltip>
-          </template>
-          <template v-if="['queueing', 'uploading'].includes(record.status)">
-            <a-tooltip title="暂停">
-              <PauseOutlined />
-            </a-tooltip>
-          </template>
-          <template v-if="['failed'].includes(record.status)">
-            <a-tooltip title="重试">
-              <ReloadOutlined />
-            </a-tooltip>
-          </template>
-        </a>
-      </template>
-      <template #cancel="{ record }">
-        <!-- 处于等待ws 确认状态的不可取消 -->
-        <a
-          href="javascript:;"
-          v-if="!['waiting'].includes(record.status)"
-          @click="onRecordCancel(record)"
-        >
-          <a-tooltip title="取消">
-            <CloseOutlined />
-          </a-tooltip>
-        </a>
       </template>
     </TableFiles>
   </div>
 </template>
 
 <script lang="ts">
-import { useTransportStore } from "@/store";
+import { useTransportStore, useUserStore } from "@/store";
 import { UploadItem, UploadStatus } from "@/store/transport";
-import { computed, defineComponent, reactive, ref } from "vue";
+import { computed, defineComponent, onUnmounted, reactive, ref } from "vue";
 import {
   RightSquareOutlined,
   PauseOutlined,
   CloseOutlined,
   ReloadOutlined,
+  RightCircleOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
 import TableFiles from "../components/TableFiles.vue";
 import XFileTypeIcon from "@/components/XFileTypeIcon.vue";
 import { formatBytes, getFileSHA256, getFileType } from "@/utils";
+import { NKN_SUB_CLIENT_COUNT } from "@/constants";
 
 type TabKey = "uploading" | "uploadFinished" | "sendFile";
 
@@ -147,89 +187,87 @@ export default defineComponent({
     PauseOutlined,
     CloseOutlined,
     ReloadOutlined,
+    RightCircleOutlined,
+    CloseCircleOutlined,
   },
   setup() {
     const { t } = useI18n();
     const transPortStore = useTransportStore();
-    // 测试用 start
-    const onTestUploadFile = () => {
-      document.getElementById("singleInput")?.click();
-    };
-    const onChangeMultipleUploadFile = (e: Event) => {
-      const input = e.target as HTMLInputElement;
-      if (!input.files?.length) return;
-      async function onUploadSingleFile(file: File) {
-        const fileName = file.name;
-        const fileHash = await getFileSHA256(file);
-        const resultUploadSingle = await transPortStore.uploadFile({
-          file,
-          fileHash,
-          fileType: getFileType({
-            isDir: false,
-            fileName,
-          }),
-          fullName: ["12", fileName],
-          description: "",
-        });
-        console.log("resultUploadSingle", resultUploadSingle);
-      }
-      [...input.files].forEach((i) => onUploadSingleFile(i));
-      input.value = "";
-    };
+    // 测试用插入假数据 start
+    // transPortStore.uploadHashMap["22"] = {
+    //   fileHash: "22",
+    //   fullName: ["fake.jpg"],
+    //   fileType: "jpg",
+    //   fileSize: 2000,
+    //   progress: 20,
+    //   status: "uploading",
+    //   description: "sdfs",
+    //   speed: 500,
+    // };
+    // transPortStore.uploadHashMap["23"] = {
+    //   fileHash: "23",
+    //   fullName: ["fake.jpg"],
+    //   fileType: "jpg",
+    //   fileSize: 2000,
+    //   progress: 80,
+    //   status: "uploading",
+    //   description: "sdfs",
+    //   speed: 1028,
+    // };
+    // 测试用插入假数据 end
+    const userStore = useUserStore();
+    const selectedRows = ref<UploadItem[]>([]);
+    const selectedRowKeys = ref<string[]>([]);
+    const isShowBatchStartBtn = computed(() => {
+      const list = selectedRows.value;
+      if (list.length === 0) return true;
+      // list 里可以暂停的数量
+      const canStartCount = list.filter((i) =>
+        ["pause"].includes(i.status)
+      ).length;
+      // list 里可以开始的数量
+      const canPauseCount = list.filter((i) =>
+        ["queueing", "uploading"].includes(i.status)
+      ).length;
+      return canStartCount > canPauseCount;
+    });
+    /** 功能区 */
+    function useToolSet() {
+      return {
+        isShowBatchStartBtn,
+      };
+    }
     // 测试用 end
+    const tableData = computed(() => {
+      return transPortStore.uploadingList;
+    });
+
     /** 表格数据 */
     function useTableData() {
       const tableLoading = ref(false);
       const columns = [
         {
-          title: t("metanet.name"),
+          title: "文件名",
           slots: { customRender: "name" },
         },
         {
-          title: "uploadProgressText",
-          slots: { customRender: "uploadProgressText" },
+          title: "大小",
+          slots: { customRender: "fileSize" },
+          width: 180,
+        },
+        {
+          title: "状态",
+          slots: { customRender: "status" },
+          width: 200,
+        },
+        {
+          title: t("metanet.action"),
+          fixed: "right",
           width: 100,
+          slots: { customRender: "action" },
         },
-        {
-          title: "fileInfo",
-          slots: { customRender: "fileInfo" },
-          width: 100,
-        },
-        {
-          title: "speed",
-          slots: { customRender: "speed" },
-          width: 100,
-        },
-        {
-          title: "uploadProgressBar",
-          slots: { customRender: "uploadProgressBar" },
-          width: 140,
-        },
-        {
-          title: "statusText",
-          slots: { customRender: "statusText" },
-          width: 100,
-        },
-        {
-          title: "startOrPause",
-          slots: { customRender: "startOrPause" },
-          width: 50,
-        },
-        {
-          title: "cancel",
-          slots: { customRender: "cancel" },
-          width: 50,
-        },
-        // {
-        //   title: t("metanet.action"),
-        //   fixed: "right",
-        //   width: 60,
-        //   slots: { customRender: "action" },
-        // },
       ];
-      const tableData = computed(() => {
-        return transPortStore.uploadingList;
-      });
+
       const totalPercent = computed(() => {
         const statusList = [
           "queueing",
@@ -251,34 +289,6 @@ export default defineComponent({
         //   val
         // );
         return val;
-      });
-      /** 禁用 全部开始 按钮 */
-      const disabledAllBeginBtn = computed(() => {
-        const onGoingList = [
-          "queueing",
-          "uploading",
-          "waiting",
-          "failed",
-        ];
-        return (
-          tableData.value.length === 0 ||
-          tableData.value.every((i) => onGoingList.includes(i.status))
-        );
-      });
-      /** 禁用 全部暂停 按钮 */
-      const disabledAllPauseBtn = computed(() => {
-        return (
-          tableData.value.length === 0 ||
-          tableData.value.every((i) => ["pause", "waiting"].includes(i.status))
-        );
-      });
-      /** 禁用 全部取消 按钮 */
-      const disabledAllCancelBtn = computed(() => {
-        // 已经处于等待ws 状态的不可取消
-        return (
-          tableData.value.length === 0 ||
-          tableData.value.every((i) => ["waiting"].includes(i.status))
-        );
       });
       const canResumeStatusKeys: UploadStatus[] = ["pause", "failed"];
       const canPauseStatusKeys: UploadStatus[] = [
@@ -332,9 +342,6 @@ export default defineComponent({
         tableData,
         totalPercent,
         formatBytes,
-        disabledAllBeginBtn,
-        disabledAllPauseBtn,
-        disabledAllCancelBtn,
         onRecordStartOrPause,
         onRecordCancel,
         onBatchStart,
@@ -343,10 +350,72 @@ export default defineComponent({
         calcStatusText,
       };
     }
+    /** nkn client 连接状态 */
+    function useNknStatus() {
+      // 连接中 3/4
+      const nknClientConnectStatusMap = reactive({
+        count: 0,
+        text: "连接中",
+      });
+      // let readyClientCount = useUserStore().multiClient?.clients ?? 0
+      const getStoreNknClientCount = () => {
+        const multiClient = userStore.multiClient;
+        if (!multiClient) return 0;
+        else {
+          // console.log(multiClient.readyClientIDs());
+          return multiClient.readyClientIDs().length;
+        }
+      };
+      nknClientConnectStatusMap.count = getStoreNknClientCount();
+      let counterOfNknCLient = 0; // 用来猜测计时ws 连接fail 的时间
+      let timer: number;
+      /** 全局不断检测nkn节点状态 */
+      const intervalGetClientCount = () => {
+        timer = window.setTimeout(() => {
+          counterOfNknCLient++;
+          nknClientConnectStatusMap.count = getStoreNknClientCount();
+          intervalGetClientCount();
+          if (nknClientConnectStatusMap.count === NKN_SUB_CLIENT_COUNT) {
+            nknClientConnectStatusMap.text = "就绪";
+          } else if (counterOfNknCLient > 30) {
+            // 30秒后
+            if (nknClientConnectStatusMap.count === 0) {
+              // 一个都没成功就自动重置
+              counterOfNknCLient = 0; // 重新计数 , 下一轮才reset
+              userStore.resetMultiClient();
+              nknClientConnectStatusMap.text = "重连中";
+            } else {
+              // 未能全部成功的话
+              nknClientConnectStatusMap.text = "半连接"; // 半准备?
+            }
+          }
+        }, 1000);
+      };
+      // 防止内存泄漏
+      onUnmounted(() => {
+        clearInterval(timer);
+      });
+      intervalGetClientCount();
+      /** 重置nkn client */
+      const onResetNknMultiClient = () => {
+        // 如果节点小于等于2个, 直接重置
+        if (nknClientConnectStatusMap.count <= 2) {
+          counterOfNknCLient = 0;
+          useUserStore().resetMultiClient();
+        } else {
+          console.log("节点大于2,不进行重置");
+        }
+      };
+      return { nknClientConnectStatusMap, onResetNknMultiClient };
+    }
     return {
-      onTestUploadFile,
-      onChangeMultipleUploadFile,
+      // onTestUploadFile,
+      // onChangeMultipleUploadFile,
+      ...useToolSet(),
+      selectedRows,
+      selectedRowKeys,
       ...useTableData(),
+      ...useNknStatus(),
     };
   },
 });
@@ -359,6 +428,9 @@ export default defineComponent({
 :deep(.ant-progress-bg) {
   height: 14px !important;
   // border-radius: 0 !important;
+}
+:deep(.trProgressBox .ant-progress-bg) {
+  height: 6px !important;
 }
 // :deep(.ant-progress-inner) {
 //   border-radius: 0 !important;

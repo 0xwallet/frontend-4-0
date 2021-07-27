@@ -184,6 +184,14 @@ export const queryMeSpace = gql`
     }
   }
 `;
+/** 个人头像 */
+export const queryMeAvatar = gql`
+  query {
+    me {
+      avatar
+    }
+  }
+`;
 
 // export export const Basic = {
 //   FileList: driveListFiles,

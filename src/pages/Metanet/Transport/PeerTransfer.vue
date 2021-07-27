@@ -442,23 +442,34 @@ export default defineComponent({
       // 清空input 的缓存
       input.value = "";
     };
+    const checkRemoteArr = () => remotAddr.value.length > 0;
     const onSendFileList = async () => {
-      console.log("onSendFileList", onSendFileList);
-      tableDataOfSend.forEach(
-        (i, idx) => (tableDataOfSend[idx].status = "queueing")
-      );
+      if (!checkRemoteArr()) {
+        message.warning("请输入对方地址");
+        return;
+      }
+      console.log("onSendFileList", tableDataOfSend);
       const limit = pLimit(2);
       loadingOfSend.value = true;
-      await Promise.all(
-        tableDataOfSend
-          // 还有file 文件的
-          .filter((i) => i.file)
-          .map((item, idx) => limit(() => onSendOneFile(item, idx)))
-      );
+      const canSendList = tableDataOfSend
+        // 还有file 文件的
+        .filter(
+          // 过滤掉状态为 已经成功的 / 等待确认的
+          (i) => i.file && !["successSend", "waiting"].includes(i.status)
+        );
+      console.log("canSendList", canSendList);
+      if (canSendList.length) {
+        await Promise.all(
+          canSendList.map((item) => {
+            item.status = "queueing";
+            return limit(() => onSendOneFile(item));
+          })
+        );
+      }
       loadingOfSend.value = false;
       // console.log("filelist-发送完毕");
     };
-    const onSendOneFile = async (item: FileItem, itemIdx: number) => {
+    const onSendOneFile = async (item: FileItem) => {
       if (!item.file) return;
       const fileName = item.file.name;
       const client = await userStore.getMultiClient();
@@ -468,17 +479,19 @@ export default defineComponent({
       if (!session) {
         message.warning("session 握手失败");
         console.log("session 握手失败");
-        const idx = tableDataOfSend.findIndex(
-          (i) => i.file && i.file.name === fileName
-        );
-        if (idx !== -1) {
-          tableDataOfSend[idx].status = "failed";
-          tableDataOfSend[idx].file = undefined; // 清空文件缓存 不允许再次操作
-        }
+        // const idx = tableDataOfSend.findIndex(
+        //   (i) => i.file && i.file.name === fileName
+        // );
+        // if (idx !== -1) {
+        //   tableDataOfSend[idx].status = "failed";
+        //   tableDataOfSend[idx].file = undefined; // 清空文件缓存 不允许再次操作
+        // }
+        item.status = "failed";
+        item.file = undefined; // 清空文件缓存 不允许再次操作
         return;
       }
       console.log("session", session);
-      tableDataOfSend[itemIdx].status = "sending";
+      item.status = "sending";
       // console.log("session", session);
       const header: FileHeader = {
         fileName: item.file.name,
@@ -501,12 +514,15 @@ export default defineComponent({
         status: FileItem["status"]
       ) => {
         // 防止push 的过程idx 变了, 所以得重新查找
-        const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
-        if (idx !== -1) {
-          tableDataOfSend[idx].progress = progress;
-          tableDataOfSend[idx].speed = speed;
-          tableDataOfSend[idx].status = status;
-        }
+        // const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
+        // if (idx !== -1) {
+        //   tableDataOfSend[idx].progress = progress;
+        //   tableDataOfSend[idx].speed = speed;
+        //   tableDataOfSend[idx].status = status;
+        // }
+        item.progress = progress;
+        item.speed = speed;
+        item.status = status;
       };
       while (startLen <= maxSendLength) {
         if (session.isClosed) {
@@ -549,10 +565,11 @@ export default defineComponent({
         if (message.payload === confirmMessage) {
           setItemProgressSpeedStatus(100, 0, "successSend");
           // 清空文件节省内存
-          const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
-          if (idx !== -1) {
-            tableDataOfSend[idx].file = undefined;
-          }
+          // const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
+          // if (idx !== -1) {
+          //   tableDataOfSend[idx].file = undefined;
+          // }
+          item.file = undefined;
           clearConfirmListener();
         }
       };
@@ -560,13 +577,17 @@ export default defineComponent({
       setTimeout(() => {
         clearConfirmListener();
         // 超时还未确认的话就当取消
-        const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
-        if (idx !== -1) {
-          if (tableDataOfSend[idx].status !== "successSend") {
-            tableDataOfSend[idx].status = "failed";
-            // 清空文件节省内存
-            tableDataOfSend[idx].file = undefined;
-          }
+        // const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
+        // if (idx !== -1) {
+        //   if (tableDataOfSend[idx].status !== "successSend") {
+        //     tableDataOfSend[idx].status = "failed";
+        //     // 清空文件节省内存
+        //     tableDataOfSend[idx].file = undefined;
+        //   }
+        // }
+        if (item.status !== "successSend") {
+          item.status = "failed";
+          item.file = undefined;
         }
       }, 30000);
       // client.eventListeners

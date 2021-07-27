@@ -4,7 +4,7 @@ import { pick, assign } from "lodash-es";
 import { defineStore } from "pinia";
 import { getMultiClient } from "@/apollo/nknConfig";
 import { toRaw } from "vue";
-import { apiNknOnline, TApiRes } from "@/apollo/api";
+import { apiNknOnline, apiQueryMeAvatar, TApiRes } from "@/apollo/api";
 import { Channel, Socket } from "phoenix";
 const userLocalStorage = useLocalStorage<UserBaseState | Record<string, never>>(
   "user",
@@ -18,6 +18,7 @@ type UserBaseState = {
   email: string;
 };
 type UserState = UserBaseState & {
+  avatar: string;
   wallet: null | ClassWallet; // wallet
   multiClient: null | classMultiClient;
   socket: null | Socket;
@@ -27,6 +28,7 @@ export default defineStore({
   id: "user",
   state: (): UserState => ({
     id: "",
+    avatar: "",
     token: "",
     username: "",
     email: "",
@@ -39,6 +41,14 @@ export default defineStore({
     isLoggedIn: (state) => !!state.token,
   },
   actions: {
+    /** 请求并设置头像 */
+    getAndSetUserAvatar() {
+      apiQueryMeAvatar().then(({ data, err }) => {
+        if (!err && data) {
+          this.avatar = data.me.avatar || "";
+        }
+      });
+    },
     signInAndSetTokenIdEmail(payLoad: UserBaseState) {
       if (!payLoad.token) throw Error("token为空");
       assign(this, payLoad);
@@ -50,6 +60,8 @@ export default defineStore({
       this.setWallet();
       // const [resNknOnline, err2] = await apiNknOnline();
       const resultNknOnline = await apiNknOnline();
+      // 非阻塞式请求头像信息
+      this.getAndSetUserAvatar();
       if (resultNknOnline.err) return { err: resultNknOnline.err };
       this.setMultiClient();
       console.log(["apiNknOnline-success"], resultNknOnline.data);
@@ -67,6 +79,7 @@ export default defineStore({
       );
       this.setWallet();
       const resultNknOnline = await apiNknOnline();
+      this.getAndSetUserAvatar();
       if (resultNknOnline.err) return { err: resultNknOnline.err };
       this.setMultiClient();
       this.setSocket();
@@ -120,7 +133,7 @@ export default defineStore({
       this.channel.on("file_uploaded", (file) => {
         console.log("[file uploaded]", file);
       });
-      console.log("---this.channel", this.channel);
+      // console.log("---this.channel", this.channel);
       this.channel
         .join()
         .receive("ok", (resp) => {

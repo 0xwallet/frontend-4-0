@@ -47,18 +47,24 @@ export function getShareInfoByUriAndCode({
   uri,
   code,
   username,
+  head,
+  tail,
 }: {
   uri: string;
   code: string;
-  username?: string;
+  username: string;
+  head: boolean;
+  tail: boolean;
 }): string {
-  const isCodeEmpty = code.length === 0 || code === "无";
   const url = `${window.location.href}?shareUri=${uri}`;
-  const codeText = isCodeEmpty ? "" : `访问码: ${code}`;
-  const userInfo = username ? `\n--来自0xWallet ${username}的分享` : "";
-  const text = `链接: ${url} ${codeText} ${userInfo}`;
+  const headText = head ? "链接: " : "";
+  const isCodeEmpty = code.length === 0 || code === "无";
+  const codeText = isCodeEmpty ? "" : ` 访问码: ${code}`;
+  const tailText = tail ? `\n--来自0xWallet ${username}的分享` : "";
+  const text = `${headText}${url}${codeText}${tailText}`;
   return text;
 }
+
 /** 返回重复dial 的闭包函数 */
 export function getRepeatlyClientDialFn(
   client: classMultiClient,
@@ -109,6 +115,7 @@ export async function writeHeaderInSession(
   // 2 写入header
   await session.write(header);
 }
+
 /** 合并两个uint8array */
 export function mergeUint8Array(head: Uint8Array, tail: Uint8Array) {
   const merged = new Uint8Array(head.length + tail.length);

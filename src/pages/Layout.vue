@@ -102,14 +102,15 @@
             </a-avatar>
             <span class="pl-2">{{ username }}</span> -->
 
-            <a-dropdown placement="bottomRight">
+            <a-dropdown :trigger="['hover', 'click']" placement="bottomRight">
               <div
                 class="
-                  px-2
+                  w-12
                   mr-4
                   h-full
                   flex
                   items-center
+                  justify-center
                   cursor-pointer
                   hover:bg-gray-100
                 "
@@ -117,10 +118,26 @@
                 <a-avatar :size="24" class="leading-8">
                   <template #icon><UserOutlined /></template>
                 </a-avatar>
-                <span class="pl-2">{{ username }}</span>
+                <!-- <span class="pl-2">{{ detailInfo.username }}</span> -->
               </div>
               <template #overlay>
                 <a-menu @click="onAvatarDropdownMenuClick">
+                  <div
+                    class="px-2 pt-1 pb-2 flex items-center"
+                    :style="{
+                      'border-bottom': '1px solid #eee',
+                    }"
+                  >
+                    <a-avatar shape="square" :size="50" class="leading-8 mr-2">
+                      <template #icon><UserOutlined /></template>
+                    </a-avatar>
+                    <div>
+                      <div class="text-lg font-semibold">
+                        {{ detailInfo.username }}
+                      </div>
+                      <div>{{ detailInfo.email }}</div>
+                    </div>
+                  </div>
                   <a-menu-item key="Account" class="flex items-center">
                     账户
                   </a-menu-item>
@@ -298,7 +315,7 @@ export default defineComponent({
     const route = useRoute();
     const { t } = useI18n();
     const transPortStore = useTransportStore();
-    const { username, signOutAndClear } = useUserStore();
+    const userStore = useUserStore();
     // console.log("router", router);
     /** logo区域 */
     function useSvgLogo() {
@@ -376,14 +393,22 @@ export default defineComponent({
             icon: createVNode(ExclamationCircleOutlined),
             title: t("common.logoutTip"),
             content: t("common.logoutMessage"),
-            onOk: signOutAndClear,
+            onOk: userStore.signOutAndClear,
           });
         } else {
           router.push({ name: key });
         }
       };
+      const detailInfo = computed(() => {
+        return {
+          avatar: userStore.avatar,
+          username: userStore.username,
+          email: userStore.email,
+        };
+      });
+      console.log("detailInfo", detailInfo);
       return {
-        username,
+        detailInfo,
         onAvatarDropdownMenuClick,
       };
     }

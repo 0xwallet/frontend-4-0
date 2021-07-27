@@ -75,7 +75,7 @@
                 )
               "
             >
-              <SendOutlined />
+              <DragOutlined />
               <!-- {{ $t("metanet.buttonMoveTo") }} -->
               移动
             </a-button>
@@ -210,24 +210,6 @@
             <CloudUploadOutlined />
           </a>
         </a-tooltip>
-        <!-- nkn节点状态 -->
-        <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`">
-          <a
-            href="javascript:;"
-            class="inline-block mr-2"
-            @click="onResetNknMultiClient"
-          >
-            <img
-              :src="
-                require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
-              "
-              :style="{
-                width: '14px',
-                height: '14px',
-              }"
-            />
-          </a>
-        </a-tooltip>
       </div>
     </div>
     <!-- 表格 -->
@@ -334,10 +316,12 @@
           </a-button>
           <a-button type="danger">{{ $t("metanet.delButton") }}</a-button>
         </a-button-group> -->
-        <a-dropdown placement="bottomRight">
+        <a-dropdown placement="bottomRight" :trigger="['hover', 'click']">
           <div class="text-center">
             <!-- <a href="javascript:void(0)" class="ant-color-blue-6">...</a> -->
-            <EllipsisOutlined />
+            <a href="javascript:'">
+              <EllipsisOutlined class="cursor-pointer" />
+            </a>
           </div>
           <template #overlay>
             <a-menu>
@@ -346,6 +330,7 @@
                 class="px-4 flex items-center"
                 @click="onRecordDetail(record)"
               >
+                <InfoCircleOutlined />
                 详情
               </a-menu-item>
               <!-- 分享 -->
@@ -353,6 +338,7 @@
                 class="px-4 flex items-center"
                 @click="onRecordShare(record)"
               >
+                <ShareAltOutlined />
                 {{ $t("metanet.shareButton") }}
               </a-menu-item>
               <!-- 发布 -->
@@ -360,6 +346,7 @@
                 class="px-4 flex items-center"
                 @click="onRecordPublish(record)"
               >
+                <ApartmentOutlined />
                 {{ $t("metanet.publish") }}
               </a-menu-item>
               <!-- TODO 传送 -->
@@ -376,6 +363,7 @@
                 class="px-4 flex items-center"
                 @click="onDownload(record)"
               >
+                <DownloadOutlined />
                 {{ $t("metanet.downloadButton") }}
               </a-menu-item>
               <!-- 移动 -->
@@ -383,6 +371,7 @@
                 class="px-4 flex items-center"
                 @click="onCopyMoveModalPreAction('move', [record.id])"
               >
+                <DragOutlined />
                 {{ $t("metanet.buttonMoveTo") }}
               </a-menu-item>
               <!-- 复制 -->
@@ -390,6 +379,7 @@
                 class="px-4 flex items-center"
                 @click="onCopyMoveModalPreAction('copy', [record.id])"
               >
+                <CopyOutlined />
                 {{ $t("metanet.buttonCopyTo") }}
               </a-menu-item>
               <!-- 重命名 -->
@@ -397,6 +387,7 @@
                 class="px-4 flex items-center"
                 @click="onRecordRename(record)"
               >
+                <EditOutlined />
                 {{ $t("metanet.rename") }}
               </a-menu-item>
               <!-- 删除 -->
@@ -404,6 +395,7 @@
                 class="px-4 flex items-center text-red-500"
                 @click="onRecordDelete(record)"
               >
+                <DeleteOutlined />
                 {{ $t("metanet.delButton") }}
               </a-menu-item>
             </a-menu>
@@ -738,7 +730,7 @@ import {
 import {
   DownOutlined,
   CloudUploadOutlined,
-  SendOutlined,
+  DragOutlined,
   BarsOutlined,
   SyncOutlined,
   RocketOutlined,
@@ -752,6 +744,8 @@ import {
   CheckSquareOutlined,
   CloseSquareOutlined,
   EditOutlined,
+  CopyOutlined,
+  ApartmentOutlined,
   ShareAltOutlined,
   BulbFilled,
   BulbOutlined,
@@ -774,6 +768,7 @@ import {
   apiQueryFileByDir,
   apiQueryMeSpace,
   apiQueryPublishList,
+  apiQueryShareFile,
   apiRename,
   apiShareCreate,
   apiSingleDelete,
@@ -782,7 +777,7 @@ import {
   TFileList,
 } from "@/apollo/api";
 import dayjs from "dayjs";
-import { assign } from "lodash-es";
+import { assign, isEqual } from "lodash-es";
 import { message, Modal } from "ant-design-vue";
 import { useTransportStore, useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
@@ -793,11 +788,7 @@ import {
   getFileType,
   lastOfArray,
 } from "@/utils";
-import {
-  FILE_TYPE_MAP,
-  MAX_UPLOAD_SIZE,
-  NKN_SUB_CLIENT_COUNT,
-} from "@/constants";
+import { FILE_TYPE_MAP } from "@/constants";
 import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useClipboard } from "@vueuse/core";
@@ -867,7 +858,7 @@ export default defineComponent({
     // icon
     // DownOutlined,
     CloudUploadOutlined,
-    SendOutlined,
+    DragOutlined,
     BarsOutlined,
     SyncOutlined,
     RocketOutlined,
@@ -880,6 +871,8 @@ export default defineComponent({
     CheckSquareOutlined,
     CloseSquareOutlined,
     EditOutlined,
+    CopyOutlined,
+    ApartmentOutlined,
     ShareAltOutlined,
     BulbFilled,
     BulbOutlined,
@@ -1042,6 +1035,7 @@ export default defineComponent({
           return true;
           // }
         });
+        input.value = "";
         if (!sizeCanUploadFiles.length) {
           input.value = "";
           return;
@@ -1056,7 +1050,7 @@ export default defineComponent({
         } catch (error) {
           console.log("上传文件错误", error);
         }
-        input.value = "";
+        // input.value = "";
       };
       /** 上传文件夹 */
       const onChangeMultipleUploadFolder = async (e: Event) => {
@@ -1077,8 +1071,8 @@ export default defineComponent({
           return;
         }
         const sizeCanUploadFiles = [...input.files] as TFileWithFolderPath[];
+        input.value = "";
         if (!sizeCanUploadFiles.length) {
-          input.value = "";
           return;
         }
         try {
@@ -1095,7 +1089,7 @@ export default defineComponent({
         } catch (error) {
           console.log("上传文件错误", error);
         }
-        input.value = "";
+        // input.value = "";
       };
       /** 上传单个文件 */
       const onUploadSingleFile = async (
@@ -1390,7 +1384,8 @@ export default defineComponent({
           {
             required: true,
             type: "number",
-            message: t("metanet.requireFileName"),
+            message: "请输入有效数字",
+            // message: t("metanet.requireFileName"),
           },
         ],
         code: [
@@ -1425,12 +1420,8 @@ export default defineComponent({
           shareFileModalConfirmLoading.value = true;
           const resultShareCreate = await apiShareCreate({
             userFileId: fileId,
-            expiredAfterDays: expired,
-            ...(type === "PRIVATE"
-              ? {
-                  code: code,
-                }
-              : {}),
+            expiredAfterDays: shareFileModelRef.expired,
+            code: type === "PRIVATE" ? (code as string) : "",
           });
           shareFileModalConfirmLoading.value = false;
           if (resultShareCreate.err) {
@@ -1870,6 +1861,7 @@ export default defineComponent({
     //           Description: fileDesc,
     //           Action: "drive",
     //         });
+
     //         importModalConfirmLoading.value = false;
     //         if (err) {
     //           message.warning(err.message);
@@ -1899,8 +1891,35 @@ export default defineComponent({
     /** action 里对record的操作 */
     function useActions() {
       /** 分享 */
-      const onRecordShare = (record: TFileItem) => {
+      const onRecordShare = async (record: TFileItem) => {
         // console.log("share", record);
+        // 1 如果文件已分享, 跳转到分享页并选中该文件
+        const { data } = await apiQueryShareFile();
+        if (data && data.driveListShares) {
+          // 当前文件加上路径
+          const recordFileFullName = [
+            ...historyDir.value.slice(1).map((i) => i.name),
+            ...record.fullName, // record.fullName是经过过滤的
+          ];
+          // 相同分享文件判断条件: fullname相同(路径) hash相同
+          const foundShareFile = data.driveListShares.find(
+            (i) =>
+              i.userFile &&
+              isEqual(i.userFile.fullName, recordFileFullName) &&
+              i.userFile.hash === record.hash
+          );
+          if (foundShareFile) {
+            console.log("相同的分享文件的id", foundShareFile);
+            router.push({
+              name: "MetanetShare",
+              params: {
+                id: foundShareFile.id,
+              },
+            });
+            return;
+          }
+        }
+        // 2 否则打开创建分享的弹窗
         currentShareFile.name = lastOfArray(record.fullName);
         currentShareFile.id = record.id;
         isShowShareFileModal.value = true;
@@ -2227,79 +2246,6 @@ export default defineComponent({
       };
     }
 
-    /** nkn client 连接状态 */
-    function useNknStatus() {
-      // 连接中 3/4
-      const nknClientConnectStatusMap = reactive({
-        count: 0,
-        text: "连接中",
-      });
-      // let readyClientCount = useUserStore().multiClient?.clients ?? 0
-      const getStoreNknClientCount = () => {
-        const multiClient = useUserStore().multiClient;
-        if (!multiClient) return 0;
-        else {
-          // console.log(multiClient.readyClientIDs());
-          return multiClient.readyClientIDs().length;
-        }
-      };
-      nknClientConnectStatusMap.count = getStoreNknClientCount();
-      let counterOfNknCLient = 0; // 用来猜测计时ws 连接fail 的时间
-      let timer: number;
-      /** 全局不断检测nkn节点状态 */
-      const intervalGetClientCount = () => {
-        timer = window.setTimeout(() => {
-          counterOfNknCLient++;
-          nknClientConnectStatusMap.count = getStoreNknClientCount();
-          intervalGetClientCount();
-          if (nknClientConnectStatusMap.count === NKN_SUB_CLIENT_COUNT) {
-            nknClientConnectStatusMap.text = "就绪";
-          } else if (counterOfNknCLient > 30) {
-            // 30秒后
-            if (nknClientConnectStatusMap.count === 0) {
-              // 一个都没成功就自动重置
-              counterOfNknCLient = 0; // 重新计数 , 下一轮才reset
-              useUserStore().resetMultiClient();
-              nknClientConnectStatusMap.text = "重连中";
-            } else {
-              // 未能全部成功的话
-              nknClientConnectStatusMap.text = "半连接"; // 半准备?
-            }
-          }
-        }, 1000);
-      };
-      // 防止内存泄漏
-      onUnmounted(() => {
-        clearInterval(timer);
-      });
-      intervalGetClientCount();
-      // const nknClientConnectStatusShowText = computed(() => {
-      //   const { count, text } = nknClientConnectStatusMap;
-      //   // return `${text} ${count}/${NKN_SUB_CLIENT_COUNT}`;
-      //   return `${count}/${NKN_SUB_CLIENT_COUNT}`;
-      // });
-      /** 重置nkn client */
-      const onResetNknMultiClient = () => {
-        // 如果节点小于等于2个, 直接重置
-        if (nknClientConnectStatusMap.count <= 2) {
-          counterOfNknCLient = 0;
-          useUserStore().resetMultiClient();
-        } else {
-          console.log("节点大于2,不进行重置");
-        }
-        // Modal.confirm({
-        //   title: "是否重置nkn multiClient?",
-        //   icon: createVNode(ExclamationCircleOutlined),
-        //   onOk: () => {
-        //     counterOfNknCLient = 0;
-        //     nknClientConnectStatusMap.text = "连接中";
-        //     useUserStore().resetMultiClient();
-        //     // console.log("重置nkn multiClient", useUserStore().multiClient);
-        //   },
-        // });
-      };
-      return { nknClientConnectStatusMap, onResetNknMultiClient };
-    }
     /** 当前详情数据 */
     const currenDetailInfo = ref<TDetailInfo>({});
     const isShowDetailModal = ref(false);
@@ -2360,7 +2306,6 @@ export default defineComponent({
       // ...useImportModal(),
       ...useActions(),
       ...useTableData(),
-      ...useNknStatus(),
       ...useModalDetail(),
     };
   },

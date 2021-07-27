@@ -205,6 +205,25 @@ export const apiQueryMe = async (): TApiRes<ResponseQureyMe> => {
   }
 };
 
+type ResponseMeAvatar = {
+  me: {
+    avatar: null | string;
+  };
+};
+/** 查询用户头像 */
+export const apiQueryMeAvatar = async (): TApiRes<ResponseMeAvatar> => {
+  // queryMeAvatar
+  try {
+    const data = await useApollo<ResponseMeAvatar>({
+      mode: "query",
+      gql: NetFile_Basic.queryMeAvatar,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
+
 type ResponseQueryMeSpace = {
   me: {
     driveSetting: DriveUserSetting;
@@ -405,6 +424,7 @@ export const apiUploadSingle = async (
   // 第一步，写入头部信息
   const encodedHeader: Uint8Array = encode({
     // File: "", // 需要传空字符串
+    FileHash: params.fileHash,
     FullName: params.fullName,
     FileSize: params.file.size,
     UserId: params.userId,
@@ -735,7 +755,7 @@ export const apiRename = async (
 };
 
 type ParamsShareCreate = {
-  code?: string;
+  code: string;
   userFileId: string;
   expiredAfterDays: number;
 };
@@ -810,6 +830,32 @@ export const apiDeleteShare = async (
     const data = await useApollo<ResponseDeleteShare>({
       mode: "mutate",
       gql: NetFile_Share.driveDeleteShare,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
+
+type ParamsEditShare = {
+  id: string;
+  code: string;
+  expiredAfterDays?: number;
+};
+type ResponseEditShare = {
+  driveEditShare: {
+    id: string;
+  };
+};
+/** 编辑分享 */
+export const apiEditShare = async (
+  params: ParamsEditShare
+): TApiRes<ResponseEditShare> => {
+  try {
+    const data = await useApollo<ResponseEditShare>({
+      mode: "mutate",
+      gql: NetFile_Share.driveEditShare,
       variables: params,
     });
     return { data };

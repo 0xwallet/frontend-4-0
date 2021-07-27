@@ -110,10 +110,10 @@ export const driveDeleteShare = gql`
   }
 `;
 
-// 删除分享文件
+// 编辑分享文件
 export const driveEditShare = gql`
-  mutation ($id: ID!, $code: String, $expiredAt: Int) {
-    driveEditShare(id: $id, expiredAfterDays: $expiredAt, code: $code) {
+  mutation ($id: ID!, $code: String, $expiredAfterDays: Int) {
+    driveEditShare(id: $id, expiredAfterDays: $expiredAfterDays, code: $code) {
       id
     }
   }

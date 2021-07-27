@@ -20,7 +20,6 @@
 </template>
 
 <script lang="ts">
-import { TFileItem } from "@/apollo/api";
 import { defineComponent, PropType, ref } from "vue";
 
 type TColumn = {
@@ -51,7 +50,7 @@ export default defineComponent({
       type: Boolean,
     },
     selectedRows: {
-      type: Array as PropType<TFileItem[]>,
+      type: Array,
       default: () => [],
     },
     selectedRowKeys: {
@@ -77,7 +76,10 @@ export default defineComponent({
     const rowSelection = props.disableSelect
       ? null
       : {
-          onChange: (selectedRowKeys: string[], selectedRows: TFileItem[]) => {
+          onChange: (
+            selectedRowKeys: string[],
+            selectedRows: { [key: string]: any }[]
+          ) => {
             // console.log(
             //   `selectedRowKeys: ${selectedRowKeys}`,
             //   "selectedRows: ",
@@ -86,10 +88,14 @@ export default defineComponent({
             emit("update:selectedRowKeys", selectedRowKeys);
             emit("update:selectedRows", selectedRows);
           },
-          getCheckboxProps: (record: TFileItem) => ({
+          getCheckboxProps: (record: { [key: string]: any }) => ({
             // 禁选上级目录
             disabled: record.fullName && record.fullName[0] === "...", // Column configuration not to be checked
             // name: record.name,
+            // 默认选中
+            defaultChecked: props.selectedRowKeys.includes(
+              record[props.rowKey]
+            ),
           }),
         };
 
