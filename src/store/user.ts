@@ -38,7 +38,7 @@ export default defineStore({
     channel: null,
   }),
   getters: {
-    isLoggedIn: (state) => !!state.token,
+    isLoggedIn: (state) => state.token && state.wallet,
   },
   actions: {
     /** 请求并设置头像 */

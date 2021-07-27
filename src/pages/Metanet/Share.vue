@@ -364,8 +364,9 @@ export default defineComponent({
             uri: i.uri,
             code: i.code || "",
             username: userStore.username,
-            head: true,
-            tail: idx === len - 1, // 最后一项才有尾巴: -xxx的分享
+            withHead: true,
+            withCode: true,
+            withTail: idx === len - 1, // 最后一项才有尾巴: -xxx的分享
           })
         )
         .join("\n");
@@ -423,8 +424,9 @@ export default defineComponent({
         uri: record.uri,
         code: record.code || "",
         username: userStore.username,
-        head: false,
-        tail: false,
+        withHead: false,
+        withCode: false,
+        withTail: false,
       });
       console.log("表格单项-复制链接", shareInfo);
       useClipboard({ read: false })

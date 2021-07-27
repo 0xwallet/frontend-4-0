@@ -47,21 +47,23 @@ export function getShareInfoByUriAndCode({
   uri,
   code,
   username,
-  head,
-  tail,
+  withHead,
+  withCode,
+  withTail,
 }: {
   uri: string;
   code: string;
   username: string;
-  head: boolean;
-  tail: boolean;
+  withHead: boolean;
+  withCode: boolean;
+  withTail: boolean;
 }): string {
   const url = `${window.location.href}?shareUri=${uri}`;
-  const headText = head ? "链接: " : "";
+  const headText = withHead ? "链接: " : "";
   const isCodeEmpty = code.length === 0 || code === "无";
   const codeText = isCodeEmpty ? "" : ` 访问码: ${code}`;
-  const tailText = tail ? `\n--来自0xWallet ${username}的分享` : "";
-  const text = `${headText}${url}${codeText}${tailText}`;
+  const tailText = withTail ? `\n--来自0xWallet ${username}的分享` : "";
+  const text = `${headText}${url}${withCode ? codeText : ""}${tailText}`;
   return text;
 }
 
