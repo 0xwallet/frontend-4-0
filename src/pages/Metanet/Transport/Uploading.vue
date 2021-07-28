@@ -40,15 +40,25 @@
       </div>
       <!-- 进度区 -->
       <div class="mr-2 flex flex-1 px-1">
-        <div class="mr-2 whitespace-nowrap text-gray-400">总进度</div>
+        <!-- <div class="mr-2 whitespace-nowrap text-gray-400">总进度</div> -->
         <div class="flex-1 relative">
-          <!-- <div
+          <div
             class="absolute z-50 left-0 right-0 text-center text-white"
-            :style="{ 'padding-top': '1px' }"
+            :style="{
+              color: isTotalProgressBarTextWhite ? '#FFF ' : '#3C6889',
+              height: '30px',
+              'line-height': '30px',
+            }"
           >
-            {{ `${totalPercent}/%` }}
-          </div> -->
-          <a-progress :showInfo="false" :percent="totalPercent" />
+            <span id="totalProgressBarText">
+              总进度:{{ `${totalPercent}/%` }}
+            </span>
+          </div>
+          <a-progress
+            id="totalProgressBar"
+            :showInfo="false"
+            :percent="totalPercent"
+          />
         </div>
       </div>
       <!-- 状态区 -->
@@ -111,11 +121,12 @@
               'margin-top': '-4px',
             }"
           >
-            {{ calcStatusText(record.status) }}
-            <template v-if="record.status === 'uploading'">
-              -
-              {{ formatBytes(record.speed) }} / s
-            </template>
+            <span class="ant-color-blue-6">
+              <!-- {{ calcStatusText(record.status) }} -->
+              {{ formatBytes(record.speed) }}/S
+            </span>
+            -
+            <span>剩余时间: 00:00:01</span>
           </div>
         </div>
       </template>
@@ -161,7 +172,16 @@
 <script lang="ts">
 import { useTransportStore, useUserStore } from "@/store";
 import { UploadItem, UploadStatus } from "@/store/transport";
-import { computed, defineComponent, onUnmounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineComponent,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import {
   RightSquareOutlined,
   PauseOutlined,
@@ -199,17 +219,17 @@ export default defineComponent({
     //   fullName: ["fake.jpg"],
     //   fileType: "jpg",
     //   fileSize: 2000,
-    //   progress: 20,
+    //   progress: 50,
     //   status: "uploading",
     //   description: "sdfs",
-    //   speed: 500,
+    //   speed: 1000,
     // };
     // transPortStore.uploadHashMap["23"] = {
     //   fileHash: "23",
     //   fullName: ["fake.jpg"],
     //   fileType: "jpg",
     //   fileSize: 2000,
-    //   progress: 80,
+    //   progress: 0,
     //   status: "uploading",
     //   description: "sdfs",
     //   speed: 1028,
@@ -258,7 +278,7 @@ export default defineComponent({
         {
           title: "状态",
           slots: { customRender: "status" },
-          width: 200,
+          width: 250,
         },
         {
           title: t("metanet.action"),
@@ -279,17 +299,39 @@ export default defineComponent({
         const list = tableData.value.filter((i) =>
           statusList.includes(i.status)
         );
+        if (!list.length) return 0;
         const val = Math.floor(
           (list.reduce((a, b) => (a += b.progress), 0) / (list.length * 100)) *
             100
         );
-        // console.log(
-        //   "val",
-        //   list.reduce((a, b) => (a += b.progress), 0),
-        //   val
-        // );
         return val;
       });
+      const isTotalProgressBarTextWhite = ref(false);
+      let totalProgressBarWidth = 0;
+      onMounted(() => {
+        totalProgressBarWidth =
+          document.getElementById("totalProgressBar")?.getBoundingClientRect()
+            .width ?? 0;
+      });
+      /** 缓存breakpoint 结果,因为渲染后就是固定的, 不用重新计算 */
+      const cacheGetBreakPointWidth = () => {
+        let cache = 0;
+        return () => {
+          if (cache !== 0) return cache;
+          const el = document.getElementById("totalProgressBarText");
+          cache = !el ? 0 : el.offsetLeft + el.getBoundingClientRect().width;
+          return cache;
+        };
+      };
+      const getBreakPointWidth = cacheGetBreakPointWidth();
+      watch(
+        () => totalPercent.value,
+        (newVal) => {
+          const currentPercentWidth = totalProgressBarWidth * (newVal / 100);
+          isTotalProgressBarTextWhite.value =
+            currentPercentWidth > getBreakPointWidth();
+        }
+      );
       const canResumeStatusKeys: UploadStatus[] = ["pause", "failed"];
       const canPauseStatusKeys: UploadStatus[] = [
         "queueing",
@@ -342,6 +384,7 @@ export default defineComponent({
         tableData,
         totalPercent,
         formatBytes,
+        isTotalProgressBarTextWhite,
         onRecordStartOrPause,
         onRecordCancel,
         onBatchStart,
@@ -426,13 +469,13 @@ export default defineComponent({
   margin: 0 0 10px 0;
 }
 :deep(.ant-progress-bg) {
-  height: 14px !important;
+  height: 30px !important;
   // border-radius: 0 !important;
 }
 :deep(.trProgressBox .ant-progress-bg) {
   height: 6px !important;
 }
 // :deep(.ant-progress-inner) {
-//   border-radius: 0 !important;
+// border-radius: 0 !important;
 // }
 </style>

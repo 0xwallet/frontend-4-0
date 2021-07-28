@@ -86,7 +86,7 @@ export default defineComponent({
 :deep(.ant-tabs-bar) {
   margin: 0 0 10px 0;
 }
-:deep(.ant-progress-bg) {
-  height: 14px !important;
-}
+// :deep(.ant-progress-bg) {
+//   height: 14px !important;
+// }
 </style>

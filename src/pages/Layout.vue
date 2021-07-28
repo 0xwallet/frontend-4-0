@@ -90,8 +90,10 @@
             </a-breadcrumb>
             <!-- 撑开中间 -->
             <div class="flex-1"></div>
-            <div class="flex items-center h-full w-12 hover:bg-gray-100">
-              <XLocaleSwither class="text-base text-gray-600 localeSwitcher" />
+            <div class="flex items-center h-full w-12">
+              <XLocaleSwither
+                class="cursor-pointer text-base text-gray-600 localeSwitcher"
+              />
             </div>
             <!-- <div class="px-2 mr-4 h-full flex items-center cursor-pointer"> -->
             <!-- </div> -->
@@ -102,7 +104,11 @@
             </a-avatar>
             <span class="pl-2">{{ username }}</span> -->
 
-            <a-dropdown :trigger="['hover', 'click']" placement="bottomRight">
+            <a-dropdown
+              :trigger="['click']"
+              placement="bottomRight"
+              overlayClassName="avatarDropdown"
+            >
               <div
                 class="
                   w-12
@@ -112,39 +118,217 @@
                   items-center
                   justify-center
                   cursor-pointer
-                  hover:bg-gray-100
                 "
               >
-                <a-avatar :size="24" class="leading-8">
+                <!-- hover:bg-gray-100 -->
+                <!-- <a-avatar :size="24" class="leading-8">
                   <template #icon><UserOutlined /></template>
-                </a-avatar>
+                </a-avatar> -->
+                <div
+                  class="
+                    relative
+                    w-6
+                    h-6
+                    rounded-full
+                    flex
+                    items-center
+                    justify-center
+                    text-xs text-white
+                  "
+                  :style="{
+                    background: 'linear-gradient(45deg, #00acc1, #00d5e2)',
+                  }"
+                >
+                  {{ detailInfo.username[0].toUpperCase() }}
+                  <div
+                    class="absolute top-0 right-0 rounded-full"
+                    :style="{
+                      width: '10px',
+                      height: '10px',
+                      top: '-2px',
+                      right: '-2px',
+                      border: '2px solid white',
+                      background: userStatusColorMap[currentUserStatus].color,
+                      transition: 'all .2s ease-in-out',
+                    }"
+                  ></div>
+                </div>
                 <!-- <span class="pl-2">{{ detailInfo.username }}</span> -->
               </div>
               <template #overlay>
-                <a-menu @click="onAvatarDropdownMenuClick">
+                <a-menu>
                   <div
-                    class="px-2 pt-1 pb-2 flex items-center"
+                    class="px-4 pt-2 pb-3 flex items-center"
                     :style="{
                       'border-bottom': '1px solid #eee',
                     }"
                   >
-                    <a-avatar shape="square" :size="50" class="leading-8 mr-2">
-                      <template #icon><UserOutlined /></template>
-                    </a-avatar>
+                    <div
+                      class="
+                        w-16
+                        h-16
+                        flex
+                        mr-3
+                        items-center
+                        justify-center
+                        rounded-lg
+                        text-xl text-white
+                      "
+                      :style="{
+                        background: 'linear-gradient(45deg, #00acc1, #00d5e2)',
+                      }"
+                    >
+                      {{ detailInfo.username[0].toUpperCase() }}
+                    </div>
+
                     <div>
-                      <div class="text-lg font-semibold">
+                      <div class="text-base">
                         {{ detailInfo.username }}
                       </div>
-                      <div>{{ detailInfo.email }}</div>
+                      <div class="opacity-70">{{ detailInfo.email }}</div>
+                      <div class="flex items-center">
+                        <div
+                          class="rounded-full w-2 h-2 mr-2"
+                          :style="{
+                            width: '6px',
+                            height: '6px',
+                            background:
+                              userStatusColorMap[currentUserStatus].color,
+                            transition: 'all .2s ease-in-out',
+                          }"
+                        ></div>
+                        <div class="opacity-70">
+                          {{ userStatusColorMap[currentUserStatus].text }}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <a-menu-item key="Account" class="flex items-center">
+                  <a-menu-item
+                    key="Account"
+                    class="
+                      relative
+                      setStatus
+                      pl-4
+                      mt-2
+                      flex
+                      items-center
+                      justify-between
+                    "
+                  >
+                    <span class="opacity-70">设置状态</span>
+                    <span>
+                      <RightOutlined
+                        :style="{
+                          'font-size': '10px',
+                        }"
+                      />
+                    </span>
+                    <!-- 设置状态 hover才显示的box -->
+                    <div
+                      class="
+                        setStatusOptions
+                        absolute
+                        bg-white
+                        px-4
+                        py-4
+                        cursor-default
+                      "
+                      :style="{
+                        width: '254px',
+                        'border-radius': '24px',
+                        'box-shadow': '0 2px 8px rgb(0 0 0 / 15%)',
+                        display: 'none',
+                        left: '-248px',
+                        top: '-30px',
+                      }"
+                    >
+                      <div
+                        class="
+                          setStatusOptionsItem
+                          flex
+                          items-center
+                          px-2
+                          py-1
+                          cursor-pointer
+                        "
+                        v-for="(value, key) in userStatusColorMap"
+                        :key="key"
+                        @click="setUserStatus(key)"
+                      >
+                        <div
+                          class="rounded-full w-2 h-2 mr-2"
+                          :style="{
+                            width: '8px',
+                            height: '8px',
+                            background: value.color,
+                            'margin-top':
+                              key === 'offline'
+                                ? '-32px'
+                                : key === 'busy'
+                                ? '-15px'
+                                : '0px',
+                          }"
+                        ></div>
+                        <div class="flex-1">
+                          <div class="flex items-center justify-between">
+                            <div
+                              :class="{
+                                'opacity-70': key !== currentUserStatus,
+                              }"
+                            >
+                              {{ value.text }}
+                            </div>
+                            <div v-if="key === currentUserStatus">
+                              <CheckOutlined
+                                :style="{
+                                  color: userStatusColorMap.online.color,
+                                  'font-size': '11px',
+                                }"
+                              />
+                            </div>
+                          </div>
+                          <div
+                            v-if="value.tips"
+                            class="opacity-40 whitespace-normal flex-1 text-xs"
+                          >
+                            {{ value.tips }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </a-menu-item>
+                  <a-menu-item
+                    @click="onAvatarDropdownMenuClick('Account')"
+                    key="Account"
+                    class="pl-4 flex items-center opacity-70"
+                  >
                     账户
                   </a-menu-item>
-                  <a-menu-item key="Security" class="flex items-center">
+                  <a-menu-item
+                    @click="onAvatarDropdownMenuClick('Security')"
+                    key="Security"
+                    class="pl-4 mb-2 flex items-center opacity-70"
+                  >
                     安全
                   </a-menu-item>
-                  <a-menu-item key="Logout" class="flex items-center">
+                  <div
+                    class="w-full"
+                    :style="{
+                      'border-top': '1px solid #eee',
+                    }"
+                  ></div>
+                  <a-menu-item
+                    key="Logout"
+                    class="
+                      pl-4
+                      mt-2
+                      flex
+                      items-center
+                      mb-1
+                      opacity-70
+                      overflow-hidden
+                    "
+                  >
                     登出
                     <!-- <LogoutOutlined />{{ $t("common.dropdownItemLoginOut") }} -->
                   </a-menu-item>
@@ -265,6 +449,8 @@ import {
   CloseOutlined,
   ExclamationCircleOutlined,
   PieChartOutlined,
+  RightOutlined,
+  CheckOutlined,
 } from "@ant-design/icons-vue";
 import { pick, remove } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
@@ -295,7 +481,7 @@ type TBreadcrumb = {
   };
 };
 type TNavItem = { routeName: string; title: string };
-
+type UserStatus = "online" | "leave" | "busy" | "offline";
 export default defineComponent({
   components: {
     // icon
@@ -306,6 +492,8 @@ export default defineComponent({
     LogoutOutlined,
     CloseOutlined,
     PieChartOutlined,
+    RightOutlined,
+    CheckOutlined,
     // ExclamationCircleOutlined,
     //
     XLocaleSwither,
@@ -320,6 +508,35 @@ export default defineComponent({
     /** logo区域 */
     function useSvgLogo() {
       return { PRODUCT_NAME, svgLogoStr: useSvgWhiteLogo() };
+    }
+    /** 用户状态: */
+    function useUserStatus() {
+      const currentUserStatus = ref<UserStatus>("online");
+      const setUserStatus = (s: UserStatus) => (currentUserStatus.value = s);
+      const makeItem = (color: string, text: string, tips: string) => {
+        return { color, text, tips };
+      };
+      const userStatusColorMap: {
+        [key in UserStatus]: {
+          color: string;
+          text: string;
+          tips: string;
+        };
+      } = {
+        online: makeItem("#6dcc50", "在线", ""),
+        leave: makeItem("#f9a646", "离开", ""),
+        busy: makeItem("#ff625c", "忙碌", "您将不再收到任何聊天通知。"),
+        offline: makeItem(
+          "#a4a4a7",
+          "离线",
+          " 即使您处于离线状态，也可以访问网盘。"
+        ),
+      };
+      return {
+        currentUserStatus,
+        setUserStatus,
+        userStatusColorMap,
+      };
     }
     /** 菜单数据 */
     function useLayoutMenu() {
@@ -386,7 +603,7 @@ export default defineComponent({
     }
     /** TODO 用api query回来带有头像的数据 */
     function useUserDetailInfo() {
-      const onAvatarDropdownMenuClick = ({ key }: { key: string }) => {
+      const onAvatarDropdownMenuClick = (key: string) => {
         // console.log("onAvatarDropdownMenuClick-key", key);
         if (key === "Logout") {
           Modal.confirm({
@@ -485,6 +702,7 @@ export default defineComponent({
     }
     return {
       ...useNavTabs(),
+      ...useUserStatus(),
       ...useLayoutMenu(),
       ...useSvgLogo(),
       ...useUserDetailInfo(),
@@ -547,6 +765,26 @@ export default defineComponent({
 .navTabBox {
   &:hover .navItemClose {
     display: inline-block;
+  }
+}
+// 头像点击菜单栏
+.avatarDropdown {
+  .ant-dropdown-menu-vertical {
+    border-radius: 12px;
+  }
+}
+.setStatus {
+  &:hover {
+    .setStatusOptions {
+      display: block !important;
+    }
+  }
+}
+.setStatusOptionsItem {
+  border-radius: 4px;
+  // padding: 6px 12px;
+  &:hover {
+    background: #f5f5f5;
   }
 }
 </style>

@@ -4,7 +4,7 @@
     <div class="relative h-8 flex items-center mb-3 pr-1">
       <a-button class="mr-2" type="primary" @click="onBatchCopy">
         <CopyOutlined />
-        复制链接
+        复制分享
       </a-button>
       <a-button class="mr-2" type="danger" @click="onBatchDelete">
         <CloseCircleOutlined />
@@ -282,7 +282,7 @@ export default defineComponent({
         width: 100,
       },
       {
-        title: "收藏数",
+        title: "收藏",
         dataIndex: "collectedCount",
         width: 80,
       },
@@ -355,7 +355,7 @@ export default defineComponent({
       console.log("onBatchDelete");
       const len = selectedRows.value.length;
       if (!len) {
-        message.warning(t("metanet.errorPleaseSelect"));
+        message.warning("请先勾选分享");
         return;
       }
       const multipleShareInfo = selectedRows.value
@@ -380,7 +380,7 @@ export default defineComponent({
       console.log("onBatchDelete");
       const len = selectedRows.value.length;
       if (!len) {
-        message.warning(t("metanet.errorPleaseSelect"));
+        message.warning("请先勾选分享");
         return;
       }
       Modal.confirm({
