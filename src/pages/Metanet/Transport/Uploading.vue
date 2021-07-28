@@ -130,6 +130,9 @@
           </div>
         </div>
       </template>
+      <!-- <template #uploadStatus="{ record }">
+        {{ calcStatusText(record.status) }}
+      </template> -->
       <template #action="{ record }">
         <div class="flex items-center text-gray-600">
           <a
@@ -280,6 +283,10 @@ export default defineComponent({
           slots: { customRender: "status" },
           width: 250,
         },
+        // {
+        //   title: "临时测试用-上传状态",
+        //   slots: { customRender: "uploadStatus" },
+        // },
         {
           title: t("metanet.action"),
           fixed: "right",

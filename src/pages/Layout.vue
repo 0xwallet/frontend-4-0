@@ -47,7 +47,7 @@
           <a-sub-menu key="metanet">
             <template #title>
               <span class="flex items-center">
-                <AppstoreAddOutlined />
+                <FolderOutlined />
                 <span>网盘</span>
               </span>
             </template>
@@ -443,7 +443,7 @@ import {
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  AppstoreAddOutlined,
+  FolderOutlined,
   UserOutlined,
   LogoutOutlined,
   CloseOutlined,
@@ -485,7 +485,7 @@ type UserStatus = "online" | "leave" | "busy" | "offline";
 export default defineComponent({
   components: {
     // icon
-    AppstoreAddOutlined,
+    FolderOutlined,
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     UserOutlined,

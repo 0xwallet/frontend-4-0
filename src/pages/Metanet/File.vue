@@ -215,6 +215,9 @@
     <!-- 表格 -->
     <TableFiles
       rowKey="id"
+      :locale="{
+        emptyText: '空文件夹',
+      }"
       :columns="columns"
       :data="tableData"
       :loading="tableLoading"
@@ -812,6 +815,7 @@ export type THistoryDirItem = {
 type TDir = {
   dirId: string;
   dirName: string;
+  parent: null | TDir;
   children?: TDir[];
 };
 type TCreateFile = {
@@ -1146,7 +1150,12 @@ export default defineComponent({
       const copyMoveModalTableLoading = ref(false);
       const copyMoveModalTableData = reactive<TDir[]>([]);
       /** 选中要复制/移动的目标文件夹 默认选中'全部文件' */
-      const copyMoveModalCurrentSelectedDir = ref("root");
+      // const copyMoveModalCurrentSelectedDir = ref("root");
+      const copyMoveModalCurrentSelectedDir = ref<TDir>({
+        dirId: "root",
+        dirName: "全部文件",
+        parent: null,
+      });
       /** 选中的要复制/移动的文件的 id list */
       const copyMoveModalSelectedDirList = ref<string[]>([]);
       const getAndSetCopyMoveModalTableData = () => {
@@ -1159,7 +1168,8 @@ export default defineComponent({
             return;
           }
           /** 根据目录id, 父目录id 去递归获取children */
-          const getAndSetDirChildren = async (item: TDir, parentId: string) => {
+          const getAndSetDirChildren = async (item: TDir) => {
+            const parentId = item.parent?.dirId;
             // const [resItem, errItem] = await apiQueryFileByDir({
             const resultQueryFileItem = await apiQueryFileByDir({
               dirId: item.dirId,
@@ -1178,13 +1188,11 @@ export default defineComponent({
             if (!afterFilterList.length) return item;
             item.children = await Promise.all(
               afterFilterList.map((i) =>
-                getAndSetDirChildren(
-                  {
-                    dirId: i.id,
-                    dirName: lastOfArray(i.fullName),
-                  },
-                  item.dirId
-                )
+                getAndSetDirChildren({
+                  dirId: i.id,
+                  dirName: lastOfArray(i.fullName),
+                  parent: item,
+                })
               )
             );
             return item;
@@ -1195,21 +1203,28 @@ export default defineComponent({
           );
           const withChildrensDirList = await Promise.all(
             resIsDirList.map((i) =>
-              getAndSetDirChildren(
-                {
-                  dirId: i.id,
-                  dirName: lastOfArray(i.fullName),
+              getAndSetDirChildren({
+                dirId: i.id,
+                dirName: lastOfArray(i.fullName),
+                parent: {
+                  dirId: "root",
+                  dirName: "root",
+                  parent: null,
                 },
-                "root"
-              )
+              })
             )
           );
           const rootDir: TDir = {
             dirId: "root",
             dirName: t("metanet.allFiles"),
+            parent: null,
             children: withChildrensDirList,
           };
           copyMoveModalTableData.push(rootDir);
+          console.log(
+            "获取api后的copyMoveModalTableData",
+            copyMoveModalTableData
+          );
           copyMoveModalTableLoading.value = false;
         });
       };
@@ -1218,16 +1233,28 @@ export default defineComponent({
       const onCopyMoveModalConfirm = () => {
         /** 是否复制操作 */
         const isActionCopy = currentCopyMoveModalTitle.value === "copy";
+        /** 检查 选中的文件(要移动的) 是不是 目的文件夹 的父级 */
+        const checkParentSameId = (fromId: string, item: TDir) => {
+          let parent: null | TDir = item.parent;
+          while (parent !== null) {
+            if (parent.dirId === fromId) return true;
+            parent = parent.parent;
+          }
+          return false;
+        };
         // 检测是否复制/移动到自身
+        // TODO 检测是否复制/移动到自身的子目录下
         if (
           copyMoveModalSelectedDirList.value.some(
-            (fromId) => fromId === copyMoveModalCurrentSelectedDir.value
+            (fromId) =>
+              fromId === copyMoveModalCurrentSelectedDir.value.dirId ||
+              checkParentSameId(fromId, copyMoveModalCurrentSelectedDir.value)
           )
         ) {
           message.warning(
             isActionCopy
-              ? "不能将文件复制到自身或其子目录下"
-              : "不能将文件移动到自身或其子目录下"
+              ? "不能复制到自身或其子目录下"
+              : "不能移动到自身或其子目录下"
           );
           return;
         }
@@ -1246,7 +1273,7 @@ export default defineComponent({
             isShowCopyMoveModal.value = false;
             getAndSetTableDataFn(curFolderId.value);
           };
-          const toId = copyMoveModalCurrentSelectedDir.value;
+          const toId = copyMoveModalCurrentSelectedDir.value.dirId;
           // 移动/复制
           if (isActionCopy) {
             Promise.all(
@@ -1300,12 +1327,11 @@ export default defineComponent({
           };
         }) => {
           // console.log(e.currentTarget.dataset.rowKey);
-          copyMoveModalCurrentSelectedDir.value =
-            e.currentTarget.dataset.rowKey;
+          copyMoveModalCurrentSelectedDir.value = record;
         },
       });
       const copyMoveModalTableRowClassName = (record: TDir, index: number) => {
-        return record.dirId === copyMoveModalCurrentSelectedDir.value
+        return record.dirId === copyMoveModalCurrentSelectedDir.value.dirId
           ? "copyMoveModalRow copyMoveModalRowActive"
           : "copyMoveModalRow";
       };
@@ -1314,7 +1340,12 @@ export default defineComponent({
         type: "move" | "copy",
         idList: string[]
       ) => {
-        copyMoveModalCurrentSelectedDir.value = "root"; // 重置为全部文件
+        // 重置为全部文件
+        copyMoveModalCurrentSelectedDir.value = {
+          dirId: "root",
+          dirName: "全部文件",
+          parent: null,
+        };
         copyMoveModalSelectedDirList.value.length = 0;
         copyMoveModalSelectedDirList.value.push(...idList);
         currentCopyMoveModalTitle.value = type;
@@ -2178,10 +2209,11 @@ export default defineComponent({
               const obj = { ...i };
               // 如果是当前目录, 返回null , 下一步把它去除
               if (obj.id === dirId) return null;
-              // 如果是父级目录, 变成...
+              // 如果是父级目录, 返回null , 下一步把它去除
               const hArr = historyDir.value;
               if (hArr.length > 1 && obj.id === hArr[hArr.length - 2].id) {
-                obj.fullName = ["..."];
+                // obj.fullName = ["..."];
+                return null;
               } else {
                 // 等于名字最后一项, 因为返回的是 [父级目录,item文件夹名] 所以取最后一个
                 obj.fullName = [lastOfArray(obj.fullName)];
