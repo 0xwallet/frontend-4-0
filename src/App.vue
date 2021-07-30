@@ -16,15 +16,14 @@
         z-999
       "
     >
-      <!-- 全局登录弹窗 -->
-      <XModalLogin
-        :visible="isShowLoginModal"
-        @update:visible="onUpdateVisible"
-      />
       <div>当前路由: {{ curRouteObj.path }}</div>
       <div>路由组件: {{ curRouteObj.component }}</div>
     </div>
-
+    <!-- 全局登录弹窗 -->
+    <XModalLogin
+      :visible="isShowLoginModal"
+      @update:visible="onUpdateVisible"
+    />
     <router-view />
   </a-config-provider>
 </template>
