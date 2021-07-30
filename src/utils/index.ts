@@ -58,13 +58,19 @@ export function getShareInfoByUriAndCode({
   withCode: boolean;
   withTail: boolean;
 }): string {
-  const url = `${window.location.href}?shareUri=${uri}`;
+  const url = makeShareUrlByUri(uri);
   const headText = withHead ? "链接: " : "";
   const isCodeEmpty = code.length === 0 || code === "无";
   const codeText = isCodeEmpty ? "" : ` 访问码: ${code}`;
   const tailText = withTail ? `\n--来自0xWallet ${username}的分享` : "";
   const text = `${headText}${url}${withCode ? codeText : ""}${tailText}`;
   return text;
+}
+
+/** 根据uri返回分享链接 */
+export function makeShareUrlByUri(uri: string) {
+  const sharedFilePath = "/#/metanet/sharedFile";
+  return `${window.location.origin}${sharedFilePath}?uri=${uri}`;
 }
 
 /** 返回重复dial 的闭包函数 */

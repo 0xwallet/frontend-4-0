@@ -15,7 +15,7 @@
         个文件!
       </div>
     </div>
-    <TableFiles
+    <XTableFiles
       rowKey="fileHash"
       :disableSelect="true"
       :columns="columns"
@@ -72,7 +72,7 @@
           </a>
         </div>
       </template>
-    </TableFiles>
+    </XTableFiles>
   </div>
 </template>
 
@@ -81,16 +81,18 @@ import { useTransportStore } from "@/store";
 import { computed, defineComponent, ref } from "vue";
 import { FolderOutlined, ClearOutlined } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
-import TableFiles from "../components/TableFiles.vue";
+import XTableFiles from "@/components/XTableFiles.vue";
 import XFileTypeIcon from "@/components/XFileTypeIcon.vue";
 import { formatBytes, lastOfArray } from "@/utils";
 import { UploadItem } from "@/store/transport";
 import { useRouter } from "vue-router";
 import { apiQueryFileByDir } from "@/apollo/api";
-import { THistoryDirItem } from "../File.vue";
+import { THistoryDirItem } from "@/pages/Metanet/File.vue";
+
 export default defineComponent({
+  name: "TransportHistory",
   components: {
-    TableFiles,
+    XTableFiles,
     XFileTypeIcon,
     // ant icons
     FolderOutlined,

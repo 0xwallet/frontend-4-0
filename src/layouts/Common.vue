@@ -10,7 +10,12 @@
       id="global-layout-component"
     >
       <!-- 左边菜单区 -->
-      <a-layout-sider v-model:collapsed="collapsed" :trigger="null" collapsible>
+      <a-layout-sider
+        class="relative"
+        v-model:collapsed="collapsed"
+        :trigger="null"
+        collapsible
+      >
         <!-- logo -->
         <div id="siderLogoBox" class="flex h-12 items-center justify-center">
           <div id="siderLogoSvg" v-html="svgLogoStr"></div>
@@ -67,7 +72,106 @@
               $t("common.security")
             }}</a-menu-item> -->
           </a-sub-menu>
+          <a-sub-menu key="transport">
+            <template #title>
+              <span class="flex items-center">
+                <CloudUploadOutlined />
+                <span>传输</span>
+              </span>
+            </template>
+            <a-menu-item key="uploading">上传</a-menu-item>
+            <a-menu-item key="uploadHistory">历史</a-menu-item>
+            <a-menu-item key="peerTransfer">空投</a-menu-item>
+          </a-sub-menu>
         </a-menu>
+        <!-- nkn 状态 -->
+        <transition name="no-mode-fade">
+          <div
+            v-if="collapsed"
+            key="1"
+            class="
+              nknStatus
+              absolute
+              w-6
+              h-6
+              flex
+              items-center
+              justify-center
+              bottom-0
+              text-white
+              py-1
+              bg-white
+              rounded-full
+            "
+            :style="{
+              left: '28px',
+              bottom: '20px',
+              color: 'rgba(0, 0, 0, 0.85)',
+            }"
+          >
+            <!-- 状态区 -->
+            <!-- nkn节点状态 -->
+            <!-- <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`"> -->
+            <div
+              class="cursor-pointer flex items-center justify-center"
+              @click="onResetNknMultiClient"
+            >
+              <img
+                class="inline-block"
+                :src="
+                  require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
+                "
+                :style="{
+                  width: '14px',
+                  height: '14px',
+                }"
+              />
+            </div>
+            <!-- </a-tooltip> -->
+          </div>
+          <div
+            v-else
+            key="2"
+            class="
+              nknStatus
+              absolute
+              bottom-0
+              text-white
+              py-1
+              bg-white
+              rounded-full
+            "
+            :style="{
+              left: '14px',
+              right: '14px',
+              bottom: '20px',
+              color: 'rgba(0, 0, 0, 0.85)',
+            }"
+          >
+            <!-- 状态区 -->
+            <!-- nkn节点状态 -->
+            <!-- <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`"> -->
+            <div
+              class="cursor-pointer flex items-center justify-center"
+              @click="onResetNknMultiClient"
+            >
+              <img
+                class="inline-block mr-2"
+                :src="
+                  require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
+                "
+                :style="{
+                  width: '14px',
+                  height: '14px',
+                }"
+              />
+              <div v-if="lockBeforeCollapsed">
+                nkn节点 : {{ nknClientConnectStatusMap.count }}/4
+              </div>
+            </div>
+            <!-- </a-tooltip> -->
+          </div>
+        </transition>
       </a-layout-sider>
       <a-layout prefixCls="ant-layout">
         <a-layout-header class="">
@@ -75,12 +179,12 @@
             <menu-unfold-outlined
               v-if="collapsed"
               class="trigger"
-              @click="() => (collapsed = !collapsed)"
+              @click="onChangeCollapsed"
             />
             <menu-fold-outlined
               v-else
               class="trigger"
-              @click="() => (collapsed = !collapsed)"
+              @click="onChangeCollapsed"
             />
             <!-- 面包屑 sub/item -->
             <a-breadcrumb class="inline-block">
@@ -328,6 +432,7 @@
                       opacity-70
                       overflow-hidden
                     "
+                    @click="onAvatarDropdownMenuClick('Logout')"
                   >
                     登出
                     <!-- <LogoutOutlined />{{ $t("common.dropdownItemLoginOut") }} -->
@@ -393,6 +498,15 @@
                 >{{ uploadingCount }}</i
               >
               <span class="text-xs">
+                <PieChartOutlined
+                  class="mr-1"
+                  v-if="item.icon === 'dashboard'"
+                />
+                <FolderOutlined class="mr-1" v-if="item.icon === 'metanet'" />
+                <CloudUploadOutlined
+                  class="mr-1"
+                  v-if="item.icon === 'transport'"
+                />
                 {{ $t(`${item.title}`) }}
               </span>
               <!-- 当只有一个的时候不能关闭 -->
@@ -435,6 +549,7 @@ import {
   computed,
   createVNode,
   defineComponent,
+  onUnmounted,
   reactive,
   Ref,
   ref,
@@ -444,6 +559,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   FolderOutlined,
+  CloudUploadOutlined,
   UserOutlined,
   LogoutOutlined,
   CloseOutlined,
@@ -454,7 +570,7 @@ import {
 } from "@ant-design/icons-vue";
 import { pick, remove } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
-import { PRODUCT_NAME } from "@/constants";
+import { NKN_SUB_CLIENT_COUNT, PRODUCT_NAME } from "@/constants";
 import { useSvgWhiteLogo } from "@/hooks";
 import { XLocaleSwither } from "@/components";
 import { useTransportStore, useUserStore } from "@/store";
@@ -480,12 +596,18 @@ type TBreadcrumb = {
     title: string;
   };
 };
-type TNavItem = { routeName: string; title: string };
+type TNavItem = {
+  // routeName: string;
+  routePath: string;
+  title: string;
+  icon: "dashboard" | "metanet" | "transport";
+};
 type UserStatus = "online" | "leave" | "busy" | "offline";
 export default defineComponent({
   components: {
     // icon
     FolderOutlined,
+    CloudUploadOutlined,
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     UserOutlined,
@@ -541,8 +663,8 @@ export default defineComponent({
     /** 菜单数据 */
     function useLayoutMenu() {
       // console.log("route", route);
-      // 默认打开网盘
-      const openKeys = ref(["metanet"]);
+      // 默认打开网盘 传输
+      const openKeys = ref(["metanet", "transport"]);
       const selectedKeys = ref([""]);
       /** 面包屑 */
       const breadArr = ref<string[]>([]);
@@ -551,8 +673,9 @@ export default defineComponent({
         () => route,
         (newRoute) => {
           const pathStr = newRoute.path;
+          const fullPath = newRoute.fullPath;
           // console.log("routeNewVal", pathStr, openKeys.value);
-          // console.log("pathStr", pathStr);
+          // console.log("pathStr", newRoute, pathStr);
           // /general/account
           const [s, subKey, itemKey] = pathStr.split("/");
           // filter undefinde itemKey
@@ -572,9 +695,17 @@ export default defineComponent({
           const newRouteTitle = newRoute.meta.title as string;
           activeNavKey.value = newRouteTitle;
           if (!navList.some((v) => v.title === newRouteTitle)) {
+            const newRouteName = newRoute.name as string;
+            // console.log("newRouteName", newRouteName);
             const item: TNavItem = {
-              routeName: newRoute.name as string,
+              // routeName: newRouteName,
+              routePath: fullPath,
               title: newRouteTitle,
+              icon: newRouteName.includes("Metanet")
+                ? "metanet"
+                : newRouteName.includes("Transport")
+                ? "transport"
+                : "dashboard",
             };
             // 保证dashboard 是第一个
             isDashBoard ? navList.unshift(item) : navList.push(item);
@@ -585,13 +716,37 @@ export default defineComponent({
           deep: true,
         }
       );
+      // 测试打印 navlist
+      // watch(
+      //   () => navList,
+      //   (newVal) => {
+      //     console.log("watch-navList", newVal);
+      //   },
+      //   {
+      //     immediate: true,
+      //     deep: true,
+      //   }
+      // );
       const collapsed = ref(false);
+      const lockBeforeCollapsed = ref(true);
+      const onChangeCollapsed = () => {
+        if (collapsed.value === true) {
+          collapsed.value = !collapsed.value;
+          lockBeforeCollapsed.value = true;
+        } else {
+          lockBeforeCollapsed.value = false;
+          setTimeout(() => {
+            collapsed.value = !collapsed.value;
+          }, 0);
+        }
+      };
       const onMenuSelect = ({ item, key, keyPath }: TMenuSelect) => {
         // key: "account"
         // keyPath: (2) ["account", "general"]
         // console.log("选中的菜单key", key, keyPath);
         // console.log("route", route);
         const toRoute = "/" + keyPath.reverse().join("/");
+        // console.log("toRouwte", toRoute, route);
         if (toRoute !== route.path) {
           // console.log("router.push", item);
           // /general/account
@@ -599,7 +754,15 @@ export default defineComponent({
           router.push(toRoute);
         }
       };
-      return { breadArr, openKeys, selectedKeys, collapsed, onMenuSelect };
+      return {
+        breadArr,
+        openKeys,
+        selectedKeys,
+        collapsed,
+        lockBeforeCollapsed,
+        onChangeCollapsed,
+        onMenuSelect,
+      };
     }
     /** TODO 用api query回来带有头像的数据 */
     function useUserDetailInfo() {
@@ -610,7 +773,12 @@ export default defineComponent({
             icon: createVNode(ExclamationCircleOutlined),
             title: t("common.logoutTip"),
             content: t("common.logoutMessage"),
-            onOk: userStore.signOutAndClear,
+            onOk: () => {
+              userStore.signOutAndClear();
+              setTimeout(() => {
+                window.location.reload();
+              }, 0);
+            },
           });
         } else {
           router.push({ name: key });
@@ -623,7 +791,7 @@ export default defineComponent({
           email: userStore.email,
         };
       });
-      console.log("detailInfo", detailInfo);
+      // console.log("detailInfo", detailInfo);
       return {
         detailInfo,
         onAvatarDropdownMenuClick,
@@ -633,8 +801,10 @@ export default defineComponent({
     // 默认显示dashboard
     const navList: TNavItem[] = reactive([
       {
-        routeName: "Dashboard",
+        // routeName: "Dashboard",
+        routePath: "/dashboard",
         title: "common.dashboard",
+        icon: "dashboard", // 从属的父级菜单的icon
       },
       // {
       //   // TODO 删除这个
@@ -652,7 +822,7 @@ export default defineComponent({
         // console.log("onClickNavTab", item);
         // 如果不是当前的路由的tab , 就跳转
         if (item.title !== route.meta.title) {
-          router.push({ name: item.routeName });
+          router.push(item.routePath);
         }
       };
       const onCloseNavItem = (itemTitle: string) => {
@@ -664,13 +834,13 @@ export default defineComponent({
           if (navList.length > 1) {
             const foundIndex = navList.findIndex((v) => v.title === itemTitle);
             remove(navList, (v) => v.title === itemTitle);
-            const toPushRouteName =
+            const toRoutePath =
               foundIndex > 0
                 ? // 代表有前一项,push 到前一项
-                  navList[foundIndex - 1].routeName
+                  navList[foundIndex - 1].routePath
                 : // 没有前一项,push用下一项(也就是删除后的foundIndex的位置)
-                  navList[foundIndex].routeName;
-            router.push({ name: toPushRouteName });
+                  navList[foundIndex].routePath;
+            router.push(toRoutePath);
           }
         } else {
           remove(navList, (v) => v.title === itemTitle);
@@ -687,10 +857,28 @@ export default defineComponent({
       //   "MetanetPublish",
       //   "MetanetCollect",
       //   "MetanetRecycle",
+      //   "MetanetSharedFile" // TODO 多个链接怎么办
       // ];
-      const keepAliveList = computed(() =>
-        navList.map((i) => i.routeName).filter((i) => i !== "Dashboard")
-      );
+      const mapPathToName = (path: string) => {
+        // console.log("mappath", path);
+        if (path === "/metanet/file") return "MetanetFile";
+        if (path === "/metanet/share") return "MetanetShare";
+        if (path === "/metanet/publish") return "MetanetPublish";
+        if (path === "/metanet/collect") return "MetanetCollect";
+        if (path === "/metanet/recycle") return "MetanetRecycle";
+        if (path.includes("/metanet/sharedFile")) return "MetanetSharedFile";
+        if (path === "/transport/uploading") return "TransportUpLoading";
+        if (path === "/metanet/uploadHistory") return "TransportHistory";
+        if (path === "/metanet/peerTransfer") return "TransportPeerTransfer";
+        else return "";
+      };
+      const keepAliveList = computed(() => {
+        const arr = navList
+          .filter((i) => !i.routePath.includes("dashboard"))
+          .map((i) => mapPathToName(i.routePath));
+        // console.log("keepAliveList", arr);
+        return arr;
+      });
       return {
         activeNavKey,
         navList,
@@ -700,12 +888,71 @@ export default defineComponent({
         keepAliveList,
       };
     }
+    /** nkn client 连接状态 */
+    function useNknStatus() {
+      // 连接中 3/4
+      const nknClientConnectStatusMap = reactive({
+        count: 0,
+        text: "连接中",
+      });
+      // let readyClientCount = useUserStore().multiClient?.clients ?? 0
+      const getStoreNknClientCount = () => {
+        const multiClient = userStore.multiClient;
+        if (!multiClient) return 0;
+        else {
+          // console.log(multiClient.readyClientIDs());
+          return multiClient.readyClientIDs().length;
+        }
+      };
+      nknClientConnectStatusMap.count = getStoreNknClientCount();
+      let counterOfNknCLient = 0; // 用来猜测计时ws 连接fail 的时间
+      let timer: number;
+      /** 全局不断检测nkn节点状态 */
+      const intervalGetClientCount = () => {
+        timer = window.setTimeout(() => {
+          counterOfNknCLient++;
+          nknClientConnectStatusMap.count = getStoreNknClientCount();
+          intervalGetClientCount();
+          if (nknClientConnectStatusMap.count === NKN_SUB_CLIENT_COUNT) {
+            nknClientConnectStatusMap.text = "就绪";
+          } else if (counterOfNknCLient > 30) {
+            // 30秒后
+            if (nknClientConnectStatusMap.count === 0) {
+              // 一个都没成功就自动重置
+              counterOfNknCLient = 0; // 重新计数 , 下一轮才reset
+              userStore.resetMultiClient();
+              nknClientConnectStatusMap.text = "重连中";
+            } else {
+              // 未能全部成功的话
+              nknClientConnectStatusMap.text = "半连接"; // 半准备?
+            }
+          }
+        }, 1000);
+      };
+      // 防止内存泄漏
+      onUnmounted(() => {
+        clearInterval(timer);
+      });
+      intervalGetClientCount();
+      /** 重置nkn client */
+      const onResetNknMultiClient = () => {
+        // 如果节点小于等于2个, 直接重置
+        if (nknClientConnectStatusMap.count <= 2) {
+          counterOfNknCLient = 0;
+          useUserStore().resetMultiClient();
+        } else {
+          console.log("节点大于2,不进行重置");
+        }
+      };
+      return { nknClientConnectStatusMap, onResetNknMultiClient };
+    }
     return {
       ...useNavTabs(),
       ...useUserStatus(),
       ...useLayoutMenu(),
       ...useSvgLogo(),
       ...useUserDetailInfo(),
+      ...useNknStatus(),
     };
   },
 });
@@ -765,6 +1012,22 @@ export default defineComponent({
 .navTabBox {
   &:hover .navItemClose {
     display: inline-block;
+  }
+}
+// 左菜单收起来的时候
+// .ant-menu-vertical {
+//   [role="menuitem"] {
+//     .anticon {
+//       font-size: 22px !important;
+//     }
+//   }
+// }
+// nkn 状态
+.nknStatus {
+  transition: all 0.2s ease-out;
+  &:hover {
+    background: #f5f5f5;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
   }
 }
 // 头像点击菜单栏

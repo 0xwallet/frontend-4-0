@@ -51,6 +51,7 @@ import {
   Modal,
   Tree,
   Radio,
+  Spin,
   Layout,
 } from "ant-design-vue";
 import { lastOfArray } from "./utils";
@@ -79,6 +80,7 @@ app
   .use(Modal)
   .use(Tree)
   .use(Radio)
+  .use(Spin)
   .use(Layout);
 // ant-design-vue --end
 

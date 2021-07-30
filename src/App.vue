@@ -16,9 +16,15 @@
         z-999
       "
     >
+      <!-- 全局登录弹窗 -->
+      <XModalLogin
+        :visible="isShowLoginModal"
+        @update:visible="onUpdateVisible"
+      />
       <div>当前路由: {{ curRouteObj.path }}</div>
       <div>路由组件: {{ curRouteObj.component }}</div>
     </div>
+
     <router-view />
   </a-config-provider>
 </template>
@@ -29,13 +35,18 @@ import en_US from "ant-design-vue/es/locale/en_US";
 import { computed, defineComponent, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useLocalStorage } from "@vueuse/core";
-import { useUserStore } from "./store";
+import { useBaseStore, useUserStore } from "./store";
 import { notification } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
+import { XModalLogin } from "@/components";
 
 export default defineComponent({
+  components: {
+    XModalLogin,
+  },
   // TODO 全局更改语言配置
   setup() {
+    const baseStore = useBaseStore();
     const { t } = useI18n();
     async function trySignInWithLocalStorageAndRedirect() {
       const { signInWithLocalStorage } = useUserStore();
@@ -94,10 +105,21 @@ export default defineComponent({
       // console.log("curRouteObj", curRouteObj);
       return { isEnvDevelopment, curRouteObj };
     }
+    /** 全局的登录弹窗 */
+    function useLoginModal() {
+      const isShowLoginModal = computed(() => baseStore.isShowLoginModal);
+      const onUpdateVisible = (v: boolean) =>
+        baseStore.changeIsShowLoginModal(v);
+      return {
+        isShowLoginModal,
+        onUpdateVisible,
+      };
+    }
 
     return {
       ...useStorageLocaleToConfigProvider(),
       ...useCurrentEnvironment(),
+      ...useLoginModal(),
     };
   },
 });
@@ -183,6 +205,16 @@ body,
     background-color: @cyan-7; //blue-7
     border-color: @cyan-7;
   }
+}
+// html font-size :16px
+.font-16 {
+  font-size: 1rem;
+}
+.font-14 {
+  font-size: 0.875rem;
+}
+.font-12 {
+  font-size: 0.75rem; //12px
 }
 </style>
 

@@ -291,6 +291,7 @@ export const apiQueryFileByDir = async (
 export type ParamsUploadSingle = {
   // file: File;
   // File: Uint8Array;
+  isCreateNewFile?: boolean;
   file?: File;
   fullName: string[];
   fileHash: string;
@@ -325,6 +326,8 @@ export const apiUploadSingle = async (
   const transportStore = useTransportStore();
   /** 当前上传的文件状态是否已经暂停 */
   const isCurrentUploadStatusPause = () => {
+    // 如果是新建文件 , 不检查任务中心队列
+    if (params.isCreateNewFile === true) return false;
     if (!transportStore.uploadHashMap[params.fileHash]) return true;
     return transportStore.uploadHashMap[params.fileHash].status === "pause";
   };
@@ -599,21 +602,52 @@ export const apiGetPreviewToken =
     }
   };
 
-type ParamsGetShareToken = {
+type ParamsPriviewSharedFile = {
   uri: string;
-  code: string;
 };
-type ResponseGetShareToken = {
-  driveFindShare: {
-    token: string;
+type ResponsePriviewSharedFile = {
+  drivePreviewShare: {
+    needCode: boolean;
+    expiredAt: string;
+    insertedAt: string;
+    updatedAt: string;
+    userPreview: {
+      avatar: string | null;
+      bio: string;
+      email: string;
+      username: string;
+    };
   };
 };
 /** 获取分享token */
-export const apiGetShareToken = async (
-  params: ParamsGetShareToken
-): TApiRes<ResponseGetShareToken> => {
+export const apiPriviewSharedFile = async (
+  params: ParamsPriviewSharedFile
+): TApiRes<ResponsePriviewSharedFile> => {
   try {
-    const data = await useApollo<ResponseGetShareToken>({
+    const data = await useApollo<ResponsePriviewSharedFile>({
+      mode: "mutate",
+      gql: NetFile_Share.drivePreviewShare,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
+
+type ParamsQuerySharedFile = {
+  uri: string;
+  code?: string;
+};
+type ResponseQuerySharedFile = {
+  driveFindShare: QueryShareFileItem;
+};
+/** 获取分享token */
+export const apiQuerySharedFile = async (
+  params: ParamsQuerySharedFile
+): TApiRes<ResponseQuerySharedFile> => {
+  try {
+    const data = await useApollo<ResponseQuerySharedFile>({
       mode: "mutate",
       gql: NetFile_Share.driveFindShare,
       variables: {
@@ -802,17 +836,18 @@ type ResponseQueryShareFile = {
   driveListShares: QueryShareFileItem[];
 };
 /** 获取分享文件列表 */
-export const apiQueryShareFile = async (): TApiRes<ResponseQueryShareFile> => {
-  try {
-    const data = await useApollo<ResponseQueryShareFile>({
-      mode: "query",
-      gql: NetFile_Share.driveListShares,
-    });
-    return { data };
-  } catch (err) {
-    return { err };
-  }
-};
+export const apiQueryShareFileList =
+  async (): TApiRes<ResponseQueryShareFile> => {
+    try {
+      const data = await useApollo<ResponseQueryShareFile>({
+        mode: "query",
+        gql: NetFile_Share.driveListShares,
+      });
+      return { data };
+    } catch (err) {
+      return { err };
+    }
+  };
 
 type ParamsDeleteShare = {
   id: string;

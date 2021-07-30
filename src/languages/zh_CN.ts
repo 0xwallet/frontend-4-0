@@ -152,7 +152,13 @@ export default {
     walletSend: "提现",
     edit: "编辑",
   },
+  transport: {
+    uploading: "上传",
+    uploadHistory: "历史",
+    peerTransfer: "空投",
+  },
   metanet: {
+    sharedFile: "分享文件",
     metanet: "网盘",
     dashboard: "Dashboard",
     transport: "传输",

@@ -154,7 +154,7 @@
         </a>
       </a-tooltip>
       <div
-        class="flex-1 flex items-center mr-2 px-3"
+        class="flex-1 flex items-center px-3"
         :style="{
           height: '28px',
           'border-radius': '50px',
@@ -196,24 +196,9 @@
           </a>
         </a-tooltip>
       </div>
-
-      <!-- 临时加的显示进度抽屉的按钮 -->
-      <div class="flex items-center cursor-pointer">
-        <!-- 传输应用 (上传信息) -->
-        <!-- :title="$t('metanet.uploadStatusInfo')" -->
-        <a-tooltip title="传输">
-          <a
-            href="javascript:;"
-            class="inline-block mr-2"
-            @click="onRouteToTransport"
-          >
-            <CloudUploadOutlined />
-          </a>
-        </a-tooltip>
-      </div>
     </div>
     <!-- 表格 -->
-    <TableFiles
+    <XTableFiles
       rowKey="id"
       :locale="{
         emptyText: '空文件夹',
@@ -246,11 +231,11 @@
               v-model:value="currentRenameString"
             />
             <CheckSquareOutlined
-              class="ml-1 renameButton"
+              class="ml-1 shortcutButton"
               @click="onRecordRenameConfirm(record)"
             />
             <CloseSquareOutlined
-              class="ml-1 renameButton"
+              class="ml-1 shortcutButton"
               @click="onResetRecordRenameState"
             />
           </div>
@@ -263,7 +248,7 @@
             <!-- 详情 -->
             <a-tooltip title="详情">
               <a
-                class="renameButton ml-1"
+                class="shortcutButton ml-1"
                 href="javascript:;"
                 @click="onRecordDetail(record)"
                 ><InfoCircleOutlined
@@ -272,7 +257,7 @@
             <!-- 重命名 -->
             <a-tooltip title="重命名">
               <a
-                class="renameButton ml-1"
+                class="shortcutButton ml-1"
                 href="javascript:;"
                 @click="onRecordRename(record)"
                 ><EditOutlined
@@ -281,7 +266,7 @@
             <!-- 分享 -->
             <a-tooltip title="分享">
               <a
-                class="renameButton ml-1"
+                class="shortcutButton ml-1"
                 href="javascript:;"
                 @click="onRecordShare(record)"
                 ><ShareAltOutlined
@@ -291,7 +276,7 @@
             <!-- 非文件夹才显示 -->
             <a-tooltip v-if="!record.isDir" title="下载">
               <a
-                class="renameButton ml-1"
+                class="shortcutButton ml-1"
                 href="javascript:;"
                 @click="onDownload(record)"
                 ><DownloadOutlined
@@ -300,7 +285,7 @@
             <!-- 删除 -->
             <a-tooltip title="删除">
               <a
-                class="renameButton ml-1 ant-color-danger"
+                class="shortcutButton ml-1 ant-color-danger"
                 href="javascript:;"
                 @click="onRecordDelete(record)"
                 ><DeleteOutlined
@@ -310,7 +295,7 @@
         </div>
       </template>
       <template #hash="{ record }">
-        <TdHash v-if="record && record.hash" :hash="record.hash" />
+        <XTdHash v-if="record && record.hash" :hash="record.hash" />
       </template>
       <template #action="{ record }">
         <!-- <a-button-group size="small">
@@ -405,7 +390,7 @@
           </template>
         </a-dropdown>
       </template>
-    </TableFiles>
+    </XTableFiles>
     <!-- 弹窗 分享文件 -->
     <a-modal
       :destroyOnClose="true"
@@ -608,7 +593,7 @@
       </a-form>
     </a-modal>
     <!-- 弹窗 复制/移动 -->
-    <a-modal
+    <!-- <a-modal
       destroyOnClose
       v-model:visible="isShowCopyMoveModal"
       :title="
@@ -619,7 +604,6 @@
       @ok="onCopyMoveModalConfirm"
       :bodyStyle="{ padding: '18px 12px', border: '1px solid #f2f2f2' }"
     >
-      <!-- padding: '18px 12px', -->
       <a-table
         size="small"
         rowKey="dirId"
@@ -635,17 +619,29 @@
         :customRow="copyMoveModalTableCustomRow"
         :loading="copyMoveModalTableLoading"
       >
-        <!-- <template #name="{ record }"> -->
         <template #name="{ record }">
           <div class="inline-block">
-            <!-- 空白就是blank 文件夹就是folder -->
             <XFileTypeIcon class="w-4 h-4" type="folder" />
             <a href="javascript:;" class="ml-1">{{ record.dirName }}</a>
           </div>
         </template>
       </a-table>
-    </a-modal>
-
+    </a-modal> -->
+    <XModalDir
+      rowKey="dirId"
+      v-model:visible="isShowCopyMoveModal"
+      :title="
+        currentCopyMoveModalTitle === 'copy'
+          ? $t('metanet.buttonCopyTo')
+          : $t('metanet.buttonMoveTo')
+      "
+      @ok="onCopyMoveModalConfirm"
+      :rowClassName="copyMoveModalTableRowClassName"
+      :columns="copyMoveTableColumns"
+      :dataSource="copyMoveModalTableData"
+      :customRow="copyMoveModalTableCustomRow"
+      :loading="copyMoveModalTableLoading"
+    />
     <!-- 弹窗 导入文件(夹) -->
     <!-- <a-modal
       :destroyOnClose="true"
@@ -754,10 +750,9 @@ import {
   BulbOutlined,
   DownloadOutlined,
 } from "@ant-design/icons-vue";
-import TableFiles from "./components/TableFiles.vue";
+import XTableFiles from "@/components/XTableFiles.vue";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
-import TdHash from "./components/TdHash.vue";
-import { XFileTypeIcon } from "@/components";
+import { XFileTypeIcon, XTdHash, XModalDir } from "@/components";
 import { useI18n } from "vue-i18n";
 import {
   apiBatchDelete,
@@ -771,7 +766,7 @@ import {
   apiQueryFileByDir,
   apiQueryMeSpace,
   apiQueryPublishList,
-  apiQueryShareFile,
+  apiQueryShareFileList,
   apiRename,
   apiShareCreate,
   apiSingleDelete,
@@ -790,6 +785,7 @@ import {
   getFileSHA256,
   getFileType,
   lastOfArray,
+  makeShareUrlByUri,
 } from "@/utils";
 import { FILE_TYPE_MAP } from "@/constants";
 import { useForm } from "@ant-design-vue/use";
@@ -812,7 +808,7 @@ export type THistoryDirItem = {
 //   status: "uploading" | "success" | "failed";
 //   speed: string; // 2m / s
 // };
-type TDir = {
+export type TDir = {
   dirId: string;
   dirName: string;
   parent: null | TDir;
@@ -856,6 +852,15 @@ type TFileWithFolderPath = File & { webkitRelativePath: string };
 function sortByDirType(a: TFileItem, b: TFileItem) {
   return a.isDir ? (b.fullName[0] === "..." ? 1 : -1) : 1;
 }
+/** 创建4位访问码 */
+function makeRandomCode(count: number) {
+  /****默认去掉了容易混淆的字符oOLl,9gq,Vv,Uu,I1****/
+  const chars = "ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678";
+  return Array(count)
+    .fill(null)
+    .map(() => chars[Math.floor(Math.random() * chars.length)])
+    .join("");
+}
 export default defineComponent({
   name: "MetanetFile",
   components: {
@@ -882,9 +887,10 @@ export default defineComponent({
     BulbOutlined,
     DownloadOutlined,
     //
-    TableFiles,
+    XTableFiles,
     XFileTypeIcon,
-    TdHash,
+    XTdHash,
+    XModalDir,
     ModalDetail,
   },
   setup() {
@@ -1003,13 +1009,6 @@ export default defineComponent({
         //   },
         // });
       };
-      // 路由到传输应用
-      const onRouteToTransport = () => {
-        router.push({
-          name: "MetanetTransport",
-          query: { tab: "Uploading" },
-        });
-      };
       // TODO input 上传成功后清除文件?
       /** 文件对话框选完文件后就会触发这个函数 */
       const onChangeMultipleUploadFile = async (e: Event) => {
@@ -1047,8 +1046,7 @@ export default defineComponent({
         try {
           Promise.all(sizeCanUploadFiles.map((i) => onUploadSingleFile(i)));
           router.push({
-            name: "MetanetTransport",
-            query: { tab: "Uploading" },
+            name: "TransportUploading",
           });
           // console.log("resOfAll", resOfAll);
         } catch (error) {
@@ -1086,8 +1084,7 @@ export default defineComponent({
             )
           );
           router.push({
-            name: "MetanetTransport",
-            query: { tab: "Uploading" },
+            name: "TransportUploading",
           });
           // console.log("resOfAll", resOfAll);
         } catch (error) {
@@ -1130,7 +1127,6 @@ export default defineComponent({
         onClickDropDownMenuUpload,
         onBatchDelete,
         onDownloadBatch,
-        onRouteToTransport,
         onChangeMultipleUploadFile,
         onChangeMultipleUploadFolder,
       };
@@ -1410,6 +1406,16 @@ export default defineComponent({
         expired: 7, // 有效期
         code: "", // 如果是私密文件,则需要访问码 后面传参数的时候如果还是空字符串则不要传这个参数
       });
+      // 每次打开分享弹窗就新建个默认访问码
+      watch(
+        () => isShowShareFileModal.value,
+        (newVal) => {
+          if (newVal === true) shareFileModelRef.code = makeRandomCode(4);
+        },
+        {
+          immediate: true,
+        }
+      );
       const shareFileRulesRef = reactive({
         expired: [
           {
@@ -1463,7 +1469,9 @@ export default defineComponent({
           isShowShareFileModal.value = false;
           // 开始显示分享成功后的分享信息弹窗 -start
           currentSuccessShare.name = name;
-          currentSuccessShare.url = `${window.location.href}?shareUri=${resultShareCreate.data.driveCreateShare.uri}`;
+          currentSuccessShare.url = makeShareUrlByUri(
+            resultShareCreate.data.driveCreateShare.uri
+          );
           currentSuccessShare.code = code || "";
           currentSuccessShare.expired = expired;
           isShowSuccessShareModal.value = true;
@@ -1666,6 +1674,7 @@ export default defineComponent({
             createFileModalConfirmLoading.value = true;
             const fileHash = await getFileSHA256(file);
             const resultUploadSingle = await apiUploadSingle({
+              isCreateNewFile: true,
               file: file,
               // 上传到不同的文件夹就要带上其名称在前面 (除了root)
               fullName: [
@@ -1925,7 +1934,7 @@ export default defineComponent({
       const onRecordShare = async (record: TFileItem) => {
         // console.log("share", record);
         // 1 如果文件已分享, 跳转到分享页并选中该文件
-        const { data } = await apiQueryShareFile();
+        const { data } = await apiQueryShareFileList();
         if (data && data.driveListShares) {
           // 当前文件加上路径
           const recordFileFullName = [
@@ -2366,10 +2375,12 @@ export default defineComponent({
   border: none !important;
   // border-bottom: 1px solid #eff2f9;
 }
+
 .copyMoveModalRowActive > td {
   background: #bae7ff;
 }
-.renameButton {
+
+.shortcutButton {
   cursor: pointer;
   font-size: 17px;
   color: #1890ff;

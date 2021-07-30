@@ -28,7 +28,7 @@
       </div>
     </div>
     <!-- 表格 -->
-    <TableFiles
+    <XTableFiles
       rowKey="id"
       :columns="columns"
       :data="tableData"
@@ -61,15 +61,14 @@
           {{ $t("metanet.delete") }}
         </a-button>
       </template>
-    </TableFiles>
+    </XTableFiles>
   </div>
 </template>
 
 <script lang="ts">
 import { createVNode, defineComponent, onActivated, ref } from "vue";
 import { SyncOutlined, ExclamationCircleOutlined } from "@ant-design/icons-vue";
-import { XFileTypeIcon } from "@/components";
-import TableFiles from "./components/TableFiles.vue";
+import { XFileTypeIcon, XTableFiles } from "@/components";
 import { useI18n } from "vue-i18n";
 import dayjs from "dayjs";
 import {
@@ -86,7 +85,7 @@ export default defineComponent({
   components: {
     XFileTypeIcon,
     SyncOutlined,
-    TableFiles,
+    XTableFiles,
   },
   setup() {
     const { t } = useI18n();

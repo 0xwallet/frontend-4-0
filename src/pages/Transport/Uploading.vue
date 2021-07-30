@@ -39,7 +39,7 @@
         >
       </div>
       <!-- 进度区 -->
-      <div class="mr-2 flex flex-1 px-1">
+      <div class="flex flex-1">
         <!-- <div class="mr-2 whitespace-nowrap text-gray-400">总进度</div> -->
         <div class="flex-1 relative">
           <div
@@ -61,30 +61,9 @@
           />
         </div>
       </div>
-      <!-- 状态区 -->
-      <div>
-        <!-- nkn节点状态 -->
-        <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`">
-          <a
-            href="javascript:;"
-            class="inline-block mr-2"
-            @click="onResetNknMultiClient"
-          >
-            <img
-              :src="
-                require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
-              "
-              :style="{
-                width: '14px',
-                height: '14px',
-              }"
-            />
-          </a>
-        </a-tooltip>
-      </div>
     </div>
     <!-- 表格区 -->
-    <TableFiles
+    <XTableFiles
       rowKey="fileHash"
       :columns="columns"
       :data="tableData"
@@ -168,7 +147,7 @@
           </a>
         </div>
       </template>
-    </TableFiles>
+    </XTableFiles>
   </div>
 </template>
 
@@ -194,17 +173,16 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
-import TableFiles from "../components/TableFiles.vue";
-import XFileTypeIcon from "@/components/XFileTypeIcon.vue";
+import { XFileTypeIcon, XTableFiles } from "@/components";
 import { formatBytes, getFileSHA256, getFileType } from "@/utils";
 import { NKN_SUB_CLIENT_COUNT } from "@/constants";
 
 type TabKey = "uploading" | "uploadFinished" | "sendFile";
 
 export default defineComponent({
-  name: "Transport",
+  name: "TransportUpLoading",
   components: {
-    TableFiles,
+    XTableFiles,
     XFileTypeIcon,
     RightSquareOutlined,
     PauseOutlined,
@@ -400,64 +378,7 @@ export default defineComponent({
         calcStatusText,
       };
     }
-    /** nkn client 连接状态 */
-    function useNknStatus() {
-      // 连接中 3/4
-      const nknClientConnectStatusMap = reactive({
-        count: 0,
-        text: "连接中",
-      });
-      // let readyClientCount = useUserStore().multiClient?.clients ?? 0
-      const getStoreNknClientCount = () => {
-        const multiClient = userStore.multiClient;
-        if (!multiClient) return 0;
-        else {
-          // console.log(multiClient.readyClientIDs());
-          return multiClient.readyClientIDs().length;
-        }
-      };
-      nknClientConnectStatusMap.count = getStoreNknClientCount();
-      let counterOfNknCLient = 0; // 用来猜测计时ws 连接fail 的时间
-      let timer: number;
-      /** 全局不断检测nkn节点状态 */
-      const intervalGetClientCount = () => {
-        timer = window.setTimeout(() => {
-          counterOfNknCLient++;
-          nknClientConnectStatusMap.count = getStoreNknClientCount();
-          intervalGetClientCount();
-          if (nknClientConnectStatusMap.count === NKN_SUB_CLIENT_COUNT) {
-            nknClientConnectStatusMap.text = "就绪";
-          } else if (counterOfNknCLient > 30) {
-            // 30秒后
-            if (nknClientConnectStatusMap.count === 0) {
-              // 一个都没成功就自动重置
-              counterOfNknCLient = 0; // 重新计数 , 下一轮才reset
-              userStore.resetMultiClient();
-              nknClientConnectStatusMap.text = "重连中";
-            } else {
-              // 未能全部成功的话
-              nknClientConnectStatusMap.text = "半连接"; // 半准备?
-            }
-          }
-        }, 1000);
-      };
-      // 防止内存泄漏
-      onUnmounted(() => {
-        clearInterval(timer);
-      });
-      intervalGetClientCount();
-      /** 重置nkn client */
-      const onResetNknMultiClient = () => {
-        // 如果节点小于等于2个, 直接重置
-        if (nknClientConnectStatusMap.count <= 2) {
-          counterOfNknCLient = 0;
-          useUserStore().resetMultiClient();
-        } else {
-          console.log("节点大于2,不进行重置");
-        }
-      };
-      return { nknClientConnectStatusMap, onResetNknMultiClient };
-    }
+
     return {
       // onTestUploadFile,
       // onChangeMultipleUploadFile,
@@ -465,7 +386,6 @@ export default defineComponent({
       selectedRows,
       selectedRowKeys,
       ...useTableData(),
-      ...useNknStatus(),
     };
   },
 });

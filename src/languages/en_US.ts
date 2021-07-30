@@ -155,6 +155,7 @@ export default {
     edit: "Edit",
   },
   metanet: {
+    sharedFile: "shared files",
     metanet: "Metanet",
     dashboard: "Dashboard",
     files: "My Files",

@@ -84,7 +84,7 @@
           >
         </div>
         <!-- 表格 发送文件列表 -->
-        <TableFiles
+        <XTableFiles
           v-show="actionType === 'send'"
           disableSelect
           rowKey="uniqueId"
@@ -131,9 +131,9 @@
               <CloseOutlined />
             </a>
           </template>
-        </TableFiles>
+        </XTableFiles>
         <!-- 表格 接收文件列表 -->
-        <TableFiles
+        <XTableFiles
           v-show="actionType === 'receive'"
           disableSelect
           rowKey="uniqueId"
@@ -180,7 +180,7 @@
               <CloseOutlined />
             </a>
           </template>
-        </TableFiles>
+        </XTableFiles>
       </div>
     </div>
   </div>
@@ -193,8 +193,7 @@ import { message } from "ant-design-vue";
 import { defineComponent, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { InfoCircleOutlined, CloseOutlined } from "@ant-design/icons-vue";
-import XFileTypeIcon from "@/components/XFileTypeIcon.vue";
-import TableFiles from "../components/TableFiles.vue";
+import { XFileTypeIcon, XTableFiles } from "@/components";
 import {
   getFileType,
   formatBytes,
@@ -283,11 +282,12 @@ const columns = [
 ];
 
 export default defineComponent({
+  name: "TransportPeerTransfer",
   components: {
     InfoCircleOutlined,
     CloseOutlined,
     XFileTypeIcon,
-    TableFiles,
+    XTableFiles,
   },
   setup() {
     const { t } = useI18n();

@@ -10,13 +10,17 @@ import Dashboard from "../pages/Dashboard/index.vue";
 import Account from "../pages/Account/index.vue";
 import Security from "../pages/Security/index.vue";
 //
-import Layout from "../pages/Layout.vue";
+import LayoutIndex from "../layouts/index.vue";
+import Layout from "../layouts/Common.vue";
 import MetanetFile from "../pages/Metanet/File.vue";
-import MetanetTransport from "../pages/Metanet/Transport/index.vue";
 import MetanetShare from "../pages/Metanet/Share.vue";
+import MetanetSharedFile from "../pages/Metanet/SharedFile.vue";
 import MetanetPublish from "../pages/Metanet/Publish.vue";
 import MetanetCollect from "../pages/Metanet/Collect.vue";
 import MetanetRecycle from "../pages/Metanet/Recycle.vue";
+import TransportUploading from "../pages/Transport/Uploading.vue";
+import TransportUploadHistory from "../pages/Transport/UploadHistory.vue";
+import TransportPeerTransfer from "../pages/Transport/PeerTransfer.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -30,7 +34,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/",
-    component: Layout,
+    component: LayoutIndex,
     redirect: "/metanet/file", // TODO change it
     // redirect: "/general/metanet", // TODO change it
     children: [
@@ -70,15 +74,15 @@ const routes: RouteRecordRaw[] = [
         },
         component: MetanetFile,
       },
-      {
-        path: "metanet/transport",
-        name: "MetanetTransport",
-        meta: {
-          needAuth: true,
-          title: "metanet.transport",
-        },
-        component: MetanetTransport,
-      },
+      // {
+      //   path: "metanet/transport",
+      //   name: "MetanetTransport",
+      //   meta: {
+      //     needAuth: true,
+      //     title: "metanet.transport",
+      //   },
+      //   component: MetanetTransport,
+      // },
       {
         path: "metanet/share",
         name: "MetanetShare",
@@ -87,6 +91,16 @@ const routes: RouteRecordRaw[] = [
           title: "metanet.shareButton",
         },
         component: MetanetShare,
+      },
+      {
+        // 登录状态的分享链接跳转到这里
+        path: "metanet/sharedFile",
+        name: "MetanetSharedFile",
+        meta: {
+          needAuth: false,
+          title: "metanet.sharedFile",
+        },
+        component: MetanetSharedFile,
       },
       {
         path: "metanet/publish",
@@ -115,36 +129,33 @@ const routes: RouteRecordRaw[] = [
         },
         component: MetanetRecycle,
       },
-      // {
-      //   // GeneralAccount will be rendered inside Layout's <router-view>
-      //   // when /general/account is matched
-      //   // 如果 path 是 / 开头就是根路径
-      //   path: "general/account",
-      //   name: "GeneralAccount",
-      //   meta: {
-      //     needAuth: true,
-      //     title: "account",
-      //   },
-      //   component: GeneralAccount,
-      // },
-      // {
-      //   path: "general/metanet",
-      //   name: "GeneralMetanet",
-      //   meta: {
-      //     needAuth: true,
-      //     title: "metanet",
-      //   },
-      //   component: GeneralMetanet,
-      // },
-      // {
-      //   path: "general/security",
-      //   name: "GeneralSecurity",
-      //   meta: {
-      //     needAuth: true,
-      //     title: "security",
-      //   },
-      //   component: GeneralSecurity,
-      // },
+      {
+        path: "transport/uploading",
+        name: "TransportUploading",
+        meta: {
+          needAuth: true,
+          title: "transport.uploading",
+        },
+        component: TransportUploading,
+      },
+      {
+        path: "transport/uploadHistory",
+        name: "TransportUploadHistory",
+        meta: {
+          needAuth: true,
+          title: "transport.uploadHistory",
+        },
+        component: TransportUploadHistory,
+      },
+      {
+        path: "transport/peerTransfer",
+        name: "TransportPeerTransfer",
+        meta: {
+          needAuth: true,
+          title: "transport.peerTransfer",
+        },
+        component: TransportPeerTransfer,
+      },
     ],
   },
   {

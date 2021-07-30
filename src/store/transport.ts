@@ -1,6 +1,6 @@
 import { apiUploadSingle, ParamsUploadSingle } from "@/apollo/api";
 import { useDelay } from "@/hooks";
-import { getFileType } from "@/utils";
+import { getFileType, lastOfArray } from "@/utils";
 import { unset, values } from "lodash-es";
 import pLimit from "p-limit";
 import { defineStore } from "pinia";
@@ -241,6 +241,11 @@ export default defineStore({
       }
       // 非秒传成功 的要等websocket 返回确认信息
       if (resultUploadSingle.data.msg !== "秒传成功") {
+        console.log(
+          `${lastOfArray(
+            this.uploadHashMap[fileHash].fullName
+          )}文件写入完毕,等待ws返回确认信息`
+        );
         const resultWaitWs = await this.asyncWaitWsUploadResponse(fileHash);
         if (resultWaitWs.err) {
           // ws 超时未返回

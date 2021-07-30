@@ -2,11 +2,21 @@
   <div>
     <!-- 功能区 height 32px-->
     <div class="relative h-8 flex items-center mb-3 pr-1">
-      <a-button class="mr-2" type="primary" @click="onBatchCopy">
+      <a-button
+        :disabled="selectedRowKeys.length === 0"
+        class="mr-2"
+        type="primary"
+        @click="onBatchCopy"
+      >
         <CopyOutlined />
         复制分享
       </a-button>
-      <a-button class="mr-2" type="danger" @click="onBatchDelete">
+      <a-button
+        :disabled="selectedRowKeys.length === 0"
+        class="mr-2"
+        type="danger"
+        @click="onBatchDelete"
+      >
         <CloseCircleOutlined />
         取消分享
       </a-button>
@@ -24,7 +34,7 @@
       </div>
     </div>
     <!-- 表格 -->
-    <TableFiles
+    <XTableFiles
       rowKey="id"
       :columns="columns"
       :data="tableData"
@@ -50,7 +60,7 @@
             <!-- 详情 -->
             <a-tooltip title="详情">
               <a
-                class="renameButton ml-1"
+                class="shortcutButton ml-1"
                 href="javascript:;"
                 @click="onRecordDetail(record)"
                 ><InfoCircleOutlined
@@ -59,7 +69,7 @@
             <!-- 详情 -->
             <a-tooltip title="复制链接">
               <a
-                class="renameButton ml-1"
+                class="shortcutButton ml-1"
                 href="javascript:;"
                 @click="onRecordCopyShare(record)"
                 ><CopyOutlined
@@ -68,7 +78,7 @@
             <!-- 删除 -->
             <a-tooltip title="取消分享">
               <a
-                class="renameButton ml-1 ant-color-danger"
+                class="shortcutButton ml-1 ant-color-danger"
                 href="javascript:;"
                 @click="onRecordCancel(record)"
                 ><CloseCircleOutlined
@@ -131,7 +141,7 @@
           </template>
         </a-dropdown>
       </template> -->
-    </TableFiles>
+    </XTableFiles>
     <!-- 详情卡片 -->
     <ModalDetail v-model:visible="isShowDetailModal" :detail="currenDetailInfo">
     </ModalDetail>
@@ -191,14 +201,13 @@ import {
   CloseCircleOutlined,
   EllipsisOutlined,
 } from "@ant-design/icons-vue";
-import { XFileTypeIcon } from "@/components";
-import TableFiles from "./components/TableFiles.vue";
+import { XFileTypeIcon, XTableFiles } from "@/components";
 import { useI18n } from "vue-i18n";
 import dayjs from "dayjs";
 import {
   apiDeleteShare,
   apiEditShare,
-  apiQueryShareFile,
+  apiQueryShareFileList,
   apiShareCreate,
   QueryShareFileItem,
   TFileItem,
@@ -237,7 +246,7 @@ export default defineComponent({
     CloseCircleOutlined,
     CopyOutlined,
     EllipsisOutlined,
-    TableFiles,
+    XTableFiles,
     ModalDetail,
   },
   setup() {
@@ -298,15 +307,15 @@ export default defineComponent({
     const tableData = ref<TTableShareFileItem[]>([]);
     /** 刷新表格数据 */
     const onRefreshTableData = async (keepSelected = false) => {
-      console.log("keeo", keepSelected);
+      // console.log("keeo", keepSelected);
       if (keepSelected === false) {
-        console.log("clear");
+        // console.log("clear");
         selectedRows.value.length = 0;
         selectedRowKeys.value.length = 0;
       }
       tableLoading.value = true;
-      // apiQueryShareFile().then((result) => {
-      const result = await apiQueryShareFile();
+      // apiQueryShareFileList().then((result) => {
+      const result = await apiQueryShareFileList();
       tableLoading.value = false;
       if (result.err) {
         return;
@@ -327,6 +336,7 @@ export default defineComponent({
         });
     };
     onActivated(() => {
+      console.log("onActivated-分享页");
       // 这里根据文件应用跳转过来的id 去默认选中表格
       const paramsId = route.params.id as string;
       if (paramsId) {
@@ -428,7 +438,7 @@ export default defineComponent({
         withCode: false,
         withTail: false,
       });
-      console.log("表格单项-复制链接", shareInfo);
+      // console.log("表格单项-复制链接", shareInfo);
       useClipboard({ read: false })
         .copy(shareInfo)
         .then(() => message.success(t("metanet.copySuccess")));

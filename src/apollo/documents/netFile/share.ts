@@ -42,6 +42,7 @@ export const driveFindShare = gql`
       id
       token
       uri
+      insertedAt
       expiredAt
       collectedCount
       userFile {
@@ -61,9 +62,9 @@ export const driveFindShare = gql`
           description
         }
       }
-      user {
-        id
-      }
+      # user {
+      #   id
+      # }
     }
   }
 `;
