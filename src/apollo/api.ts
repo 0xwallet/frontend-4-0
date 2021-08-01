@@ -334,9 +334,21 @@ export const apiUploadSingle = async (
   if (isCurrentUploadStatusPause()) {
     return { err: Error("任务暂停") };
   }
+
   if (params.setProgressSpeedStatus) {
+    /** 如果是暂停的文件,进度设置为当前的进度,否则从0开始 */
+    const getCurProgres = () => {
+      return transportStore.uploadHashMap[params.fileHash].progress > 0
+        ? transportStore.uploadHashMap[params.fileHash].progress
+        : 0;
+    };
     // 从初始的 排队 状态切换为上传状态
-    params.setProgressSpeedStatus(params.fileHash, 0, 0, "uploading");
+    params.setProgressSpeedStatus(
+      params.fileHash,
+      getCurProgres(),
+      0,
+      "uploading"
+    );
   }
   // 1. 先调秒传
   // const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
@@ -434,7 +446,10 @@ export const apiUploadSingle = async (
     Space: params.space,
     Description: params.description,
     Action: params.action,
+    Offset: startOffset,
   });
+  // 假如offset 不一致 error 断开
+  // console.log("encodedHeader", encodedHeader, encodedHeader.length);
   await writeHeaderInSession(clientSession, encodedHeader);
   // 第二步，发文件
   const fileBuffer = await params.file.arrayBuffer();
