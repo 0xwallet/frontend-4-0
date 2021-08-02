@@ -406,7 +406,7 @@ export const apiUploadSingle = async (
         return null;
       }
       res = await multiClient.dial(REMOTE_ADDR, {
-        dialTimeout: 3000, // 3s dial 过期
+        dialTimeout: 10000, // 10s dial 过期
       });
       // 过期就重试
     } catch (error) {
