@@ -51,7 +51,7 @@
             }"
           >
             <span id="totalProgressBarText">
-              总进度:{{ `${totalPercent}/%` }}
+              总进度: {{ `${totalPercent}%` }}
             </span>
           </div>
           <a-progress
@@ -100,12 +100,31 @@
               'margin-top': '-4px',
             }"
           >
-            <span class="ant-color-blue-6">
-              <!-- {{ calcStatusText(record.status) }} -->
-              {{ formatBytes(record.speed) }}/S
-            </span>
-            -
-            <span>剩余时间: 00:00:01</span>
+            <template v-if="isLoadingNknMulticlient">
+              <span> 等待nkn节点中,请稍后手动开始 </span>
+            </template>
+            <template v-else-if="record.status === 'uploading'">
+              <span class="ant-color-blue-6">
+                <!-- {{ calcStatusText(record.status) }} -->
+                {{ formatBytes(record.speed) }}/S
+              </span>
+              <span> - {{ calcTimeLeftText(record) }}</span>
+            </template>
+            <template v-else-if="record.status === 'pause'">
+              <span>任务暂停</span>
+            </template>
+            <template v-else-if="record.status === 'queueing'">
+              <span>排队中</span>
+            </template>
+            <template v-else-if="record.status === 'waiting'">
+              <span>等待ws确认</span>
+            </template>
+            <template v-else-if="record.status === 'failed'">
+              <span>任务失败</span>
+            </template>
+            <template v-else>
+              <span> </span>
+            </template>
           </div>
         </div>
       </template>
@@ -176,8 +195,41 @@ import { useI18n } from "vue-i18n";
 import { XFileTypeIcon, XTableFiles } from "@/components";
 import { formatBytes, getFileSHA256, getFileType } from "@/utils";
 import { NKN_SUB_CLIENT_COUNT } from "@/constants";
+import { throttle } from "lodash-es";
 
 type TabKey = "uploading" | "uploadFinished" | "sendFile";
+
+/**计算剩余时间 */
+const calcTimeLeftTextFn = (record: UploadItem) => {
+  const { fileSize, progress, speed } = record;
+  // `剩余时间: 00:00:01` // speed /s
+  const leftSize = fileSize * ((100 - progress) / 100);
+
+  /** 不足两位数的,前面加个0 */
+  const preZero = (v: number) => {
+    if (v === Infinity) return "00";
+    return v.toString().length > 1 ? `${v}` : `0${v}`;
+  };
+  let seconds, mins, hours;
+  seconds = Math.floor(leftSize / speed);
+  if (record.progress === 0 || seconds === 0 || speed === 0 || isNaN(seconds)) {
+    return `剩余时间: 00:59:00`;
+  }
+  // 只有秒
+  if (seconds < 60) {
+    return `剩余时间: 00:00:${preZero(seconds)}`;
+    // 有秒 分
+  } else if ((mins = Math.floor(seconds / 60)) < 60) {
+    return `剩余时间: 00:${preZero(mins)}:${preZero(seconds % 60)}`;
+    // 有秒 分 时
+  } else {
+    hours = Math.floor(mins / 60);
+    return `剩余时间: ${preZero(hours)}:${preZero(mins % 60)}:${preZero(
+      seconds % 60
+    )}`;
+  }
+};
+const calcTimeLeftText = throttle(calcTimeLeftTextFn, 1000);
 
 export default defineComponent({
   name: "TransportUpLoading",
@@ -369,6 +421,7 @@ export default defineComponent({
         tableData,
         totalPercent,
         formatBytes,
+        calcTimeLeftText,
         isTotalProgressBarTextWhite,
         onRecordStartOrPause,
         onRecordCancel,
@@ -379,6 +432,14 @@ export default defineComponent({
       };
     }
 
+    function useNknStatus() {
+      const isLoadingNknMulticlient = computed(() => {
+        return userStore.isLoadingMultiClient;
+      });
+      return {
+        isLoadingNknMulticlient,
+      };
+    }
     return {
       // onTestUploadFile,
       // onChangeMultipleUploadFile,
@@ -386,6 +447,7 @@ export default defineComponent({
       selectedRows,
       selectedRowKeys,
       ...useTableData(),
+      ...useNknStatus(),
     };
   },
 });

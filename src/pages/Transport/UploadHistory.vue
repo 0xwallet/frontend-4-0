@@ -103,8 +103,8 @@ export default defineComponent({
     const router = useRouter();
     const transPortStore = useTransportStore();
     // 测试用个
-    // transPortStore.uploadHashMap["22"] = {
-    //   fileHash: "22",
+    // transPortStore.uploadHashMap["222"] = {
+    //   fileHash: "222",
     //   fullName: ["fake.jpg"],
     //   fileType: "jpg",
     //   fileSize: 2000,
@@ -113,8 +113,8 @@ export default defineComponent({
     //   description: "sdfs",
     //   speed: 500,
     // };
-    // transPortStore.uploadHashMap["23"] = {
-    //   fileHash: "23",
+    // transPortStore.uploadHashMap["223"] = {
+    //   fileHash: "223",
     //   fullName: ["fake.jpg"],
     //   fileType: "jpg",
     //   fileSize: 2000,
@@ -134,14 +134,14 @@ export default defineComponent({
         slots: { customRender: "name" },
       },
       {
-        title: "文件大小",
+        title: "大小",
         slots: { customRender: "fileSize" },
         width: 100,
       },
       {
-        title: "文件路径",
+        title: "路径",
         slots: { customRender: "fileDir" },
-        width: 300,
+        // width: 300,
       },
       {
         title: "状态",

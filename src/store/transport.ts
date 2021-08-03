@@ -7,7 +7,7 @@ import { defineStore } from "pinia";
 import { useUserStore } from ".";
 
 /** 上传状态:
- * 等待中 | 上传中 | 暂停 | 等待ws返回 | 成功 | 失败
+ * 等待中 | |等待nkn节点| 上传中 | 暂停 | 等待ws返回 | 成功 | 失败
  */
 export type UploadStatus =
   | "queueing"
@@ -208,6 +208,11 @@ export default defineStore({
           status: "queueing",
           speed: 0,
         };
+      }
+      const userStore = useUserStore();
+      // 如果nkn 节点未就绪, 暂停该文件
+      if (userStore.isLoadingMultiClient) {
+        this.pauseItem(fileHash);
       }
       // this.setUploadItemProgressSpeedStatus(fileHash, 0, 0, "queueing");
       const resultUploadSingle = await this.uploadController(() =>

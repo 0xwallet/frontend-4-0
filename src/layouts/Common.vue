@@ -79,8 +79,60 @@
                 <span>传输</span>
               </span>
             </template>
-            <a-menu-item key="uploading">上传</a-menu-item>
-            <a-menu-item key="uploadHistory">历史</a-menu-item>
+            <a-menu-item key="uploading">
+              <span class="relative">
+                上传
+                <i
+                  v-if="uploadingCount > 0"
+                  class="
+                    absolute
+                    flex
+                    items-center
+                    justify-center
+                    w-5
+                    h-5
+                    bg-red-600
+                    rounded-full
+                    text-white
+                  "
+                  :style="{
+                    right: '-26px',
+                    top: '-2px',
+                    'font-size': '12px',
+                    'font-style': 'normal',
+                    transform: 'scale(.8)',
+                  }"
+                  >{{ uploadingCount }}</i
+                >
+              </span>
+            </a-menu-item>
+            <a-menu-item key="uploadHistory">
+              <span class="relative">
+                历史
+                <i
+                  v-if="uploadSuccessCount > 0"
+                  class="
+                    absolute
+                    flex
+                    items-center
+                    justify-center
+                    w-5
+                    h-5
+                    bg-red-600
+                    rounded-full
+                    text-white
+                  "
+                  :style="{
+                    right: '-26px',
+                    top: '-2px',
+                    'font-size': '12px',
+                    'font-style': 'normal',
+                    transform: 'scale(.8)',
+                  }"
+                  >{{ uploadSuccessCount }}</i
+                >
+              </span>
+            </a-menu-item>
             <a-menu-item key="peerTransfer">空投</a-menu-item>
           </a-sub-menu>
         </a-menu>
@@ -112,15 +164,12 @@
             <!-- 状态区 -->
             <!-- nkn节点状态 -->
             <!-- <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`"> -->
-            <div
-              class="cursor-pointer flex items-center justify-center"
-              @click="onResetNknMultiClient"
-            >
+            <div class="cursor-pointer flex items-center justify-center">
+              <LoadingOutlined v-if="isLoadingNknMulticlient" class="font-14" />
               <img
+                v-else
                 class="inline-block"
-                :src="
-                  require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
-                "
+                :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
                 :style="{
                   width: '14px',
                   height: '14px',
@@ -150,25 +199,29 @@
           >
             <!-- 状态区 -->
             <!-- nkn节点状态 -->
-            <!-- <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`"> -->
-            <div
-              class="cursor-pointer flex items-center justify-center"
-              @click="onResetNknMultiClient"
-            >
-              <img
-                class="inline-block mr-2"
-                :src="
-                  require(`@/assets/images/wifi_${nknClientConnectStatusMap.count}.png`)
-                "
-                :style="{
-                  width: '14px',
-                  height: '14px',
-                }"
-              />
-              <div v-if="lockBeforeCollapsed">
-                nkn节点 : {{ nknClientConnectStatusMap.count }}/4
+            <template v-if="isLoadingNknMulticlient">
+              <div class="flex items-center justify-center font-14">
+                <LoadingOutlined class="mr-2" />
+                初始化nkn节点
               </div>
-            </div>
+            </template>
+            <template v-else>
+              <div class="flex items-center justify-center">
+                <!-- @click="onResetNknMultiClient" -->
+                <img
+                  class="inline-block mr-2"
+                  :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
+                  :style="{
+                    width: '14px',
+                    height: '14px',
+                  }"
+                />
+                <div v-if="lockBeforeCollapsed">
+                  nkn节点 : {{ nknStatusCount }}/4
+                </div>
+              </div>
+            </template>
+
             <!-- </a-tooltip> -->
           </div>
         </transition>
@@ -473,30 +526,6 @@
                 'line-height': '20px',
               }"
             >
-              <i
-                v-if="
-                  item.routeName === 'MetanetTransport' && uploadingCount > 0
-                "
-                class="
-                  absolute
-                  flex
-                  items-center
-                  justify-center
-                  w-5
-                  h-5
-                  bg-red-600
-                  rounded-full
-                  text-white
-                "
-                :style="{
-                  right: '-2px',
-                  top: '-10px',
-                  'font-size': '12px',
-                  'font-style': 'normal',
-                  transform: 'scale(.8)',
-                }"
-                >{{ uploadingCount }}</i
-              >
               <span class="text-xs">
                 <PieChartOutlined
                   class="mr-1"
@@ -567,6 +596,7 @@ import {
   PieChartOutlined,
   RightOutlined,
   CheckOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons-vue";
 import { pick, remove } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
@@ -616,6 +646,7 @@ export default defineComponent({
     PieChartOutlined,
     RightOutlined,
     CheckOutlined,
+    LoadingOutlined,
     // ExclamationCircleOutlined,
     //
     XLocaleSwither,
@@ -846,9 +877,14 @@ export default defineComponent({
           remove(navList, (v) => v.title === itemTitle);
         }
       };
+      /** 上传中的数量 */
       const uploadingCount = computed(() => {
         // return 10;
         return transPortStore.uploadingList.length;
+      });
+      /** 上传成功的数量 */
+      const uploadSuccessCount = computed(() => {
+        return transPortStore.uploadSuccessList.length;
       });
       /** 需要keep-alive 的组件 ,组件的name === 路由里注册的name,根据navTab 动态改变 */
       // const keepAliveList = [
@@ -885,66 +921,36 @@ export default defineComponent({
         onClickNavTab,
         onCloseNavItem,
         uploadingCount,
+        uploadSuccessCount,
         keepAliveList,
       };
     }
     /** nkn client 连接状态 */
     function useNknStatus() {
-      // 连接中 3/4
-      const nknClientConnectStatusMap = reactive({
-        count: 0,
-        text: "连接中",
+      // 正否正在加载nkn 节点
+      const isLoadingNknMulticlient = computed(() => {
+        return userStore.isLoadingMultiClient;
       });
-      // let readyClientCount = useUserStore().multiClient?.clients ?? 0
-      const getStoreNknClientCount = () => {
-        const multiClient = userStore.multiClient;
-        if (!multiClient) return 0;
-        else {
-          // console.log(multiClient.readyClientIDs());
-          return multiClient.readyClientIDs().length;
+      const nknStatusCount = ref(0);
+      userStore.getMultiClient().then((multiClient) => {
+        if (multiClient) {
+          nknStatusCount.value = multiClient.readyClientIDs().length;
         }
-      };
-      nknClientConnectStatusMap.count = getStoreNknClientCount();
-      let counterOfNknCLient = 0; // 用来猜测计时ws 连接fail 的时间
-      let timer: number;
-      /** 全局不断检测nkn节点状态 */
-      const intervalGetClientCount = () => {
-        timer = window.setTimeout(() => {
-          counterOfNknCLient++;
-          nknClientConnectStatusMap.count = getStoreNknClientCount();
-          intervalGetClientCount();
-          if (nknClientConnectStatusMap.count === NKN_SUB_CLIENT_COUNT) {
-            nknClientConnectStatusMap.text = "就绪";
-          } else if (counterOfNknCLient > 30) {
-            // 30秒后
-            if (nknClientConnectStatusMap.count === 0) {
-              // 一个都没成功就自动重置
-              counterOfNknCLient = 0; // 重新计数 , 下一轮才reset
-              userStore.resetMultiClient();
-              nknClientConnectStatusMap.text = "重连中";
-            } else {
-              // 未能全部成功的话
-              nknClientConnectStatusMap.text = "半连接"; // 半准备?
-            }
-          }
-        }, 1000);
-      };
-      // 防止内存泄漏
-      onUnmounted(() => {
-        clearInterval(timer);
       });
-      intervalGetClientCount();
-      /** 重置nkn client */
-      const onResetNknMultiClient = () => {
-        // 如果节点小于等于2个, 直接重置
-        if (nknClientConnectStatusMap.count <= 2) {
-          counterOfNknCLient = 0;
-          useUserStore().resetMultiClient();
-        } else {
-          console.log("节点大于2,不进行重置");
-        }
+      /** 重置nkn 节点 */
+      // const onResetNknMultiClient = () => {
+      //   Modal.confirm({
+      //     content: "重置nkn节点?",
+      //     onOk: () => {
+      //       console.log("重置节点");
+      //     },
+      //   });
+      // };
+      return {
+        isLoadingNknMulticlient,
+        nknStatusCount,
+        // onResetNknMultiClient
       };
-      return { nknClientConnectStatusMap, onResetNknMultiClient };
     }
     return {
       ...useNavTabs(),

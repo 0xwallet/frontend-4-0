@@ -383,7 +383,6 @@ export const apiUploadSingle = async (
   // 2. 秒传失败则调session
   // const { file } = params;
 
-  // const clientSession = await getClientSession();
   const { multiClient } = useUserStore();
   if (!multiClient) return { err: Error("multiClient未初始化") };
   // console.log(
@@ -457,6 +456,8 @@ export const apiUploadSingle = async (
   const maxSendLength = fileBuffer.byteLength;
   // 从前面标记的位置开始上传
   let startLen = startOffset;
+  /** 已经发送的长度 */
+  let hadSendLen = 0; // 已经发送的长度, 用来计算速度
   const startTime = dayjs();
   let diffSeconds = 0;
   let toSetBytesPerSecond = 0;
@@ -483,6 +484,7 @@ export const apiUploadSingle = async (
       // clientSession.close
       // .catch((e) => console.log("session-write-error", e));
       startLen += MAX_MTU;
+      hadSendLen += MAX_MTU;
       // 设置进度 start
       if (params.setProgressSpeedStatus) {
         // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
@@ -490,7 +492,8 @@ export const apiUploadSingle = async (
         if (toSetProgressVal < 98) {
           const curDiffSeconds = dayjs().diff(startTime, "second");
           if (curDiffSeconds > diffSeconds) {
-            toSetBytesPerSecond = startLen / dayjs().diff(startTime, "second");
+            toSetBytesPerSecond =
+              hadSendLen / dayjs().diff(startTime, "second");
             diffSeconds = curDiffSeconds;
           }
           params.setProgressSpeedStatus(

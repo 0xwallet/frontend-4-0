@@ -19,11 +19,13 @@ type UserBaseState = {
 };
 type UserState = UserBaseState & {
   avatar: string;
+  isLoadingMultiClient: boolean;
   wallet: null | ClassWallet; // wallet
   multiClient: null | classMultiClient;
   socket: null | Socket;
   channel: null | Channel;
 };
+let timerCheckMultiClient: number;
 export default defineStore({
   id: "user",
   state: (): UserState => ({
@@ -32,6 +34,7 @@ export default defineStore({
     token: "",
     username: "",
     email: "",
+    isLoadingMultiClient: true,
     wallet: null, // wallet
     multiClient: null,
     socket: null,
@@ -107,18 +110,59 @@ export default defineStore({
     },
     /** 初始化multiClient */
     setMultiClient() {
-      if (!this.wallet) throw Error("wallet 未初始化");
-      if (!this.multiClient) {
-        this.multiClient = getMultiClient(this.wallet);
-        console.log("[Ready multiClient]", this.multiClient);
-      }
+      const getIsMultiClientReady = () => {
+        if (!this.multiClient) return false;
+        return this.multiClient.readyClientIDs().length >= 2;
+      };
+      return new Promise((resolve, reject) => {
+        if (!this.wallet) reject("wallet 未初始化");
+        else {
+          if (!this.multiClient) {
+            this.multiClient = getMultiClient(this.wallet);
+            // console.log("[Ready multiClient]", this.multiClient);
+            const t1 = window.setInterval(() => {
+              if (getIsMultiClientReady()) {
+                this.isLoadingMultiClient = false;
+                clearInterval(t1);
+                clearTimeout(timerCheckMultiClient);
+                console.log(
+                  "setInterval-nkn节点数满足,退出检测定时器",
+                  this.multiClient
+                );
+                resolve(this.multiClient);
+              }
+            }, 1000);
+            const checkMulticlientAfter10s = () => {
+              // 到10s 的时候如果还没有两个节点就重置
+              timerCheckMultiClient = window.setTimeout(() => {
+                console.log("getIsMultiClientReady()", getIsMultiClientReady());
+                if (!getIsMultiClientReady()) {
+                  this.resetMultiClient();
+                  checkMulticlientAfter10s();
+                } else {
+                  this.isLoadingMultiClient = false;
+                  console.log(
+                    "setTimeout-有效节点数满足,退出定时器",
+                    this.multiClient,
+                    this.multiClient?.readyClientIDs().length
+                  );
+                  clearTimeout(timerCheckMultiClient);
+                }
+              }, 10000);
+            };
+            checkMulticlientAfter10s();
+          } else {
+            resolve(this.multiClient);
+          }
+        }
+      });
     },
     /** 重置multiClient */
     resetMultiClient() {
       if (!this.wallet) throw Error("wallet 未初始化");
       this.multiClient = null;
       this.multiClient = getMultiClient(this.wallet);
-      console.log("[Ready multiClient]", this.multiClient);
+      console.log("有效节点数未满足,重置为新的multiClient:", this.multiClient);
     },
     /** 设置登录的socket 连接 */
     setSocket() {
@@ -152,10 +196,13 @@ export default defineStore({
           let counter = 0;
           const id = setInterval(() => {
             counter++;
-            if (this.multiClient) {
+            if (
+              this.multiClient &&
+              this.multiClient.readyClientIDs().length >= 2
+            ) {
               clearInterval(id);
               resolve(this.multiClient);
-            } else if (counter > 100) {
+            } else if (counter > 20000) {
               clearInterval(id);
               resolve(null);
             }
