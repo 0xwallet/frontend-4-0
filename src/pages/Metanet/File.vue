@@ -897,6 +897,7 @@ export default defineComponent({
     const { t } = useI18n();
     const selectedRows = ref<TFileItem[]>([]);
     const selectedRowKeys = ref<string[]>([]);
+    const transportStore = useTransportStore();
     /** 按钮功能集合 */
     function useToolSet() {
       const onClickDropDownMenuCreate = ({
@@ -1044,7 +1045,15 @@ export default defineComponent({
           return;
         }
         try {
-          Promise.all(sizeCanUploadFiles.map((i) => onUploadSingleFile(i)));
+          // 如果当前没有任务正在上传, 增加回合id
+          if (!transportStore.uploadingList.length) {
+            transportStore.plusCurRoundId();
+          }
+          Promise.all(
+            sizeCanUploadFiles.map((i) =>
+              onUploadSingleFile(i, transportStore.uploadCurRoundId)
+            )
+          );
           router.push({
             name: "TransportUploading",
           });
@@ -1078,9 +1087,17 @@ export default defineComponent({
           return;
         }
         try {
+          // 如果当前没有任务正在上传, 增加回合id
+          if (!transportStore.uploadingList.length) {
+            transportStore.plusCurRoundId();
+          }
           Promise.all(
             sizeCanUploadFiles.map((i) =>
-              onUploadSingleFile(i, i.webkitRelativePath.split("/"))
+              onUploadSingleFile(
+                i,
+                transportStore.uploadCurRoundId,
+                i.webkitRelativePath.split("/")
+              )
             )
           );
           router.push({
@@ -1095,6 +1112,7 @@ export default defineComponent({
       /** 上传单个文件 */
       const onUploadSingleFile = async (
         file: File,
+        roundId: number,
         withPathFileNameArr?: string[]
       ) => {
         // input.files[0] =>file
@@ -1107,9 +1125,10 @@ export default defineComponent({
         // 弹出上传drawer
         const fileName = file.name;
         const fileHash = await getFileSHA256(file);
-        const resultUploadSingle = await useTransportStore().uploadFile({
+        const resultUploadSingle = await transportStore.uploadFile({
           file,
           fileHash,
+          roundId,
           fileType: getFileType({
             isDir: false,
             fileName,

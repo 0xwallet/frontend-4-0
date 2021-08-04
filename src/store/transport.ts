@@ -25,6 +25,7 @@ export type UploadItem = {
   fileSize: number;
   progress: number;
   status: UploadStatus;
+  roundId: number; // 回合id 用于计算总进度
   description: string;
   isSecondUpload?: boolean; // 是否急速上传
   speed: number; // 显示的时候要转换成 bytes / s
@@ -37,6 +38,7 @@ type TransportState = {
   uploadHashMap: {
     [key: string]: UploadItem;
   };
+  uploadCurRoundId: number;
 };
 
 export default defineStore({
@@ -44,6 +46,7 @@ export default defineStore({
   state: (): TransportState => ({
     uploadController: pLimit(2),
     uploadHashMap: {},
+    uploadCurRoundId: 0, // 当前显示的总进度回合id
   }),
   getters: {
     /** 所有的列表 */
@@ -69,6 +72,9 @@ export default defineStore({
     },
   },
   actions: {
+    plusCurRoundId() {
+      this.uploadCurRoundId += 1;
+    },
     /** 恢复上传 */
     resumeItem(hash: string) {
       const item = this.uploadHashMap[hash];
@@ -84,6 +90,7 @@ export default defineStore({
         fullName: item.fullName,
         fileType: item.fileType,
         fileHash: item.fileHash,
+        roundId: item.roundId,
         description: item.description,
       });
     },
@@ -147,7 +154,9 @@ export default defineStore({
           channel.off("file_uploaded", removeListener);
           resolve({
             data: undefined,
-            err: "websocket 60s内未返回文件确认hash",
+            err: `${lastOfArray(
+              this.uploadHashMap[fileHash].fullName
+            )} - 60s内未返回ws确认hash`,
           });
           clearTimeout(timer);
         }, 60000);
@@ -179,12 +188,14 @@ export default defineStore({
       fullName,
       fileType,
       fileHash,
+      roundId,
       description,
     }: {
       file: File;
       fullName: string[]; // 包含路径的name
       fileType: string;
       fileHash: string;
+      roundId: number;
       description: string;
     }) {
       // console.log(
@@ -200,6 +211,7 @@ export default defineStore({
         this.uploadHashMap[fileHash] = {
           file,
           description,
+          roundId,
           fileHash: fileHash,
           fullName: fullName,
           fileType: fileType,
@@ -261,7 +273,11 @@ export default defineStore({
       this.setUploadItemProgressSpeedStatus(fileHash, 100, 0, "success");
       this.uploadHashMap[fileHash].file = undefined; // 清空file 释放内存
       // console.log("store", this);
-      return { data: "上传文件成功" };
+      return {
+        data: `${lastOfArray(
+          this.uploadHashMap[fileHash].fullName
+        )} - 上传成功`,
+      };
     },
   },
 });

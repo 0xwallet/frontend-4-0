@@ -206,6 +206,8 @@ export default {
     type: "Type",
     status: "Status",
     uploading: "Uploading",
+    uploadHistory: "history",
+    peerTransfer: "transfer",
     reUpload: "ReUpload Files",
     uploadFile: "upload file",
     uploadFolder: "upload folder",

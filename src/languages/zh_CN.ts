@@ -204,6 +204,8 @@ export default {
     type: "类型",
     status: "状态",
     uploading: "上传中",
+    uploadHistory: "历史",
+    peerTransfer: "空投",
     reUpload: "重新上传失败文件",
     uploadFile: "文件",
     uploadFolder: "文件夹",

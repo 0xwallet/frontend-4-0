@@ -108,13 +108,15 @@
                 <!-- {{ calcStatusText(record.status) }} -->
                 {{ formatBytes(record.speed) }}/S
               </span>
-              <span> - {{ calcTimeLeftText(record) }}</span>
-            </template>
-            <template v-else-if="record.status === 'pause'">
-              <span>任务暂停</span>
+              <span v-if="record.speed > 0">
+                - {{ calcTimeLeftText(record) }}</span
+              >
             </template>
             <template v-else-if="record.status === 'queueing'">
               <span>排队中</span>
+            </template>
+            <template v-else-if="record.status === 'pause'">
+              <span>任务暂停</span>
             </template>
             <template v-else-if="record.status === 'waiting'">
               <span>等待ws确认</span>
@@ -201,7 +203,7 @@ type TabKey = "uploading" | "uploadFinished" | "sendFile";
 
 /**计算剩余时间 */
 const calcTimeLeftTextFn = (record: UploadItem) => {
-  const { fileSize, progress, speed } = record;
+  let { fileSize, progress, speed } = record;
   // `剩余时间: 00:00:01` // speed /s
   const leftSize = fileSize * ((100 - progress) / 100);
 
@@ -326,17 +328,21 @@ export default defineComponent({
       ];
 
       const totalPercent = computed(() => {
-        const statusList = [
-          "queueing",
-          "uploading",
-          "pause",
-          "waiting",
-          "failed",
-        ];
-        const list = tableData.value.filter((i) =>
-          statusList.includes(i.status)
+        // const statusList = [
+        //   "queueing",
+        //   "uploading",
+        //   "pause",
+        //   "waiting",
+        //   "failed",
+        // ];
+        // 当前回合的list
+        const list = transPortStore.uploadList.filter(
+          (i) =>
+            // statusList.includes(i.status)
+            i.roundId === transPortStore.uploadCurRoundId
         );
-        if (!list.length) return 0;
+        // console.log("totalPercent-filterListLen", list.length);
+        if (!list.length || list.every((i) => i.status === "success")) return 0;
         const val = Math.floor(
           (list.reduce((a, b) => (a += b.progress), 0) / (list.length * 100)) *
             100
