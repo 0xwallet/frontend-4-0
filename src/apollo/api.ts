@@ -14,7 +14,7 @@ import { MAX_MTU, REMOTE_ADDR } from "@/constants";
 import { getFileSHA256, writeHeaderInSession } from "@/utils";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
-import { UploadStatus } from "@/store/transport";
+import { makeUploadItemUniqueId, UploadStatus } from "@/store/transport";
 
 /** 通用的api 请求返回类型 */
 export type TApiRes<T> = Promise<
@@ -302,11 +302,11 @@ export type ParamsUploadSingle = {
   action: "drive";
   setSecondUpload?: () => void;
   registStoreCloseSessionFn?: (
-    fileHash: string,
+    uniqueId: string,
     fn: () => Promise<void>
   ) => void;
   setProgressSpeedStatus?: (
-    hash: string,
+    uniqueId: string,
     progress: number,
     speed: number,
     status: UploadStatus
@@ -324,12 +324,13 @@ export const apiUploadSingle = async (
 ): TApiRes<ResponseUploadSingle> => {
   if (!params || !params.file) return { err: Error("noparams") };
   const transportStore = useTransportStore();
+  const uniqueId = makeUploadItemUniqueId(params.fileHash, params.fullName);
   /** 当前上传的文件状态是否已经暂停 */
   const isCurrentUploadStatusPause = () => {
     // 如果是新建文件 , 不检查任务中心队列
     if (params.isCreateNewFile === true) return false;
-    if (!transportStore.uploadHashMap[params.fileHash]) return true;
-    return transportStore.uploadHashMap[params.fileHash].status === "pause";
+    if (!transportStore.uploadHashMap[uniqueId]) return true;
+    return transportStore.uploadHashMap[uniqueId].status === "pause";
   };
   if (isCurrentUploadStatusPause()) {
     return { err: Error("任务暂停") };
@@ -338,13 +339,13 @@ export const apiUploadSingle = async (
   if (params.setProgressSpeedStatus) {
     /** 如果是暂停的文件,进度设置为当前的进度,否则从0开始 */
     const getCurProgres = () => {
-      return transportStore.uploadHashMap[params.fileHash].progress > 0
-        ? transportStore.uploadHashMap[params.fileHash].progress
+      return transportStore.uploadHashMap[uniqueId].progress > 0
+        ? transportStore.uploadHashMap[uniqueId].progress
         : 0;
     };
     // 从初始的 排队 状态切换为上传状态
     params.setProgressSpeedStatus(
-      params.fileHash,
+      uniqueId,
       getCurProgres(),
       0,
       "uploading"
@@ -367,7 +368,7 @@ export const apiUploadSingle = async (
   if (driveUploadByHash.id) {
     // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
     if (params.setProgressSpeedStatus) {
-      params.setProgressSpeedStatus(params.fileHash, 100, 0, "uploading");
+      params.setProgressSpeedStatus(uniqueId, 100, 0, "uploading");
     }
     if (params.setSecondUpload) params.setSecondUpload();
     return { data: { msg: "秒传成功" } };
@@ -430,7 +431,7 @@ export const apiUploadSingle = async (
   if (!clientSession) return { err: Error("no clientSession") };
   if (params.registStoreCloseSessionFn) {
     params.registStoreCloseSessionFn(
-      params.fileHash,
+      uniqueId,
       clientSession.close.bind(clientSession)
     );
   }
@@ -497,7 +498,7 @@ export const apiUploadSingle = async (
             diffSeconds = curDiffSeconds;
           }
           params.setProgressSpeedStatus(
-            params.fileHash,
+            uniqueId,
             toSetProgressVal,
             toSetBytesPerSecond,
             clientSession.isClosed || isCurrentUploadStatusPause()
@@ -506,7 +507,7 @@ export const apiUploadSingle = async (
           );
         } else {
           params.setProgressSpeedStatus(
-            params.fileHash,
+            uniqueId,
             98,
             0,
             "waiting" // 等待ws 返回确认

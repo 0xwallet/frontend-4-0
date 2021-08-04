@@ -64,7 +64,7 @@
     </div>
     <!-- 表格区 -->
     <XTableFiles
-      rowKey="fileHash"
+      rowKey="uniqueId"
       :columns="columns"
       :data="tableData"
       :loading="tableLoading"
@@ -384,32 +384,32 @@ export default defineComponent({
       const onRecordStartOrPause = (record: UploadItem) => {
         console.log("onRecordStartOrPause", record);
         if (canResumeStatusKeys.includes(record.status)) {
-          transPortStore.resumeItem(record.fileHash);
+          transPortStore.resumeItem(record.uniqueId);
         } else if (canPauseStatusKeys.includes(record.status)) {
-          transPortStore.pauseItem(record.fileHash);
+          transPortStore.pauseItem(record.uniqueId);
         }
       };
       const onRecordCancel = (record: UploadItem) => {
         console.log("onRecordCancel", record);
-        transPortStore.cancelItem(record.fileHash);
+        transPortStore.cancelItem(record.uniqueId);
       };
       const onBatchStart = () => {
         // console.log("onBatchStart");
         transPortStore.uploadingList
           .filter((i) => canResumeStatusKeys.includes(i.status))
-          .forEach((i) => transPortStore.resumeItem(i.fileHash));
+          .forEach((i) => transPortStore.resumeItem(i.uniqueId));
       };
       const onBatchPause = () => {
         // console.log("onBatchPause");
         transPortStore.uploadingList
           .filter((i) => canPauseStatusKeys.includes(i.status))
-          .forEach((i) => transPortStore.pauseItem(i.fileHash));
+          .forEach((i) => transPortStore.pauseItem(i.uniqueId));
       };
       const onBatchCancel = () => {
         // console.log("onBatchCancel");
         transPortStore.uploadingList
           .filter((i) => i.status !== "waiting")
-          .forEach((i) => transPortStore.cancelItem(i.fileHash));
+          .forEach((i) => transPortStore.cancelItem(i.uniqueId));
       };
       const calcStatusText = (status: UploadStatus) => {
         const mapText: { [key in UploadStatus]?: string } = {

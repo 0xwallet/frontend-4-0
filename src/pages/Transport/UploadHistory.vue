@@ -16,7 +16,7 @@
       </div>
     </div>
     <XTableFiles
-      rowKey="fileHash"
+      rowKey="uniqueId"
       :disableSelect="true"
       :columns="columns"
       :data="tableData"
@@ -205,12 +205,12 @@ export default defineComponent({
     /** 清除单项成功记录 */
     const onRecordClear = (record: UploadItem) => {
       console.log("onRecordClear", record);
-      transPortStore.clearItem(record.fileHash);
+      transPortStore.clearItem(record.uniqueId);
     };
     /** 清除所有成功的记录 */
     const onBatchClear = () => {
-      transPortStore.uploadSuccessList.forEach(({ fileHash }) => {
-        transPortStore.clearItem(fileHash);
+      transPortStore.uploadSuccessList.forEach(({ uniqueId }) => {
+        transPortStore.clearItem(uniqueId);
       });
     };
     /** 转换fullName 为路径全名 */

@@ -35,7 +35,7 @@ type TColumn = {
 export default defineComponent({
   props: {
     rowKey: {
-      type: String,
+      type: [String, Function],
       required: true,
     },
     data: {
@@ -94,7 +94,9 @@ export default defineComponent({
             // name: record.name,
             // 默认选中
             defaultChecked: props.selectedRowKeys.includes(
-              record[props.rowKey]
+              typeof props.rowKey === "string"
+                ? record[props.rowKey]
+                : record[props.rowKey(record)]
             ),
           }),
         };

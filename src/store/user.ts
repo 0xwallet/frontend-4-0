@@ -127,7 +127,8 @@ export default defineStore({
                 clearTimeout(timerCheckMultiClient);
                 console.log(
                   "setInterval-nkn节点数满足,退出检测定时器",
-                  this.multiClient
+                  this.multiClient,
+                  this.multiClient?.readyClientIDs().length
                 );
                 resolve(this.multiClient);
               }
