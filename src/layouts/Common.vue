@@ -932,11 +932,20 @@ export default defineComponent({
         return userStore.isLoadingMultiClient;
       });
       const nknStatusCount = ref(0);
-      userStore.getMultiClient().then((multiClient) => {
-        if (multiClient) {
-          nknStatusCount.value = multiClient.readyClientIDs().length;
-        }
-      });
+      const stop = watch(
+        () => isLoadingNknMulticlient.value,
+        (newVal) => {
+          if (newVal === false) {
+            userStore.getMultiClient().then((multiClient) => {
+              if (multiClient) {
+                nknStatusCount.value = multiClient.readyClientIDs().length;
+              }
+            });
+            stop();
+          }
+        },
+        { immediate: true }
+      );
       /** 重置nkn 节点 */
       // const onResetNknMultiClient = () => {
       //   Modal.confirm({
