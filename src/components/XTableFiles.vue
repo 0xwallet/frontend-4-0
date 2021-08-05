@@ -11,6 +11,8 @@
     :scroll="{ x: true }"
     :row-selection="rowSelection"
     :pagination="false"
+    :rowClassName="rowClassName"
+    :customRow="customRow"
   >
     <!-- slot="header" 是插入别人的插槽 -->
     <template v-for="slotName in slots" :key="slotName" #[slotName]="data">
@@ -64,6 +66,14 @@ export default defineComponent({
     showHeader: {
       type: Boolean,
       default: true,
+    },
+    rowClassName: {
+      type: Function,
+      default: () => "",
+    },
+    customRow: {
+      type: [Function, Object],
+      default: () => null,
     },
   },
   emits: ["update:selectedRows", "update:selectedRowKeys"],
