@@ -185,6 +185,9 @@
           <a-breadcrumb-item>{{
             $lastOfArray(historyDir).name
           }}</a-breadcrumb-item>
+          <template v-if="currentClickItem.name.length > 0">
+            / {{ currentClickItem.name }}
+          </template>
         </a-breadcrumb>
         <a-tooltip :title="isCurFolderShared ? '已分享' : '未分享'">
           <a href="javascript:;" @click="onShowDiskDetail">
@@ -199,10 +202,13 @@
     </div>
     <!-- 表格 -->
     <XTableFiles
+      ref="fileTableRef"
       rowKey="id"
       :locale="{
         emptyText: '空文件夹',
       }"
+      :rowClassName="rowClassName"
+      :customRow="customRow"
       :columns="columns"
       :data="tableData"
       :loading="tableLoading"
@@ -218,7 +224,7 @@
             href="javascript:;"
             class="ml-2"
             :title="record.fullName[0]"
-            @click="onClickTableItemName(record)"
+            @click.stop="onClickTableItemName(record)"
           >
             {{ record.fullName[0] }}
           </a>
@@ -232,11 +238,11 @@
             />
             <CheckSquareOutlined
               class="ml-1 shortcutButton"
-              @click="onRecordRenameConfirm(record)"
+              @click.stop="onRecordRenameConfirm(record)"
             />
             <CloseSquareOutlined
               class="ml-1 shortcutButton"
-              @click="onResetRecordRenameState"
+              @click.stop="onResetRecordRenameState"
             />
           </div>
           <!-- hover 才显示的shortCut栏 -->
@@ -250,7 +256,7 @@
               <a
                 class="shortcutButton ml-1"
                 href="javascript:;"
-                @click="onRecordDetail(record)"
+                @click.stop="onRecordDetail(record)"
                 ><InfoCircleOutlined
               /></a>
             </a-tooltip>
@@ -259,7 +265,7 @@
               <a
                 class="shortcutButton ml-1"
                 href="javascript:;"
-                @click="onRecordRename(record)"
+                @click.stop="onRecordRename(record)"
                 ><EditOutlined
               /></a>
             </a-tooltip>
@@ -268,7 +274,7 @@
               <a
                 class="shortcutButton ml-1"
                 href="javascript:;"
-                @click="onRecordShare(record)"
+                @click.stop="onRecordShare(record)"
                 ><ShareAltOutlined
               /></a>
             </a-tooltip>
@@ -278,7 +284,7 @@
               <a
                 class="shortcutButton ml-1"
                 href="javascript:;"
-                @click="onDownload(record)"
+                @click.stop="onDownload(record)"
                 ><DownloadOutlined
               /></a>
             </a-tooltip>
@@ -287,7 +293,7 @@
               <a
                 class="shortcutButton ml-1 ant-color-danger"
                 href="javascript:;"
-                @click="onRecordDelete(record)"
+                @click.stop="onRecordDelete(record)"
                 ><DeleteOutlined
               /></a>
             </a-tooltip>
@@ -790,7 +796,7 @@ import {
 import { FILE_TYPE_MAP } from "@/constants";
 import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
-import { useClipboard } from "@vueuse/core";
+import { useClipboard, onClickOutside } from "@vueuse/core";
 import router from "@/router";
 import { useRoute } from "vue-router";
 
@@ -2162,6 +2168,42 @@ export default defineComponent({
           // type not found
         }
       };
+      /** 当前表格点击的项 */
+      const currentClickItem = reactive({
+        id: "",
+        name: "",
+      });
+      const resetCurrentClickItem = () => {
+        currentClickItem.id = "";
+        currentClickItem.name = "";
+      };
+      const rowClassName = (record: TFileItem, index: number) => {
+        return record.id === currentClickItem.id &&
+          lastOfArray(record.fullName) === currentClickItem.name
+          ? "ant-table-row-hover"
+          : "";
+      };
+      const customRow = (record: TFileItem, index: number) => ({
+        onClick: (e: {
+          currentTarget: {
+            dataset: {
+              rowKey: string;
+            };
+          };
+        }) => {
+          // console.log("customRow-click", e, record);
+          // 如果点击的是相同项, 取消"点击转态"
+          if (currentClickItem.id === record.id) {
+            resetCurrentClickItem();
+          } else {
+            currentClickItem.id = record.id;
+            currentClickItem.name = lastOfArray(record.fullName);
+          }
+        },
+      });
+      const fileTableRef = ref(null);
+      /** 点击除了表格的其他地方, 重置当前点击项(还原地址栏) */
+      onClickOutside(fileTableRef, () => resetCurrentClickItem());
       const columns = [
         {
           title: t("metanet.name"),
@@ -2222,6 +2264,8 @@ export default defineComponent({
         // 重置选中项目
         selectedRows.value.length = 0;
         selectedRowKeys.value.length = 0;
+        // 重置当前点击表格项
+        resetCurrentClickItem();
         tableLoading.value = true;
         apiQueryFileByDir({ dirId }).then((resultQueryFile) => {
           if (resultQueryFile.err || !resultQueryFile.data.driveListFiles)
@@ -2300,6 +2344,10 @@ export default defineComponent({
         onClickHistoryDirUpperLevel,
         onRefreshTableData,
         onDownload,
+        currentClickItem,
+        rowClassName,
+        customRow,
+        fileTableRef,
         columns,
         tableData,
         tableLoading,
