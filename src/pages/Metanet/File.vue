@@ -172,6 +172,9 @@
           <template #separator>/</template>
           <template v-if="historyDir.length > 1">
             <a-breadcrumb-item
+              :style="{
+                color: 'rgba(0, 0, 0, 0.85)',
+              }"
               v-for="hItem in historyDir.slice(0, -1)"
               :key="hItem.id"
             >
@@ -182,20 +185,34 @@
               >
             </a-breadcrumb-item>
           </template>
-          <a-breadcrumb-item>{{
-            $lastOfArray(historyDir).name
-          }}</a-breadcrumb-item>
+          <a-breadcrumb-item
+            :style="{
+              color: 'rgba(0, 0, 0, 0.85)',
+            }"
+            >{{ $lastOfArray(historyDir).name }}</a-breadcrumb-item
+          >
           <template v-if="currentClickItem.name.length > 0">
-            / {{ currentClickItem.name }}
+            <a-breadcrumb-item
+              :style="{
+                color: 'rgba(0, 0, 0, 0.85)',
+              }"
+            >
+              {{ currentClickItem.name }}
+            </a-breadcrumb-item>
           </template>
         </a-breadcrumb>
         <a-tooltip :title="isCurFolderShared ? '已分享' : '未分享'">
-          <a href="javascript:;" @click="onShowDiskDetail">
-            <BulbFilled
-              v-if="isCurFolderShared"
+          <a href="javascript:;">
+            <!-- 切换是否显示当前点击项的分享状态 -->
+            <StarFilled
+              v-if="
+                currentClickItem.name.length > 0
+                  ? isCurClickItemShared
+                  : isCurFolderShared
+              "
               :style="{ color: '#faad14' }"
             />
-            <BulbOutlined v-else />
+            <StarOutlined v-else />
           </a>
         </a-tooltip>
       </div>
@@ -752,8 +769,8 @@ import {
   CopyOutlined,
   ApartmentOutlined,
   ShareAltOutlined,
-  BulbFilled,
-  BulbOutlined,
+  StarFilled,
+  StarOutlined,
   DownloadOutlined,
 } from "@ant-design/icons-vue";
 import XTableFiles from "@/components/XTableFiles.vue";
@@ -889,8 +906,8 @@ export default defineComponent({
     CopyOutlined,
     ApartmentOutlined,
     ShareAltOutlined,
-    BulbFilled,
-    BulbOutlined,
+    StarFilled,
+    StarOutlined,
     DownloadOutlined,
     //
     XTableFiles,
@@ -2177,6 +2194,12 @@ export default defineComponent({
         currentClickItem.id = "";
         currentClickItem.name = "";
       };
+      /** 当前点击的item 是否分享 */
+      const isCurClickItemShared = computed(() => {
+        if (currentClickItem.id.length === 0) return false;
+        return tableData.value.find((item) => item?.id === currentClickItem.id)
+          ?.isShared;
+      });
       const rowClassName = (record: TFileItem, index: number) => {
         return record.id === currentClickItem.id &&
           lastOfArray(record.fullName) === currentClickItem.name
@@ -2208,6 +2231,15 @@ export default defineComponent({
         {
           title: t("metanet.name"),
           slots: { customRender: "name" },
+          sortDirections: ["descend", "ascend"],
+          sorter: (a: TFileItem, b: TFileItem) => {
+            // 文件夹的排在前面
+            if (a.isDir && !b.isDir) return 0;
+            else if (!a.isDir && b.isDir) return 0;
+            return lastOfArray(a.fullName).localeCompare(
+              lastOfArray(b.fullName)
+            );
+          },
           // width: 100,
           // ellipsis: true,
         },
@@ -2226,6 +2258,13 @@ export default defineComponent({
           title: t("metanet.size"),
           dataIndex: "info.size",
           width: 100,
+          sortDirections: ["descend", "ascend"],
+          sorter: (a: TFileItem, b: TFileItem) => {
+            // 文件夹的排在前面
+            if (a.isDir && !b.isDir) return 0;
+            else if (!a.isDir && b.isDir) return 0;
+            return Number(a.info.size) - Number(b.info.size);
+          },
           customRender: ({
             record,
             text,
@@ -2245,6 +2284,13 @@ export default defineComponent({
         {
           title: t("metanet.data"),
           dataIndex: "updatedAt",
+          sortDirections: ["descend", "ascend"],
+          sorter: (a: TFileItem, b: TFileItem) => {
+            // 文件夹的排在前面
+            if (a.isDir && !b.isDir) return 0;
+            else if (!a.isDir && b.isDir) return 0;
+            return dayjs(a.updatedAt).diff(dayjs(b.updatedAt));
+          },
           customRender: ({ text }: { text: string }) => {
             return text ? dayjs(text).format("YYYY-MM-DD hh:mm") : "";
           },
@@ -2345,6 +2391,7 @@ export default defineComponent({
         onRefreshTableData,
         onDownload,
         currentClickItem,
+        isCurClickItemShared,
         rowClassName,
         customRow,
         fileTableRef,

@@ -206,6 +206,12 @@ body,
   }
 }
 // html font-size :16px
+.font-20 {
+  font-size: 1.25rem;
+}
+.font-18 {
+  font-size: 1.125rem;
+}
 .font-16 {
   font-size: 1rem;
 }

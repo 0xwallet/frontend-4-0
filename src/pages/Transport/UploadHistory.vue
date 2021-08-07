@@ -78,7 +78,7 @@
 
 <script lang="ts">
 import { useTransportStore } from "@/store";
-import { computed, defineComponent, ref } from "vue";
+import { computed, defineComponent, onMounted, ref, watch } from "vue";
 import { FolderOutlined, ClearOutlined } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
 import XTableFiles from "@/components/XTableFiles.vue";
@@ -88,6 +88,7 @@ import { UploadItem } from "@/store/transport";
 import { useRouter } from "vue-router";
 import { apiQueryFileByDir } from "@/apollo/api";
 import { THistoryDirItem } from "@/pages/Metanet/File.vue";
+import { useLocalStorage } from "@vueuse/core";
 
 export default defineComponent({
   name: "TransportHistory",

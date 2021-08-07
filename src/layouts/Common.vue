@@ -143,7 +143,7 @@
             key="1"
             class="
               nknStatus
-              absolute
+              fixed
               w-6
               h-6
               flex
@@ -183,7 +183,8 @@
             key="2"
             class="
               nknStatus
-              absolute
+              fixed
+              w-44
               bottom-0
               text-white
               py-1
@@ -191,7 +192,7 @@
               rounded-full
             "
             :style="{
-              left: '14px',
+              left: '12px',
               right: '14px',
               bottom: '20px',
               color: 'rgba(0, 0, 0, 0.85)',
@@ -777,6 +778,7 @@ export default defineComponent({
         // console.log("选中的菜单key", key, keyPath);
         // console.log("route", route);
         const toRoute = "/" + keyPath.reverse().join("/");
+        // /metanet/file
         // console.log("toRouwte", toRoute, route);
         if (toRoute !== route.path) {
           // console.log("router.push", item);
@@ -882,6 +884,8 @@ export default defineComponent({
         // return 10;
         return transPortStore.uploadingList.length;
       });
+      // 首次打开装载本地存储里已完成的list
+      transPortStore.loadStorageFinishedList();
       /** 上传成功的数量 */
       const uploadSuccessCount = computed(() => {
         return transPortStore.uploadSuccessList.length;
@@ -994,6 +998,9 @@ export default defineComponent({
 } */
 /* table 里的快捷键 */
 .ant-table-row:hover .tableShortcut {
+  display: inline-block;
+}
+.ant-table-row-hover .tableShortcut {
   display: inline-block;
 }
 </style>

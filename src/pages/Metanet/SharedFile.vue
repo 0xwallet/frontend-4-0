@@ -91,14 +91,14 @@
                 >
                   {{ userPreview.username[0].toUpperCase() }}
                 </div>
-                <div class="font-semibold font-16">
+                <div class="font-semibold font-16 mr-2">
                   {{ userPreview.username }} 给你分享了文件
                 </div>
+                <div class="font-12 text-gray-400 pt-1">{{ expiredText }}</div>
               </div>
               <!-- 功能区 -->
               <div class="pt-3 px-5 mb-3 flex items-center">
-                <div class="font-semibold mr-2 font-16">全部文件</div>
-                <div class="font-12 text-gray-400 pt-1">{{ expiredText }}</div>
+                <div class="mr-2">全部文件</div>
                 <div class="flex-1"></div>
                 <div>
                   <a-button
@@ -158,7 +158,6 @@
                       href="javascript:;"
                       class="ml-2"
                       :title="record.userFile.fullName[0]"
-                      @click="onClickTableItemName(record)"
                     >
                       {{ record.userFile.fullName[0] }}
                     </a>
@@ -232,7 +231,22 @@
         </template>
         <!-- 文件无效 -->
         <template v-else>
-          <div></div>
+          <!-- color: #faad14; -->
+          <div class="pt-40 flex flex-col items-center justify-center">
+            <WarningFilled
+              class="mb-4"
+              :style="{
+                'font-size': '80px',
+                color: '#faad14',
+              }"
+            />
+            <div class="font-semibold font-20">文件已删除或已过期</div>
+          </div>
+          <!-- <a-result class="pt-30" status="warning" title="文件已过期或被删除"> -->
+          <!-- <template #extra>
+              <a-button key="console" type="primary">Go Console</a-button>
+            </template> -->
+          <!-- </a-result> -->
         </template>
       </template>
     </div>
@@ -275,6 +289,7 @@ import {
   HeartOutlined,
   HighlightOutlined,
   LoadingOutlined,
+  WarningFilled,
 } from "@ant-design/icons-vue";
 import { TDir } from "./File.vue";
 import { useBaseStore, useUserStore } from "@/store";
@@ -291,6 +306,7 @@ export default defineComponent({
     HeartOutlined,
     HighlightOutlined,
     LoadingOutlined,
+    WarningFilled,
   },
   setup() {
     // 根据uri
@@ -488,7 +504,11 @@ export default defineComponent({
           fileData.value.length = 0;
           currentUri.value = queryUri;
           apiPriviewSharedFile({ uri: queryUri }).then(({ data, err }) => {
-            if (err || !data) return;
+            if (err || !data || !data.drivePreviewShare) {
+              isValid.value = false;
+              lockPageLoading.value = false;
+              return;
+            }
             const { userPreview: resUserPreview } = data.drivePreviewShare;
             // 注册 分享来源用户的信息
             userPreview.avatar = resUserPreview.avatar || "";

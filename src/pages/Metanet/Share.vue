@@ -93,12 +93,7 @@
           class="ant-color-blue-6"
           @click="onRecordEdit(record)"
         >
-          {{
-            `${dayjs(record.expiredAt).diff(
-              dayjs(record.insertedAt),
-              "days"
-            )} 天内`
-          }}
+          {{ `${dayjs(record.expiredAt).diff(dayjs(), "days") + 1} 天内` }}
         </a>
       </template>
       <template #code="{ record }">
@@ -259,18 +254,42 @@ export default defineComponent({
       {
         title: t("metanet.name"),
         slots: { customRender: "name" },
+        sortDirections: ["descend", "ascend"],
+        sorter: (a: TTableShareFileItem, b: TTableShareFileItem) => {
+          // 文件夹的排在前面
+          if (a.userFile.isDir && !b.userFile.isDir) return 0;
+          else if (!a.userFile.isDir && b.userFile.isDir) return 0;
+          return lastOfArray(a.userFile.fullName).localeCompare(
+            lastOfArray(b.userFile.fullName)
+          );
+        },
       },
       {
         title: t("metanet.createAt"),
         dataIndex: "insertedAt",
+        sortDirections: ["descend", "ascend"],
+        sorter: (a: TTableShareFileItem, b: TTableShareFileItem) => {
+          // 文件夹的排在前面
+          if (a.userFile.isDir && !b.userFile.isDir) return 0;
+          else if (!a.userFile.isDir && b.userFile.isDir) return 0;
+          return dayjs(a.insertedAt).diff(dayjs(b.insertedAt));
+        },
         customRender: ({ text }: { text: string }) => {
           return text ? dayjs(text).format("YYYY-MM-DD hh:mm") : "";
         },
         width: 180,
       },
       {
+        // dayjs(record.expiredAt).diff(dayjs(), "days") + 1
         title: t("metanet.validTime"),
         slots: { customRender: "validTime" },
+        sortDirections: ["descend", "ascend"],
+        sorter: (a: TTableShareFileItem, b: TTableShareFileItem) => {
+          // 文件夹的排在前面
+          if (a.userFile.isDir && !b.userFile.isDir) return 0;
+          else if (!a.userFile.isDir && b.userFile.isDir) return 0;
+          return dayjs(a.expiredAt).diff(dayjs(b.expiredAt));
+        },
         // customRender: ({ record }: { record: TTableShareFileItem }) => {
         //   const begin = dayjs(record.insertedAt);
         //   const end = dayjs(record.expiredAt);
@@ -294,6 +313,13 @@ export default defineComponent({
         title: "收藏",
         dataIndex: "collectedCount",
         width: 80,
+        sortDirections: ["descend", "ascend"],
+        sorter: (a: TTableShareFileItem, b: TTableShareFileItem) => {
+          // 文件夹的排在前面
+          if (a.userFile.isDir && !b.userFile.isDir) return 0;
+          else if (!a.userFile.isDir && b.userFile.isDir) return 0;
+          return a.collectedCount - b.collectedCount;
+        },
       },
       // {
       //   title: t("metanet.action"),
@@ -321,7 +347,11 @@ export default defineComponent({
         return;
       }
       tableData.value = result.data.driveListShares
-        .filter((i): i is TTableShareFileItem => i.userFile !== null)
+        .filter(
+          // userFile 不为空 且在有效期内
+          (i): i is TTableShareFileItem =>
+            i.userFile !== null && dayjs(i.expiredAt).diff(dayjs()) > 0
+        )
         .map((i) => {
           const obj = cloneDeep(i);
           // 保留最后一项作为名称
@@ -333,7 +363,8 @@ export default defineComponent({
           });
           obj.code = obj.code ?? "无";
           return obj;
-        });
+        })
+        .sort((a, b) => (a.userFile.isDir ? -1 : 1));
     };
     onActivated(() => {
       console.log("onActivated-分享页");

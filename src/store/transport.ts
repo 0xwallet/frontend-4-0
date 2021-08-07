@@ -50,6 +50,9 @@ type TransportState = {
   uploadCurRoundId: number;
 };
 
+const SUCCESS_STORAGE_KEY = "uploadSuccessList";
+let timerStorage: null | number = null;
+
 export default defineStore({
   id: "transport",
   state: (): TransportState => ({
@@ -81,6 +84,27 @@ export default defineStore({
     },
   },
   actions: {
+    /** 合并多次触发存储的操作 */
+    timeOutSetStorageFinishedList() {
+      if (timerStorage === null) {
+        timerStorage = window.setTimeout(() => {
+          // console.log("setItem", this.uploadSuccessList);
+          localStorage.setItem(
+            SUCCESS_STORAGE_KEY,
+            JSON.stringify(this.uploadSuccessList)
+          );
+          timerStorage = null;
+        }, 500);
+      }
+    },
+    // 从localStorage 里装载已经完成的list
+    loadStorageFinishedList() {
+      const storageList = localStorage.getItem(SUCCESS_STORAGE_KEY);
+      const list: UploadItem[] = storageList ? JSON.parse(storageList) : [];
+      list.forEach((item) => {
+        this.uploadHashMap[item.uniqueId] = item;
+      });
+    },
     plusCurRoundId() {
       this.uploadCurRoundId += 1;
     },
@@ -118,6 +142,10 @@ export default defineStore({
     },
     /** 删除item */
     clearItem(uniqueId: string) {
+      //如果删除的是成功项, 跟localStorage 同步
+      const isToClearItemSuccess =
+        this.uploadHashMap[uniqueId].status === "success";
+      if (isToClearItemSuccess) this.timeOutSetStorageFinishedList();
       if (this.uploadHashMap[uniqueId]) {
         unset(this.uploadHashMap, uniqueId);
       }
@@ -188,6 +216,7 @@ export default defineStore({
       status: UploadStatus
     ) {
       this.setUploadItemByAssign(uniqueId, { progress, speed, status });
+      if (status === "success") this.timeOutSetStorageFinishedList();
     },
     /** 在store 中上传单个文件 */
     async uploadFile({
