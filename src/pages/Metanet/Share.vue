@@ -93,7 +93,7 @@
           class="ant-color-blue-6"
           @click="onRecordEdit(record)"
         >
-          {{ `${dayjs(record.expiredAt).diff(dayjs(), "days") + 1} 天内` }}
+          {{ calcExpiredText(record) }}
         </a>
       </template>
       <template #code="{ record }">
@@ -328,6 +328,11 @@ export default defineComponent({
       //   slots: { customRender: "action" },
       // },
     ];
+    const calcExpiredText = (record: TTableShareFileItem) => {
+      return dayjs(record.expiredAt).diff(dayjs()) < 0
+        ? "已过期"
+        : `${dayjs(record.expiredAt).diff(dayjs(), "days") + 1} 天内`;
+    };
     const selectedRows = ref<TTableShareFileItem[]>([]);
     const selectedRowKeys = ref<string[]>([]);
     const tableData = ref<TTableShareFileItem[]>([]);
@@ -349,8 +354,7 @@ export default defineComponent({
       tableData.value = result.data.driveListShares
         .filter(
           // userFile 不为空 且在有效期内
-          (i): i is TTableShareFileItem =>
-            i.userFile !== null && dayjs(i.expiredAt).diff(dayjs()) > 0
+          (i): i is TTableShareFileItem => i.userFile !== null
         )
         .map((i) => {
           const obj = cloneDeep(i);
@@ -609,6 +613,7 @@ export default defineComponent({
     return {
       dayjs,
       tableLoading,
+      calcExpiredText,
       selectedRows,
       selectedRowKeys,
       columns,
