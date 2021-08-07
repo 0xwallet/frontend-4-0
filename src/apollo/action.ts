@@ -54,9 +54,18 @@ export function initApollo(): TClient | null {
         typeof (graphQLErrors as unknown as { detail: string }).detail ===
         "string"
       ) {
-        Modal.error({
-          content: (graphQLErrors as unknown as { detail: string }).detail,
-        });
+        // NOT FOUND 类型先不提示
+        // errors: {detail: "Not Found"}
+        if (
+          !(graphQLErrors as unknown as { detail: string }).detail.includes(
+            "Found"
+          )
+        ) {
+          Modal.error({
+            content: (graphQLErrors as unknown as { detail: string }).detail,
+          });
+        }
+        console.error((graphQLErrors as unknown as { detail: string }).detail);
       } else {
         graphQLErrors.map(({ message, locations, path }) => {
           switch (message) {

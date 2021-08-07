@@ -78,8 +78,19 @@
 
 <script lang="ts">
 import { useTransportStore } from "@/store";
-import { computed, defineComponent, onMounted, ref, watch } from "vue";
-import { FolderOutlined, ClearOutlined } from "@ant-design/icons-vue";
+import {
+  computed,
+  createVNode,
+  defineComponent,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
+import {
+  FolderOutlined,
+  ClearOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
 import XTableFiles from "@/components/XTableFiles.vue";
 import XFileTypeIcon from "@/components/XFileTypeIcon.vue";
@@ -89,6 +100,7 @@ import { useRouter } from "vue-router";
 import { apiQueryFileByDir } from "@/apollo/api";
 import { THistoryDirItem } from "@/pages/Metanet/File.vue";
 import { useLocalStorage } from "@vueuse/core";
+import { Modal } from "ant-design-vue";
 
 export default defineComponent({
   name: "TransportHistory",
@@ -176,7 +188,15 @@ export default defineComponent({
           const foundItem = resItem.data?.driveListFiles.find(
             (i) => i && lastOfArray(i.fullName) === item
           );
-          if (!foundItem) throw Error(`${item}-找不到对应目录`);
+          if (!foundItem) {
+            //  throw Error();
+            // { err: `${item}-找不到对应目录` };
+            return {
+              id: "ErrorNotFound",
+              name: "ErrorNotFound",
+              isShared: false,
+            };
+          }
           return {
             id: foundItem.id,
             name: item,
@@ -194,6 +214,17 @@ export default defineComponent({
       if (fullName.length === 1) folderArr = [];
       else {
         folderArr = await getLastItemIdByNameArr(fullName.slice(0, -1));
+      }
+      // 找不到对应的文件夹(用户已经在文件夹列表中删除)
+      if (folderArr.some((item) => item.id === "ErrorNotFound")) {
+        Modal.confirm({
+          icon: createVNode(ExclamationCircleOutlined),
+          content: "文件已被删除,是否清除这条记录?",
+          onOk: () => {
+            transPortStore.clearItem(record.uniqueId);
+          },
+        });
+        return;
       }
       // console.log("folderArr", folderArr);
       router.push({

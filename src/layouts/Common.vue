@@ -1003,6 +1003,21 @@ export default defineComponent({
 .ant-table-row-hover .tableShortcut {
   display: inline-block;
 }
+.ant-table-thead
+  > tr
+  > th.ant-table-column-has-actions.ant-table-column-has-sorters:hover {
+  background: #f7f7f8;
+}
+.ant-table-thead
+  > tr
+  > th
+  .ant-table-header-column
+  .ant-table-column-sorters:hover::before {
+  background: #f7f7f8;
+}
+.ant-table-tbody > tr > td.ant-table-column-sort {
+  background: transparent;
+}
 </style>
 
 <style lang="less" scoped>
