@@ -568,12 +568,12 @@
               </template>
               <a-tooltip v-else >
                 <template #title>
-                  <!-- <div class="text-xs flex items-center">
+                  <div class="text-xs flex items-center">
                     <div class="mr-1">路径:</div>
                     <div>
                       {{ getFileWindowTips(item, "path") }}
                     </div>
-                  </div> -->
+                  </div>
                   <div class="font-12">
                     <span class="mr-1">描述:</span>
                     <template
@@ -598,8 +598,8 @@
                     class="mr-1"
                     v-if="item.icon === 'transport'"
                   />
-                  <!-- {{ $t(`${item.title}`) }} -->
-                  {{ getFileWindowTips(item, "path") }}
+                  {{ $t(`${item.title}`) }}
+                  <!-- {{ getFileWindowTips(item, "path") }} -->
                 </span>
                 <!-- 当只有一个的时候不能关闭 -->
                 <!-- 预留个15.15的box -->

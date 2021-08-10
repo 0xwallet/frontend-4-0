@@ -35,7 +35,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     component: LayoutIndex,
-    redirect: "/metanet/file", // TODO change it
+    redirect: "/metanet/file?id=1", // TODO change it
     // redirect: "/general/metanet", // TODO change it
     children: [
       {
