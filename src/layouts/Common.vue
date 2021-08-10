@@ -566,7 +566,7 @@
                   />
                 </span>
               </template>
-              <a-tooltip v-else >
+              <a-tooltip v-else placement="top">
                 <template #title>
                   <div class="text-xs flex items-center">
                     <div class="mr-1">路径:</div>
@@ -574,18 +574,25 @@
                       {{ getFileWindowTips(item, "path") }}
                     </div>
                   </div>
-                  <div class="font-12">
-                    <span class="mr-1">描述:</span>
-                    <template
-                      v-if="getFileWindowTips(item, 'desc').tagArr.length"
-                    >
-                      <a-tag
-                        color="orange"
-                        v-for="item in getFileWindowTips(item, 'desc').tagArr"
-                        :key="item"
-                        >{{ item }}</a-tag
-                      > </template
-                    >{{ getFileWindowTips(item, "desc").text }}
+                  <div class="font-12 flex items-center">
+                    <div class="mr-1">描述:</div>
+                    <div>
+                      <template
+                        v-if="getFileWindowTips(item, 'desc').tagArr.length"
+                      >
+                        <a-tag
+                          :style="{
+                            height: '16px',
+                            'line-height': '16px',
+                          }"
+                          class="inline-block"
+                          color="orange"
+                          v-for="item in getFileWindowTips(item, 'desc').tagArr"
+                          :key="item"
+                          >{{ item }}</a-tag
+                        > </template
+                      >{{ getFileWindowTips(item, "desc").text }}
+                    </div>
                   </div>
                 </template>
                 <span class="text-xs">

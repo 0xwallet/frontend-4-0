@@ -80,7 +80,12 @@
       </template>
       <template #fileSize="{ record }">
         <div class="text-gray-400">
-          {{ formatBytes(record.fileSize * (record.progress / 100)) }} /
+          {{
+            record.status === "waiting"
+              ? formatBytes(record.fileSize)
+              : formatBytes(record.fileSize * (record.progress / 100))
+          }}
+          /
           {{ formatBytes(record.fileSize) }}
         </div>
       </template>

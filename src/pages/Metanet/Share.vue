@@ -488,9 +488,23 @@ export default defineComponent({
       Modal.confirm({
         // title: "Do you Want to delete these items?",
         title: `是否取消以下分享?`,
-        content: selectedRows.value
-          .map((i) => lastOfArray(i.userFile.fullName))
-          .join(" , "),
+        // content: selectedRows.value
+        //   .map((i) => lastOfArray(i.userFile.fullName))
+        //   .join(" , "),
+        content: createVNode("div", {}, [
+          createVNode(
+            "div",
+            {},
+            selectedRows.value
+              .map((i) => lastOfArray(i.userFile.fullName))
+              .join(" , ")
+          ),
+          createVNode(
+            "div",
+            { class: "mt-2 font-12", style: { color: "red" } },
+            "如果你的分享被取消了， 那么重新分享将会导致原分享收藏者无法访问， 收藏数也会被清零"
+          ),
+        ]),
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
           const resList = await Promise.all(
@@ -545,7 +559,15 @@ export default defineComponent({
       Modal.confirm({
         // title: `是否取消分享${fileName}?`,
         title: `是否取消以下分享?`,
-        content: fileName,
+        // content: fileName,
+        content: createVNode("div", {}, [
+          createVNode("div", {}, fileName),
+          createVNode(
+            "div",
+            { class: "mt-2 font-12", style: { color: "red" } },
+            "如果你的分享被取消了， 那么重新分享将会导致原分享收藏者无法访问， 收藏数也会被清零"
+          ),
+        ]),
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
           const resultDeleteShare = await apiDeleteShare({
