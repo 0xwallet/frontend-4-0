@@ -209,7 +209,7 @@ export default defineComponent({
     }
     /** 打开到所在文件夹 */
     const onRecordOpenDir = async (record: UploadItem) => {
-      console.log("onRecordOpenDir", record);
+      // console.log("onRecordOpenDir", record);
       const fullName = record.fullName;
       let folderArr: THistoryDirItem[];
       if (fullName.length === 1) folderArr = [];

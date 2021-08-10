@@ -23,7 +23,7 @@
       </div>
       <div class="w-2/4">
         <template v-for="(value, key) in detail">
-          <slot :name="key" :value="value">
+          <slot :name="key" :record="detail">
             <a-row class="mb-1" justify="space-between" :key="key">
               <a-col class="ant-color-gray" :span="6">{{
                 formatDetailKey(key)
@@ -48,7 +48,7 @@ import { defineComponent, PropType } from "vue";
 import { XFileTypeIcon } from "@/components";
 
 export type TDetailInfo = {
-  [key: string]: string;
+  [key: string]: any;
 };
 // TODOD 国际化
 const MAP_DETAIL_KEY = {

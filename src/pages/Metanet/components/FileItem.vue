@@ -576,6 +576,14 @@
             v-model:value="createFileModelRef.fileDesc"
           />
         </a-form-item>
+        <a-form-item label="添加标签">
+          <a-tooltip title="多个标签可用 , 隔开" :trigger="['hover', 'click']">
+            <a-input
+              :maxlength="200"
+              v-model:value="createFileModelRef.fileDescTag"
+            />
+          </a-tooltip>
+        </a-form-item>
       </a-form>
     </a-modal>
     <!-- 弹窗 新建文件夹 -->
@@ -613,6 +621,40 @@
             :maxlength="200"
             v-model:value="createFolderModelRef.folderDesc"
           />
+        </a-form-item>
+        <a-form-item label="添加标签">
+          <a-tooltip title="多个标签可用 , 隔开" :trigger="['hover', 'click']">
+            <a-input
+              :maxlength="200"
+              v-model:value="createFolderModelRef.folderDescTag"
+            />
+          </a-tooltip>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+    <!-- 弹窗 - 修改描述 -->
+    <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowEditDescriptionModal"
+      :title="`编辑描述-${editDescriptionModalRef.name}`"
+      :confirmLoading="editDescriptionModalConfirmLoading"
+      @ok="onEditDescriptionModalConfirm"
+    >
+      <!-- <a-form> </a-form> -->
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="编辑描述">
+          <a-input
+            :maxlength="200"
+            v-model:value="editDescriptionModalRef.desc"
+          />
+        </a-form-item>
+        <a-form-item label="编辑标签">
+          <a-tooltip title="多个标签可用 , 隔开" :trigger="['hover', 'click']">
+            <a-input
+              :maxlength="200"
+              v-model:value="editDescriptionModalRef.descTag"
+            />
+          </a-tooltip>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -733,6 +775,33 @@
           </a-col>
         </a-row>
       </template>
+      <template #desc="{ record }">
+        <a-row class="mb-1" justify="space-between">
+          <a-col class="ant-color-gray" :span="6"
+            >描述
+            <a-tooltip title="编辑描述">
+              <a
+                href="javascript:;"
+                class="ml-2"
+                @click="onShowDescriptionModal"
+              >
+                <EditOutlined />
+              </a>
+            </a-tooltip>
+          </a-col>
+          <a-col :span="17">
+            <template v-if="record.desc.tagArr.length">
+              <a-tag
+                v-for="item in record.desc.tagArr"
+                color="orange"
+                :key="item"
+                >{{ item }}</a-tag
+              >
+            </template>
+            {{ record.desc.text }}
+          </a-col>
+        </a-row>
+      </template>
     </ModalDetail>
   </div>
 </template>
@@ -781,6 +850,7 @@ import { useI18n } from "vue-i18n";
 import {
   apiBatchDelete,
   apiCopyFileToDir,
+  apiEditFileDescption,
   apiGetPreviewToken,
   apiMakeDirByPath,
   apiMakeDirByRoot,
@@ -804,8 +874,10 @@ import { message, Modal } from "ant-design-vue";
 import { useBaseStore, useTransportStore, useUserStore } from "@/store";
 import { useDelay } from "@/hooks";
 import {
+  DescObj,
   downloadFileByUrl,
   formatBytes,
+  formatDescription,
   getFileSHA256,
   getFileType,
   lastOfArray,
@@ -842,6 +914,7 @@ type TCreateFile = {
   fileType: "txt" | "markdown";
   fileName: string;
   fileDesc: string;
+  fileDescTag: string;
 };
 type TImport = {
   codeType: "hash" | "txid";
@@ -851,6 +924,7 @@ type TCreateFolder = {
   folderPrefix: "1" | "2";
   folderName: string;
   folderDesc: string;
+  folderDescTag: string;
 };
 type TShareCreate = {
   type: "PUBLIC" | "PRIVATE";
@@ -1685,6 +1759,7 @@ export default defineComponent({
         fileType: "txt", // txt markdown
         fileName: "",
         fileDesc: "",
+        fileDescTag: "",
       });
       const createFileRulesRef = reactive({
         fileName: [
@@ -1704,7 +1779,8 @@ export default defineComponent({
         try {
           await validate();
           // 验证通过
-          const { fileType, fileName, fileDesc } = createFileModelRef;
+          const { fileType, fileName, fileDesc, fileDescTag } =
+            createFileModelRef;
           const isTxt = fileType === "txt";
           const fullFileName = `${fileName}${isTxt ? ".txt" : ".md"}`;
           checkSameFileOrFolderNameByDirId(
@@ -1729,7 +1805,12 @@ export default defineComponent({
               fileHash,
               userId: useUserStore().id,
               space: "PRIVATE",
-              description: fileDesc,
+              description: fileDescTag
+                ? fileDescTag
+                    .split(/,|，/)
+                    .map((i) => `#${i}#`)
+                    .join("") + fileDesc
+                : fileDesc,
               action: "drive",
             });
             createFileModalConfirmLoading.value = false;
@@ -1768,6 +1849,7 @@ export default defineComponent({
         folderPrefix: "1", //1 当前路径 2根目录
         folderName: "",
         folderDesc: "",
+        folderDescTag: "",
       });
       const createFolderRulesRef = reactive({
         folderName: [
@@ -1795,11 +1877,16 @@ export default defineComponent({
           validate()
             .then(() => {
               // 结构不需要toRaw
-              const { folderPrefix, folderName, folderDesc } =
+              const { folderPrefix, folderName, folderDesc, folderDescTag } =
                 createFolderModelRef;
               const isMakeDirByRoot = folderPrefix === "2";
               // console.log("folderPrefix", folderPrefix, isMakeDirByRoot);
-
+              const description = folderDescTag
+                ? folderDescTag
+                    .split(/,|，/)
+                    .map((i) => `#${i}#`)
+                    .join("") + folderDesc
+                : folderDesc;
               if (isMakeDirByRoot) {
                 checkSameFileOrFolderNameByDirId(
                   "folder",
@@ -1808,7 +1895,7 @@ export default defineComponent({
                 ).then(() => {
                   apiMakeDirByRoot({
                     fullName: folderName,
-                    description: folderDesc,
+                    description,
                   }).then(({ err }) => {
                     err ? reject() : onResolvedAndCloseModal();
                   });
@@ -1821,7 +1908,7 @@ export default defineComponent({
                 ).then(() => {
                   apiMakeDirByPath({
                     fullName: folderName,
-                    description: folderDesc,
+                    description,
                     parentId: curFolderId.value,
                   }).then(({ err }) => {
                     err ? reject() : onResolvedAndCloseModal();
@@ -1973,6 +2060,62 @@ export default defineComponent({
     //     onResetImportModalForm
     //   };
     // }
+
+    const isShowEditDescriptionModal = ref(false);
+    const editDescriptionModalConfirmLoading = ref(false);
+    const editDescriptionModalRef = reactive({
+      name: "",
+      fileId: "",
+      desc: "",
+      descTag: "",
+    });
+    const onResetEditDescriptionModal = () => {
+      editDescriptionModalRef.name = "";
+      editDescriptionModalRef.fileId = "";
+      editDescriptionModalRef.desc = "";
+      editDescriptionModalRef.descTag = "";
+    };
+    /** 弹窗 修改描述 */
+    function useEditDescriptionModal() {
+      const onEditDescriptionModalConfirm = async () => {
+        const { fileId, desc, descTag } = editDescriptionModalRef;
+        if (!fileId) return;
+        editDescriptionModalConfirmLoading.value = true;
+        const res = await apiEditFileDescption({
+          userFileId: editDescriptionModalRef.fileId,
+          description: descTag
+            ? descTag
+                .split(/,|，/)
+                .map((i) => `#${i}#`)
+                .join("") + desc
+            : desc,
+        });
+        editDescriptionModalConfirmLoading.value = false;
+        if (res.err) {
+          message.warning(res.err.message);
+          return;
+        }
+        isShowEditDescriptionModal.value = false;
+        // 编辑成功后立马修改弹窗里的信息
+        currenDetailInfo.value.desc = formatDescription(
+          res.data.driveEditDescription.info.description
+        );
+        // 还要刷新列表, 因为详情是从列表拿的
+        // 如果不刷新的话,再次点开弹窗依然是修改前的状态
+        getAndSetTableDataFn(curFolderId.value);
+        message.success("编辑成功!");
+        // 重置挪到了关闭详情弹窗的时候,因为可能在已经打开详情窗口的情况下再次编辑
+        // onResetEditDescriptionModal();
+      };
+
+      return {
+        isShowEditDescriptionModal,
+        editDescriptionModalConfirmLoading,
+        editDescriptionModalRef,
+        onEditDescriptionModalConfirm,
+        onResetEditDescriptionModal,
+      };
+    }
     /** action 里对record的操作 */
     function useActions() {
       /** 分享 */
@@ -2019,6 +2162,13 @@ export default defineComponent({
       };
       // 详情
       const onRecordDetail = (record: TFileItem) => {
+        const formatedDescObj = formatDescription(record.info.description);
+        // 点击详情的时候设置编辑描述的弹窗里的内容 -star
+        editDescriptionModalRef.name = lastOfArray(record.fullName);
+        editDescriptionModalRef.fileId = record.id;
+        editDescriptionModalRef.desc = formatedDescObj.text;
+        editDescriptionModalRef.descTag = formatedDescObj.tagArr.join(",");
+        // 点击详情的时候设置编辑描述的弹窗里的内容 -end]
         currenDetailInfo.value = {
           name: lastOfArray(record.fullName),
           location:
@@ -2040,7 +2190,7 @@ export default defineComponent({
             ).toFixed(3) + "%",
           insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
           updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
-          desc: record.info.description || "无",
+          desc: formatedDescObj,
         };
         isShowDetailModal.value = true;
       };
@@ -2354,7 +2504,7 @@ export default defineComponent({
                 const curFileWindowId = route.fullPath.split("=")[1];
                 baseStore.setWindowIdItem(+curFileWindowId, {
                   path: historyDir.value.map((i) => i.name).join("/"),
-                  tag: obj.info.description ? [obj.info.description] : [],
+                  desc: formatDescription(obj.info.description),
                 });
                 return null;
               }
@@ -2437,6 +2587,15 @@ export default defineComponent({
     /** 当前详情数据 */
     const currenDetailInfo = ref<TDetailInfo>({});
     const isShowDetailModal = ref(false);
+    watch(
+      () => isShowDetailModal.value,
+      (newVal) => {
+        // 如果详情弹窗关闭了, 清空 编辑描述 的内容
+        if (newVal === false) {
+          onResetEditDescriptionModal();
+        }
+      }
+    );
     /** 详情数据 */
     function useModalDetail() {
       /** 显示网盘详情 */
@@ -2466,6 +2625,10 @@ export default defineComponent({
         });
         isShowDetailModal.value = true;
       };
+      /** 点击详情里的编辑描述 */
+      const onShowDescriptionModal = () => {
+        isShowEditDescriptionModal.value = true;
+      };
       // 关闭弹窗时清空数据
       watch(
         () => isShowDetailModal.value,
@@ -2477,6 +2640,7 @@ export default defineComponent({
       );
       return {
         currenDetailInfo,
+        onShowDescriptionModal,
         isShowDetailModal,
         onShowDiskDetail,
       };
@@ -2492,6 +2656,7 @@ export default defineComponent({
       ...useCreateFileModal(),
       ...useCreateFolderModal(),
       // ...useImportModal(),
+      ...useEditDescriptionModal(),
       ...useActions(),
       ...useTableData(),
       ...useModalDetail(),

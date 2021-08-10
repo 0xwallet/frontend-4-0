@@ -102,7 +102,8 @@ export default defineStore({
       const storageList = localStorage.getItem(SUCCESS_STORAGE_KEY);
       const list: UploadItem[] = storageList ? JSON.parse(storageList) : [];
       list.forEach((item) => {
-        this.uploadHashMap[item.uniqueId] = item;
+        // 凡是从本地缓存里读取的, roundId要设为-1
+        this.uploadHashMap[item.uniqueId] = { ...item, roundId: -1 };
       });
     },
     plusCurRoundId() {
@@ -191,10 +192,10 @@ export default defineStore({
           channel.off("file_uploaded", removeListener);
           resolve({
             data: undefined,
-            err: `60s内未返回ws确认hash`,
+            err: `2分钟内内未返回ws确认hash`,
           });
           clearTimeout(timer);
-        }, 60000);
+        }, 60000 * 2);
       });
     },
     setUploadItemByAssign(uniqueId: string, payLoad: Partial<UploadItem>) {
@@ -286,12 +287,14 @@ export default defineStore({
       // console.log("resultUploadSingle", resultUploadSingle);
       if (resultUploadSingle.err) {
         const errMsg = resultUploadSingle.err.message;
-        this.setUploadItemProgressSpeedStatus(
-          uniqueId,
-          this.uploadHashMap[uniqueId].progress,
-          0,
-          errMsg === "任务暂停" ? "pause" : "failed"
-        );
+        if (this.uploadHashMap[uniqueId]) {
+          this.setUploadItemProgressSpeedStatus(
+            uniqueId,
+            this.uploadHashMap[uniqueId].progress,
+            0,
+            errMsg === "任务暂停" ? "pause" : "failed"
+          );
+        }
         return { err: resultUploadSingle.err };
       }
       // 非秒传成功 的要等websocket 返回确认信息

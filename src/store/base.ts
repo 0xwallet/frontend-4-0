@@ -1,9 +1,10 @@
 import { MAX_FILEITEM_COUNT } from "@/constants";
+import { DescObj } from "@/utils";
 import { defineStore } from "pinia";
 
 type FileWindowItem = {
   path: string;
-  tag: string[];
+  desc: DescObj;
 };
 type BaseState = {
   isShowLoginModal: boolean;
@@ -35,7 +36,7 @@ export default defineStore({
       if (v === "default") {
         this.fileWindow[id] = {
           path: "~",
-          tag: [""],
+          desc: { tagArr: [], text: "" },
         };
       } else {
         this.fileWindow[id] = v;

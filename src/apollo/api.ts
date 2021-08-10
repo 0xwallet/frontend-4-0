@@ -287,6 +287,32 @@ export const apiQueryFileByDir = async (
     return { err };
   }
 };
+type ParamsEditFileDescption = {
+  description: string;
+  userFileId: string;
+};
+type ResponseEditFileDescption = {
+  driveEditDescription: {
+    info: {
+      description: string | null;
+    };
+  };
+};
+/** 网盘-修改文件(夹)描述 */
+export const apiEditFileDescption = async (
+  params: ParamsEditFileDescption
+): TApiRes<ResponseEditFileDescption> => {
+  try {
+    const data = await useApollo<ResponseEditFileDescption>({
+      mode: "mutate",
+      gql: NetFile_Basic.driveEditDescription,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
 
 export type ParamsUploadSingle = {
   // file: File;
@@ -344,12 +370,7 @@ export const apiUploadSingle = async (
         : 0;
     };
     // 从初始的 排队 状态切换为上传状态
-    params.setProgressSpeedStatus(
-      uniqueId,
-      getCurProgres(),
-      0,
-      "uploading"
-    );
+    params.setProgressSpeedStatus(uniqueId, getCurProgres(), 0, "uploading");
   }
   // 1. 先调秒传
   // const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
@@ -462,6 +483,42 @@ export const apiUploadSingle = async (
   const startTime = dayjs();
   let diffSeconds = 0;
   let toSetBytesPerSecond = 0;
+  const timerSpeed = window.setInterval(() => {
+    if (!params.setProgressSpeedStatus) {
+      clearInterval(timerSpeed);
+      return;
+    }
+    if (clientSession.isClosed || isCurrentUploadStatusPause()) {
+      clearInterval(timerSpeed);
+      return;
+    }
+    // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
+    const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
+    if (toSetProgressVal < 98) {
+      const curDiffSeconds = dayjs().diff(startTime, "second");
+      if (curDiffSeconds > diffSeconds) {
+        toSetBytesPerSecond = hadSendLen / dayjs().diff(startTime, "second");
+        diffSeconds = curDiffSeconds;
+      }
+      params.setProgressSpeedStatus(
+        uniqueId,
+        toSetProgressVal,
+        toSetBytesPerSecond,
+        clientSession.isClosed || isCurrentUploadStatusPause()
+          ? "pause"
+          : "uploading"
+      );
+    } else {
+      params.setProgressSpeedStatus(
+        uniqueId,
+        98,
+        0,
+        "waiting" // 等待ws 返回确认
+      );
+      clearInterval(timerSpeed);
+    }
+  }, 1000);
+
   try {
     while (startLen <= maxSendLength) {
       if (clientSession.isClosed || isCurrentUploadStatusPause()) {
@@ -487,33 +544,33 @@ export const apiUploadSingle = async (
       startLen += MAX_MTU;
       hadSendLen += MAX_MTU;
       // 设置进度 start
-      if (params.setProgressSpeedStatus) {
-        // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
-        const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
-        if (toSetProgressVal < 98) {
-          const curDiffSeconds = dayjs().diff(startTime, "second");
-          if (curDiffSeconds > diffSeconds) {
-            toSetBytesPerSecond =
-              hadSendLen / dayjs().diff(startTime, "second");
-            diffSeconds = curDiffSeconds;
-          }
-          params.setProgressSpeedStatus(
-            uniqueId,
-            toSetProgressVal,
-            toSetBytesPerSecond,
-            clientSession.isClosed || isCurrentUploadStatusPause()
-              ? "pause"
-              : "uploading"
-          );
-        } else {
-          params.setProgressSpeedStatus(
-            uniqueId,
-            98,
-            0,
-            "waiting" // 等待ws 返回确认
-          );
-        }
-      }
+      // if (params.setProgressSpeedStatus) {
+      //   // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
+      //   const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
+      //   if (toSetProgressVal < 98) {
+      //     const curDiffSeconds = dayjs().diff(startTime, "second");
+      //     if (curDiffSeconds > diffSeconds) {
+      //       toSetBytesPerSecond =
+      //         hadSendLen / dayjs().diff(startTime, "second");
+      //       diffSeconds = curDiffSeconds;
+      //     }
+      //     params.setProgressSpeedStatus(
+      //       uniqueId,
+      //       toSetProgressVal,
+      //       toSetBytesPerSecond,
+      //       clientSession.isClosed || isCurrentUploadStatusPause()
+      //         ? "pause"
+      //         : "uploading"
+      //     );
+      //   } else {
+      //     params.setProgressSpeedStatus(
+      //       uniqueId,
+      //       98,
+      //       0,
+      //       "waiting" // 等待ws 返回确认
+      //     );
+      //   }
+      // }
       // 设置进度 end
     }
     // console.log("escape while loop", startLen, maxSendLength);

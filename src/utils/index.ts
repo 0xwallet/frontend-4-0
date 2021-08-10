@@ -1,5 +1,3 @@
-import SHA256 from "crypto-js/sha256";
-import WordArray from "crypto-js/lib-typedarrays";
 import { classMultiClient, TSession } from "nkn";
 import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
 
@@ -18,9 +16,33 @@ export const formatBytes = (bytes: number, decimals = 1): string => {
 
 /** 计算文件的sha256 哈希值,跟后端算法一样 */
 export const getFileSHA256 = async (file: File): Promise<string> => {
+  const timeTag = `计算文件-${file.name}-hash时间`;
+  console.time(timeTag);
   const data = await file.arrayBuffer();
-  const wordArray = WordArray.create(data as unknown as number[]);
-  return SHA256(wordArray).toString();
+  // hash the message
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  // convert ArrayBuffer to Array
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // convert bytes to hex string
+  const hashHex = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  console.timeEnd(timeTag);
+  // console.log("hashHex", hashHex);
+  return hashHex;
+};
+
+export type DescObj = {
+  tagArr: string[];
+  text: string;
+};
+/** 格式化描述信息,区分tag和普通文字 */
+export const formatDescription = (sourceDesc: string | null): DescObj => {
+  if (sourceDesc === null) return { tagArr: [], text: "" };
+  // maybe length = 0
+  const tagArr = [...sourceDesc.matchAll(/#(.*?)#/g)].map((i) => i[1].trim());
+  const text = sourceDesc.replace(/#(.*?)#/g, "");
+  return { tagArr, text };
 };
 
 /** 根据isDir/ 文件名后缀返回文件类型 */
