@@ -291,7 +291,7 @@ import {
   LoadingOutlined,
   WarningFilled,
 } from "@ant-design/icons-vue";
-import { TDir } from "./File.vue";
+import { TDir } from "./components/FileItem.vue";
 import { useBaseStore, useUserStore } from "@/store";
 
 export default defineComponent({

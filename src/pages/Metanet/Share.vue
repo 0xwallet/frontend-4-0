@@ -49,10 +49,10 @@
           <a
             href="javascript:;"
             class="ml-2"
-            :title="record.userFile.fullName[0]"
+            :title="$lastOfArray(record.userFile.fullName)"
             @click="onClickTableItemName(record)"
           >
-            {{ record.userFile.fullName[0] }}
+            {{ $lastOfArray(record.userFile.fullName) }}
           </a>
           <!-- hover 才显示的shortCut栏 -->
           <!-- 非上级目录 -->
@@ -202,6 +202,7 @@ import dayjs from "dayjs";
 import {
   apiDeleteShare,
   apiEditShare,
+  apiQueryFileByDir,
   apiQueryShareFileList,
   apiShareCreate,
   QueryShareFileItem,
@@ -217,9 +218,9 @@ import {
 } from "@/utils";
 import { cloneDeep } from "lodash-es";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
-import { useUserStore } from "@/store";
+import { useBaseStore, useUserStore } from "@/store";
 import { useClipboard } from "@vueuse/core";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useForm } from "@ant-design-vue/use";
 
@@ -248,6 +249,8 @@ export default defineComponent({
     const { t } = useI18n();
     const tableLoading = ref(false);
     const userStore = useUserStore();
+    const baseStore = useBaseStore();
+    const router = useRouter();
     const route = useRoute();
     // 名称	创建时间	有效期	访问码	操作
     const columns = [
@@ -353,17 +356,15 @@ export default defineComponent({
       }
       tableData.value = result.data.driveListShares
         .filter(
-          // userFile 不为空 且在有效期内
+          // userFile 不为空
           (i): i is TTableShareFileItem => i.userFile !== null
         )
         .map((i) => {
           const obj = cloneDeep(i);
-          // 保留最后一项作为名称
-          obj.userFile.fullName = i.userFile.fullName.slice(-1);
           // 获取类型
           obj.userFile.fileType = getFileType({
             isDir: obj.userFile.isDir,
-            fileName: obj.userFile.fullName[0],
+            fileName: lastOfArray(obj.userFile.fullName),
           });
           obj.code = obj.code ?? "无";
           return obj;
@@ -371,7 +372,7 @@ export default defineComponent({
         .sort((a, b) => (a.userFile.isDir ? -1 : 1));
     };
     onActivated(() => {
-      console.log("onActivated-分享页");
+      // console.log("onActivated-分享页");
       // 这里根据文件应用跳转过来的id 去默认选中表格
       const paramsId = route.params.id as string;
       if (paramsId) {
@@ -391,9 +392,65 @@ export default defineComponent({
           }
         });
     });
+    /** 根据目录数组返回包含id 的对象 */
+    async function getLastItemIdByNameArr(nameArr: string[]) {
+      // console.log("call-getLastItemIdByNameArr", nameArr);
+      try {
+        const resultOfAll = await Promise.all(
+          nameArr.map(async (item, idx) => {
+            const resItem = await apiQueryFileByDir(
+              // 查询上级目录
+              idx === 0
+                ? {
+                    dirId: "root",
+                  }
+                : {
+                    fullName: nameArr.slice(0, idx),
+                  }
+            );
+            const foundItem = resItem.data?.driveListFiles.find(
+              (i) => i && lastOfArray(i.fullName) === item
+            );
+            if (!foundItem) {
+              //  throw Error();
+              // { err: `${item}-找不到对应目录` };
+              return {
+                id: "ErrorNotFound",
+                name: "ErrorNotFound",
+                isShared: false,
+              };
+            }
+            return {
+              id: foundItem.id,
+              name: item,
+              isShared: foundItem.isShared,
+            };
+          })
+        );
+        return resultOfAll;
+      } catch (err) {
+        console.log("getLastItemIdByNameArr-err", err);
+      }
+    }
     /** 表格里名字的点击 */
-    const onClickTableItemName = (record: TTableShareFileItem) => {
+    const onClickTableItemName = async (record: TTableShareFileItem) => {
       console.log("clicktablename", record);
+      if (record.userFile.isDir) {
+        const folderArr = await getLastItemIdByNameArr(
+          record.userFile.fullName
+        );
+        // console.log("folderArr", folderArr);
+        const windowId = baseStore.getNewOpenWindowId();
+        router.push({
+          name: "MetanetFile",
+          query: {
+            id: windowId,
+          },
+          params: {
+            folderArrStr: JSON.stringify(folderArr),
+          },
+        });
+      }
     };
     /** 批量复制 */
     const onBatchCopy = () => {
@@ -430,7 +487,10 @@ export default defineComponent({
       }
       Modal.confirm({
         // title: "Do you Want to delete these items?",
-        title: `是否取消${len}个分享?`,
+        title: `是否取消以下分享?`,
+        content: selectedRows.value
+          .map((i) => lastOfArray(i.userFile.fullName))
+          .join(" , "),
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
           const resList = await Promise.all(
@@ -439,7 +499,7 @@ export default defineComponent({
           resList.forEach(
             (resItem) => resItem.err && message.warning(resItem.err.message)
           );
-          message.success(t("metanet.deleted"));
+          message.success("操作成功");
           onRefreshTableData();
         },
       });
@@ -481,9 +541,11 @@ export default defineComponent({
     /** 表格里单项取消分享 */
     const onRecordCancel = (record: TTableShareFileItem) => {
       console.log("onRecordCancel", record);
-      const fileName = record.userFile.fullName[0];
+      const fileName = lastOfArray(record.userFile.fullName);
       Modal.confirm({
-        title: `是否取消分享${fileName}`,
+        // title: `是否取消分享${fileName}?`,
+        title: `是否取消以下分享?`,
+        content: fileName,
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
           const resultDeleteShare = await apiDeleteShare({

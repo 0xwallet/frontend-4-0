@@ -77,7 +77,7 @@
 </template>
 
 <script lang="ts">
-import { useTransportStore } from "@/store";
+import { useBaseStore, useTransportStore } from "@/store";
 import {
   computed,
   createVNode,
@@ -98,7 +98,7 @@ import { formatBytes, lastOfArray } from "@/utils";
 import { UploadItem } from "@/store/transport";
 import { useRouter } from "vue-router";
 import { apiQueryFileByDir } from "@/apollo/api";
-import { THistoryDirItem } from "@/pages/Metanet/File.vue";
+import { THistoryDirItem } from "@/pages/Metanet/components/FileItem.vue";
 import { useLocalStorage } from "@vueuse/core";
 import { Modal } from "ant-design-vue";
 
@@ -115,6 +115,7 @@ export default defineComponent({
     const { t } = useI18n();
     const router = useRouter();
     const transPortStore = useTransportStore();
+    const baseStore = useBaseStore();
     // 测试用个
     // transPortStore.uploadHashMap["222"] = {
     //   fileHash: "222",
@@ -227,8 +228,12 @@ export default defineComponent({
         return;
       }
       // console.log("folderArr", folderArr);
+      const windowId = baseStore.getNewOpenWindowId();
       router.push({
         name: "MetanetFile",
+        query: {
+          id: windowId,
+        },
         params: {
           folderArrStr: JSON.stringify(folderArr),
         },

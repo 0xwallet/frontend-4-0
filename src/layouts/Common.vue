@@ -497,7 +497,15 @@
           </div>
           <!-- tabbar -->
           <nav
-            class="border-t border-gray-100 bg-white px-6 h-9 flex items-center"
+            class="
+              border-t border-gray-100
+              bg-white
+              px-6
+              py-1
+              pt-2
+              flex flex-wrap
+              items-center
+            "
           >
             <!-- 激活状态 hover 状态  关闭按钮(hover放大) -->
             <div
@@ -513,13 +521,14 @@
                 pr-1
                 cursor-pointer
                 mr-2
+                mb-1
               "
               :class="{
                 navTabBox: item.routeName !== 'Dashboard',
-                'border-transparent': activeNavKey === item.title,
-                'bg-blue-600': activeNavKey === item.title,
-                'text-white': activeNavKey === item.title,
-                'border-gray-200': activeNavKey !== item.title,
+                'border-transparent': activeNavKey === item.routePath,
+                'bg-blue-600': activeNavKey === item.routePath,
+                'text-white': activeNavKey === item.routePath,
+                'border-gray-200': activeNavKey !== item.routePath,
               }"
               :style="{
                 transition: '.3s',
@@ -527,34 +536,81 @@
                 'line-height': '20px',
               }"
             >
-              <span class="text-xs">
-                <PieChartOutlined
-                  class="mr-1"
-                  v-if="item.icon === 'dashboard'"
-                />
-                <FolderOutlined class="mr-1" v-if="item.icon === 'metanet'" />
-                <CloudUploadOutlined
-                  class="mr-1"
-                  v-if="item.icon === 'transport'"
-                />
-                {{ $t(`${item.title}`) }}
-              </span>
-              <!-- 当只有一个的时候不能关闭 -->
-              <!-- 预留个15.15的box -->
-              <span class="inline-block w-3.5 h-3.5">
-                <!-- && activeNavKey === item -->
-                <CloseOutlined
-                  v-if="navList.length > 1"
-                  @click.stop="onCloseNavItem(item.title)"
-                  class="
-                    navItemClose
-                    text-xs
-                    transform
-                    scale-75
-                    hover:scale-100
-                  "
-                />
-              </span>
+              <template v-if="!item.routePath.includes('/metanet/file')">
+                <span class="text-xs">
+                  <PieChartOutlined
+                    class="mr-1"
+                    v-if="item.icon === 'dashboard'"
+                  />
+                  <FolderOutlined class="mr-1" v-if="item.icon === 'metanet'" />
+                  <CloudUploadOutlined
+                    class="mr-1"
+                    v-if="item.icon === 'transport'"
+                  />
+                  {{ $t(`${item.title}`) }}
+                </span>
+                <!-- 当只有一个的时候不能关闭 -->
+                <!-- 预留个15.15的box -->
+                <span class="inline-block w-3.5 h-3.5">
+                  <!-- && activeNavKey === item -->
+                  <CloseOutlined
+                    v-if="navList.length > 1"
+                    @click.stop="onCloseNavItem(item.routePath)"
+                    class="
+                      navItemClose
+                      text-xs
+                      transform
+                      scale-75
+                      hover:scale-100
+                    "
+                  />
+                </span>
+              </template>
+              <a-tooltip v-else color="blue">
+                <template #title>
+                  <!-- <div class="text-xs flex items-center">
+                    <div class="mr-1">路径:</div>
+                    <div>
+                      {{ getFileWindowTips(item, "path") }}
+                    </div>
+                  </div> -->
+                  <div class="font-12">
+                    <span class="mr-1">描述:</span>
+                    <span>
+                      {{ getFileWindowTips(item, "tag") || "无" }}
+                    </span>
+                  </div>
+                </template>
+                <span class="text-xs">
+                  <PieChartOutlined
+                    class="mr-1"
+                    v-if="item.icon === 'dashboard'"
+                  />
+                  <FolderOutlined class="mr-1" v-if="item.icon === 'metanet'" />
+                  <CloudUploadOutlined
+                    class="mr-1"
+                    v-if="item.icon === 'transport'"
+                  />
+                  <!-- {{ $t(`${item.title}`) }} -->
+                  {{ getFileWindowTips(item, "path") }}
+                </span>
+                <!-- 当只有一个的时候不能关闭 -->
+                <!-- 预留个15.15的box -->
+                <span class="inline-block w-3.5 h-3.5">
+                  <!-- && activeNavKey === item -->
+                  <CloseOutlined
+                    v-if="navList.length > 1"
+                    @click.stop="onCloseNavItem(item.routePath)"
+                    class="
+                      navItemClose
+                      text-xs
+                      transform
+                      scale-75
+                      hover:scale-100
+                    "
+                  />
+                </span>
+              </a-tooltip>
             </div>
           </nav>
         </a-layout-header>
@@ -604,8 +660,8 @@ import { useRoute, useRouter } from "vue-router";
 import { NKN_SUB_CLIENT_COUNT, PRODUCT_NAME } from "@/constants";
 import { useSvgWhiteLogo } from "@/hooks";
 import { XLocaleSwither } from "@/components";
-import { useTransportStore, useUserStore } from "@/store";
-import { Modal } from "ant-design-vue";
+import { useBaseStore, useTransportStore, useUserStore } from "@/store";
+import { message, Modal } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 
 type TMenuSelect = {
@@ -658,6 +714,7 @@ export default defineComponent({
     const { t } = useI18n();
     const transPortStore = useTransportStore();
     const userStore = useUserStore();
+    const baseStore = useBaseStore();
     // console.log("router", router);
     /** logo区域 */
     function useSvgLogo() {
@@ -725,8 +782,21 @@ export default defineComponent({
           }
           // 控制tab 栏
           const newRouteTitle = newRoute.meta.title as string;
-          activeNavKey.value = newRouteTitle;
-          if (!navList.some((v) => v.title === newRouteTitle)) {
+          activeNavKey.value = fullPath;
+          // console.log("newRouteTitle", newRouteTitle);
+          // 控制最大文件窗口数量
+          // console.log(
+          //   "baseStore.activeFileWindowCount",
+          //   baseStore.activeFileWindowCount
+          // );
+          // 否则文件窗口可以一直创建
+          // console.log("---", navList, fullPath);
+          if (
+            // newRouteTitle === "metanet.file" ||
+            // !navList.some((v) => v.title === newRouteTitle)
+            !navList.some((i) => i.routePath === fullPath)
+          ) {
+            // console.log("run-inside");
             const newRouteName = newRoute.name as string;
             // console.log("newRouteName", newRouteName);
             const item: TNavItem = {
@@ -780,11 +850,20 @@ export default defineComponent({
         const toRoute = "/" + keyPath.reverse().join("/");
         // /metanet/file
         // console.log("toRouwte", toRoute, route);
-        if (toRoute !== route.path) {
-          // console.log("router.push", item);
-          // /general/account
-          // router.push 会自动判断与当前页面是否重复
-          router.push(toRoute);
+        // 新开文件tab
+        if (toRoute === "/metanet/file") {
+          // 要打开的窗口id
+          const windowId = baseStore.getNewOpenWindowId();
+          // console.log(`左菜单栏点击的,获取的还未激活的windoId,${windowId}`);
+          router.push(`${toRoute}?id=${windowId}`);
+          return;
+        } else {
+          if (toRoute !== route.fullPath) {
+            // console.log("router.push", item);
+            // /general/account
+            // router.push 会自动判断与当前页面是否重复
+            router.push(toRoute);
+          }
         }
       };
       return {
@@ -854,30 +933,52 @@ export default defineComponent({
         // router.push()
         // console.log("onClickNavTab", item);
         // 如果不是当前的路由的tab , 就跳转
-        if (item.title !== route.meta.title) {
+        if (item.routePath !== route.fullPath) {
           router.push(item.routePath);
         }
       };
-      const onCloseNavItem = (itemTitle: string) => {
-        // console.log("onCloseNavItem", itemTitle, activeNavKey.value);
+      const onCloseNavItem = (itemRouteFullPath: string) => {
+        // console.log("onCloseNavItem", itemRouteFullPath, activeNavKey.value);
         // 1 如果关闭的是当前,路由到上一个且数组移除
         // 2 如果关闭的是其他,直接数组移除
-        if (itemTitle === activeNavKey.value) {
+        // metanet/file
+        if (itemRouteFullPath === activeNavKey.value) {
           // router.push;
           if (navList.length > 1) {
-            const foundIndex = navList.findIndex((v) => v.title === itemTitle);
-            remove(navList, (v) => v.title === itemTitle);
+            const foundIndex = navList.findIndex(
+              (v) => v.routePath === itemRouteFullPath
+            );
+            console.log("foundIndex", foundIndex);
+            remove(navList, (v) => v.routePath === itemRouteFullPath);
+            if (itemRouteFullPath.includes("metanet/file")) {
+              // 如果关闭的是文件窗口, 需要重置对应的窗口id
+              const toResetWindowId = +itemRouteFullPath.split("=")?.[1];
+              baseStore.setWindowIdItem(toResetWindowId, null);
+            }
             const toRoutePath =
               foundIndex > 0
                 ? // 代表有前一项,push 到前一项
                   navList[foundIndex - 1].routePath
                 : // 没有前一项,push用下一项(也就是删除后的foundIndex的位置)
                   navList[foundIndex].routePath;
+            console.log("-----------", toRoutePath);
             router.push(toRoutePath);
           }
         } else {
-          remove(navList, (v) => v.title === itemTitle);
+          remove(navList, (v) => v.routePath === itemRouteFullPath);
+          if (itemRouteFullPath.includes("metanet/file")) {
+            // 如果关闭的是文件窗口, 需要重置对应的窗口id
+            const toResetWindowId = +itemRouteFullPath.split("=")?.[1];
+            baseStore.setWindowIdItem(toResetWindowId, null);
+          }
         }
+      };
+      /** 获取文件窗口id 的路径或者描述信息 */
+      const getFileWindowTips = (item: TNavItem, type: "path" | "tag") => {
+        const windowId = item.routePath.split("=")?.[1];
+        return type === "path"
+          ? baseStore.fileWindow[windowId]?.path || ""
+          : baseStore.fileWindow[windowId]?.tag.join(",") || "";
       };
       /** 上传中的数量 */
       const uploadingCount = computed(() => {
@@ -901,22 +1002,23 @@ export default defineComponent({
       // ];
       const mapPathToName = (path: string) => {
         // console.log("mappath", path);
-        if (path === "/metanet/file") return "MetanetFile";
-        if (path === "/metanet/share") return "MetanetShare";
-        if (path === "/metanet/publish") return "MetanetPublish";
-        if (path === "/metanet/collect") return "MetanetCollect";
-        if (path === "/metanet/recycle") return "MetanetRecycle";
+        if (path.includes("/metanet/file")) return "MetanetFile";
+        if (path.includes("/metanet/share")) return "MetanetShare";
+        if (path.includes("/metanet/publish")) return "MetanetPublish";
+        if (path.includes("/metanet/collect")) return "MetanetCollect";
+        if (path.includes("/metanet/recycle")) return "MetanetRecycle";
         if (path.includes("/metanet/sharedFile")) return "MetanetSharedFile";
-        if (path === "/transport/uploading") return "TransportUpLoading";
-        if (path === "/metanet/uploadHistory") return "TransportHistory";
-        if (path === "/metanet/peerTransfer") return "TransportPeerTransfer";
+        if (path.includes("/transport/uploading")) return "TransportUpLoading";
+        if (path.includes("/metanet/uploadHistory")) return "TransportHistory";
+        if (path.includes("/metanet/peerTransfer"))
+          return "TransportPeerTransfer";
         else return "";
       };
       const keepAliveList = computed(() => {
         const arr = navList
           .filter((i) => !i.routePath.includes("dashboard"))
           .map((i) => mapPathToName(i.routePath));
-        // console.log("keepAliveList", arr);
+        // console.log("common-keepAliveList", arr);
         return arr;
       });
       return {
@@ -924,6 +1026,7 @@ export default defineComponent({
         navList,
         onClickNavTab,
         onCloseNavItem,
+        getFileWindowTips,
         uploadingCount,
         uploadSuccessCount,
         keepAliveList,
@@ -977,7 +1080,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style lang="less">
 #global-layout-component .trigger {
   font-size: 18px;
   /* line-height: 54px; */
@@ -1003,6 +1106,7 @@ export default defineComponent({
 .ant-table-row-hover .tableShortcut {
   display: inline-block;
 }
+/* 表格加了排序后,hover表头不变色 -start */
 .ant-table-thead
   > tr
   > th.ant-table-column-has-actions.ant-table-column-has-sorters:hover {
@@ -1017,6 +1121,36 @@ export default defineComponent({
 }
 .ant-table-tbody > tr > td.ant-table-column-sort {
   background: transparent;
+}
+/* 表格加了排序后,hover表头不变色 -end */
+#uploadDrawer {
+  .ant-drawer-close {
+    // color: yellow;
+    // 这个 48 根据实测, 关联headerStyle的padding变动
+    width: 47px;
+    height: 47px;
+    line-height: 47px;
+  }
+}
+
+.copyMoveModalRow > td {
+  cursor: pointer;
+  border: none !important;
+  // border-bottom: 1px solid #eff2f9;
+}
+
+.copyMoveModalRowActive > td {
+  background: #bae7ff;
+}
+
+.shortcutButton {
+  cursor: pointer;
+  font-size: 17px;
+  color: #1890ff;
+  opacity: 0.5;
+  &:hover {
+    opacity: 1;
+  }
 }
 </style>
 

@@ -40,7 +40,7 @@ export const getFileLocation = (fileFullName: string[]): string => {
   // dist 556.jpg
   const arr = fileFullName;
   if (arr.length === 1) return "~";
-  return "~" + arr.join("/") + "/";
+  return "~/" + arr.join("/");
 };
 
 /** 根据分享文件的uri,code 拼接成分享链接,code可能是无或空字符串 */

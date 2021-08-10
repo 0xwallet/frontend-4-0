@@ -19,3 +19,5 @@ export const MAX_MTU = 1024 * 20;
 export const NKN_SUB_CLIENT_COUNT = 4;
 /** 表示 [header长度] 的uint8Array 的长度 */
 export const LEN_OF_HEADER_U8_LENGTH = 4;
+/** 最多打开的窗口数量 */
+export const MAX_FILEITEM_COUNT = 100;
