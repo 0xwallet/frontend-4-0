@@ -434,7 +434,7 @@ export default defineComponent({
     }
     /** 表格里名字的点击 */
     const onClickTableItemName = async (record: TTableShareFileItem) => {
-      console.log("clicktablename", record);
+      // console.log("clicktablename", record);
       if (record.userFile.isDir) {
         const folderArr = await getLastItemIdByNameArr(
           record.userFile.fullName

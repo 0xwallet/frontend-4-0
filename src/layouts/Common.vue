@@ -955,7 +955,7 @@ export default defineComponent({
             const foundIndex = navList.findIndex(
               (v) => v.routePath === itemRouteFullPath
             );
-            console.log("foundIndex", foundIndex);
+            // console.log("foundIndex", foundIndex);
             remove(navList, (v) => v.routePath === itemRouteFullPath);
             if (itemRouteFullPath.includes("metanet/file")) {
               // 如果关闭的是文件窗口, 需要重置对应的窗口id
@@ -968,7 +968,7 @@ export default defineComponent({
                   navList[foundIndex - 1].routePath
                 : // 没有前一项,push用下一项(也就是删除后的foundIndex的位置)
                   navList[foundIndex].routePath;
-            console.log("-----------", toRoutePath);
+            // console.log("-----------", toRoutePath);
             router.push(toRoutePath);
           }
         } else {
