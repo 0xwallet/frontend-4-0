@@ -571,18 +571,11 @@
           />
         </a-form-item>
         <a-form-item :label="$t('metanet.addDesc')">
-          <a-input
+          <a-textarea
+            placeholder="可用两个#来表示标签, 例如#标签1#"
             :maxlength="200"
             v-model:value="createFileModelRef.fileDesc"
           />
-        </a-form-item>
-        <a-form-item label="添加标签">
-          <a-tooltip title="多个标签可用 , 隔开" :trigger="['hover', 'click']">
-            <a-input
-              :maxlength="200"
-              v-model:value="createFileModelRef.fileDescTag"
-            />
-          </a-tooltip>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -617,18 +610,11 @@
           />
         </a-form-item>
         <a-form-item :label="$t('metanet.addDesc')">
-          <a-input
+          <a-textarea
+            placeholder="可用两个#来表示标签, 例如#标签1#"
             :maxlength="200"
             v-model:value="createFolderModelRef.folderDesc"
           />
-        </a-form-item>
-        <a-form-item label="添加标签">
-          <a-tooltip title="多个标签可用 , 隔开" :trigger="['hover', 'click']">
-            <a-input
-              :maxlength="200"
-              v-model:value="createFolderModelRef.folderDescTag"
-            />
-          </a-tooltip>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -641,20 +627,14 @@
       @ok="onEditDescriptionModalConfirm"
     >
       <!-- <a-form> </a-form> -->
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="编辑描述">
-          <a-input
+      <a-form :label-col="{ span: 0 }" :wrapper-col="{ span: 24 }">
+        <a-form-item>
+          <a-textarea
+            :autosize="{ minRows: 3, maxRows: 6 }"
+            placeholder="可用两个#来表示标签, 例如#标签1#"
             :maxlength="200"
             v-model:value="editDescriptionModalRef.desc"
           />
-        </a-form-item>
-        <a-form-item label="编辑标签">
-          <a-tooltip title="多个标签可用 , 隔开" :trigger="['hover', 'click']">
-            <a-input
-              :maxlength="200"
-              v-model:value="editDescriptionModalRef.descTag"
-            />
-          </a-tooltip>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -914,7 +894,6 @@ type TCreateFile = {
   fileType: "txt" | "markdown";
   fileName: string;
   fileDesc: string;
-  fileDescTag: string;
 };
 type TImport = {
   codeType: "hash" | "txid";
@@ -924,7 +903,6 @@ type TCreateFolder = {
   folderPrefix: "1" | "2";
   folderName: string;
   folderDesc: string;
-  folderDescTag: string;
 };
 type TShareCreate = {
   type: "PUBLIC" | "PRIVATE";
@@ -1759,7 +1737,6 @@ export default defineComponent({
         fileType: "txt", // txt markdown
         fileName: "",
         fileDesc: "",
-        fileDescTag: "",
       });
       const createFileRulesRef = reactive({
         fileName: [
@@ -1779,8 +1756,7 @@ export default defineComponent({
         try {
           await validate();
           // 验证通过
-          const { fileType, fileName, fileDesc, fileDescTag } =
-            createFileModelRef;
+          const { fileType, fileName, fileDesc } = createFileModelRef;
           const isTxt = fileType === "txt";
           const fullFileName = `${fileName}${isTxt ? ".txt" : ".md"}`;
           checkSameFileOrFolderNameByDirId(
@@ -1805,12 +1781,7 @@ export default defineComponent({
               fileHash,
               userId: useUserStore().id,
               space: "PRIVATE",
-              description: fileDescTag
-                ? fileDescTag
-                    .split(/,|，/)
-                    .map((i) => `#${i}#`)
-                    .join("") + fileDesc
-                : fileDesc,
+              description: fileDesc,
               action: "drive",
             });
             createFileModalConfirmLoading.value = false;
@@ -1849,7 +1820,6 @@ export default defineComponent({
         folderPrefix: "1", //1 当前路径 2根目录
         folderName: "",
         folderDesc: "",
-        folderDescTag: "",
       });
       const createFolderRulesRef = reactive({
         folderName: [
@@ -1877,16 +1847,10 @@ export default defineComponent({
           validate()
             .then(() => {
               // 结构不需要toRaw
-              const { folderPrefix, folderName, folderDesc, folderDescTag } =
+              const { folderPrefix, folderName, folderDesc } =
                 createFolderModelRef;
               const isMakeDirByRoot = folderPrefix === "2";
               // console.log("folderPrefix", folderPrefix, isMakeDirByRoot);
-              const description = folderDescTag
-                ? folderDescTag
-                    .split(/,|，/)
-                    .map((i) => `#${i}#`)
-                    .join("") + folderDesc
-                : folderDesc;
               if (isMakeDirByRoot) {
                 checkSameFileOrFolderNameByDirId(
                   "folder",
@@ -1895,7 +1859,7 @@ export default defineComponent({
                 ).then(() => {
                   apiMakeDirByRoot({
                     fullName: folderName,
-                    description,
+                    description: folderDesc,
                   }).then(({ err }) => {
                     err ? reject() : onResolvedAndCloseModal();
                   });
@@ -1908,7 +1872,7 @@ export default defineComponent({
                 ).then(() => {
                   apiMakeDirByPath({
                     fullName: folderName,
-                    description,
+                    description: folderDesc,
                     parentId: curFolderId.value,
                   }).then(({ err }) => {
                     err ? reject() : onResolvedAndCloseModal();
@@ -2067,28 +2031,21 @@ export default defineComponent({
       name: "",
       fileId: "",
       desc: "",
-      descTag: "",
     });
     const onResetEditDescriptionModal = () => {
       editDescriptionModalRef.name = "";
       editDescriptionModalRef.fileId = "";
       editDescriptionModalRef.desc = "";
-      editDescriptionModalRef.descTag = "";
     };
     /** 弹窗 修改描述 */
     function useEditDescriptionModal() {
       const onEditDescriptionModalConfirm = async () => {
-        const { fileId, desc, descTag } = editDescriptionModalRef;
+        const { fileId, desc } = editDescriptionModalRef;
         if (!fileId) return;
         editDescriptionModalConfirmLoading.value = true;
         const res = await apiEditFileDescption({
           userFileId: editDescriptionModalRef.fileId,
-          description: descTag
-            ? descTag
-                .split(/,|，/)
-                .map((i) => `#${i}#`)
-                .join("") + desc
-            : desc,
+          description: desc,
         });
         editDescriptionModalConfirmLoading.value = false;
         if (res.err) {
@@ -2166,8 +2123,7 @@ export default defineComponent({
         // 点击详情的时候设置编辑描述的弹窗里的内容 -star
         editDescriptionModalRef.name = lastOfArray(record.fullName);
         editDescriptionModalRef.fileId = record.id;
-        editDescriptionModalRef.desc = formatedDescObj.text;
-        editDescriptionModalRef.descTag = formatedDescObj.tagArr.join(",");
+        editDescriptionModalRef.desc = record.info.description || "";
         // 点击详情的时候设置编辑描述的弹窗里的内容 -end]
         currenDetailInfo.value = {
           name: lastOfArray(record.fullName),

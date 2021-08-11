@@ -115,7 +115,7 @@ export const driveDeleteFiles = gql`
   }
 `;
 
-/** 根据hash查询 */
+/** 根据hash秒传 */
 export const driveUploadByHash = gql`
   mutation ($fullName: [String]!, $hash: String!, $description: String) {
     driveUploadByHash(

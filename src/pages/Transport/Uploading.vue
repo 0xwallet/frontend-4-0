@@ -79,6 +79,7 @@
         </div>
       </template>
       <template #fileSize="{ record }">
+        <!-- 处于ws等待状态的时候 已发送大小显示手动改为文件的全大小, 因为progress实际上还没到100(为了等待故意暂停的) -->
         <div class="text-gray-400">
           {{
             record.status === "waiting"
