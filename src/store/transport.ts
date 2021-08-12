@@ -1,4 +1,5 @@
 import { apiUploadSingle, ParamsUploadSingle } from "@/apollo/api";
+import { UPLOAD_MSG } from "@/constants";
 import { useDelay } from "@/hooks";
 import { getFileType, lastOfArray } from "@/utils";
 import { unset, values } from "lodash-es";
@@ -38,7 +39,6 @@ export type UploadItem = {
   description: string;
   isSecondUpload?: boolean; // 是否急速上传
   speed: number; // 显示的时候要转换成 bytes / s
-  closeSessionFn?: () => Promise<void>; // close 用来上传的session
 };
 
 type TransportState = {
@@ -130,10 +130,8 @@ export default defineStore({
     },
     /** 暂停上传: close uploadSession,set status pause */
     pauseItem(uniqueId: string) {
+      // 1. 先设置的状态为暂停
       const item = this.uploadHashMap[uniqueId];
-      if (item.closeSessionFn) {
-        item.closeSessionFn();
-      }
       this.setUploadItemProgressSpeedStatus(
         uniqueId,
         item.progress,
@@ -154,13 +152,9 @@ export default defineStore({
     /** 取消上传 */
     cancelItem(uniqueId: string) {
       this.pauseItem(uniqueId);
-      this.clearItem(uniqueId);
-    },
-    /** 注册close session 的函数,不会重复添加 */
-    registCloseSessionFn(uniqueId: string, fn: () => Promise<void>) {
-      if (!this.uploadHashMap[uniqueId].closeSessionFn) {
-        this.uploadHashMap[uniqueId].closeSessionFn = fn;
-      }
+      useDelay(100).then(() => {
+        this.clearItem(uniqueId);
+      });
     },
     asyncWaitWsUploadResponse(fileHash: string) {
       return new Promise<
@@ -201,13 +195,6 @@ export default defineStore({
     setUploadItemByAssign(uniqueId: string, payLoad: Partial<UploadItem>) {
       const target = this.uploadHashMap[uniqueId];
       Object.assign(target, payLoad);
-    },
-    closeUploadFileSession(uniqueId: string) {
-      const item = this.uploadHashMap[uniqueId];
-      if (!item.closeSessionFn) {
-        throw Error(`${uniqueId}-no closeSessionFn`);
-      }
-      item.closeSessionFn();
     },
     /** 设置单项进度和速度和状态 */
     setUploadItemProgressSpeedStatus(
@@ -278,21 +265,22 @@ export default defineStore({
           setSecondUpload: this.setUploadItemByAssign.bind(this, uniqueId, {
             isSecondUpload: true,
           }),
-          registStoreCloseSessionFn: this.registCloseSessionFn.bind(this),
           // 中间状态(0-99) 传递给api 函数调用
           setProgressSpeedStatus:
             this.setUploadItemProgressSpeedStatus.bind(this),
         })
       );
       // console.log("resultUploadSingle", resultUploadSingle);
+      // 处理返回的错误信息
       if (resultUploadSingle.err) {
         const errMsg = resultUploadSingle.err.message;
+        console.log("errMsg---", errMsg);
         if (this.uploadHashMap[uniqueId]) {
           this.setUploadItemProgressSpeedStatus(
             uniqueId,
             this.uploadHashMap[uniqueId].progress,
             0,
-            errMsg === "任务暂停" ? "pause" : "failed"
+            errMsg === UPLOAD_MSG.err_pauseByUser ? "pause" : "failed"
           );
         }
         return { err: resultUploadSingle.err };

@@ -1203,7 +1203,8 @@ export default defineComponent({
         // 弹出上传drawer
         const fileName = file.name;
         const fileHash = await getFileSHA256(file);
-        const resultUploadSingle = await transportStore.uploadFile({
+        // const resultUploadSingle =
+        await transportStore.uploadFile({
           file,
           fileHash,
           roundId,
@@ -1217,7 +1218,7 @@ export default defineComponent({
           ],
           description: "",
         });
-        console.log("resultUploadSingle", resultUploadSingle);
+        // console.log("resultUploadSingle", resultUploadSingle);
       };
       return {
         onClickDropDownMenuCreate,

@@ -10,11 +10,12 @@ import {
   NetFile_Collection,
 } from "./documents";
 import { TSession } from "nkn";
-import { MAX_MTU, REMOTE_ADDR } from "@/constants";
+import { UPLOAD_MSG, MAX_MTU, REMOTE_ADDR } from "@/constants";
 import { getFileSHA256, writeHeaderInSession } from "@/utils";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
 import { makeUploadItemUniqueId, UploadStatus } from "@/store/transport";
+import { useDelay } from "@/hooks";
 
 /** 通用的api 请求返回类型 */
 export type TApiRes<T> = Promise<
@@ -327,10 +328,6 @@ export type ParamsUploadSingle = {
   description: string;
   action: "drive";
   setSecondUpload?: () => void;
-  registStoreCloseSessionFn?: (
-    uniqueId: string,
-    fn: () => Promise<void>
-  ) => void;
   setProgressSpeedStatus?: (
     uniqueId: string,
     progress: number,
@@ -348,10 +345,10 @@ const sessionLimit = pLimit(1);
 export const apiUploadSingle = async (
   params: ParamsUploadSingle
 ): TApiRes<ResponseUploadSingle> => {
-  if (!params || !params.file) return { err: Error("noparams") };
+  if (!params || !params.file) return { err: Error(UPLOAD_MSG.err_noParams) };
   const transportStore = useTransportStore();
   const uniqueId = makeUploadItemUniqueId(params.fileHash, params.fullName);
-  /** 当前上传的文件状态是否已经暂停 */
+  /** 当前上传的文件状态是否已经被用户暂停 */
   const isCurrentUploadStatusPause = () => {
     // 如果是新建文件 , 不检查任务中心队列
     if (params.isCreateNewFile === true) return false;
@@ -359,7 +356,7 @@ export const apiUploadSingle = async (
     return transportStore.uploadHashMap[uniqueId].status === "pause";
   };
   if (isCurrentUploadStatusPause()) {
-    return { err: Error("任务暂停") };
+    return { err: Error(UPLOAD_MSG.err_pauseByUser) };
   }
 
   if (params.setProgressSpeedStatus) {
@@ -406,7 +403,7 @@ export const apiUploadSingle = async (
   // const { file } = params;
 
   const { multiClient } = useUserStore();
-  if (!multiClient) return { err: Error("multiClient未初始化") };
+  if (!multiClient) return { err: Error(UPLOAD_MSG.err_noNknClient) };
   // console.log(
   //   "before-multiClient",
   //   multiClient.isClosed,
@@ -422,10 +419,6 @@ export const apiUploadSingle = async (
   const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
     try {
-      // 如果在dial 的过程中暂停了, 就不要再dial 了
-      if (isCurrentUploadStatusPause()) {
-        return null;
-      }
       res = await multiClient.dial(REMOTE_ADDR, {
         dialTimeout: 10000, // 10s dial 过期
       });
@@ -449,12 +442,11 @@ export const apiUploadSingle = async (
   const clientSession = await sessionLimit(() => repeatlyClientDial());
   // console.log("after-client-shakehand");
   console.timeEnd(`[性能 client.dial 时间]${params.file.name}`);
-  if (!clientSession) return { err: Error("no clientSession") };
-  if (params.registStoreCloseSessionFn) {
-    params.registStoreCloseSessionFn(
-      uniqueId,
-      clientSession.close.bind(clientSession)
-    );
+  if (!clientSession) return { err: Error(UPLOAD_MSG.err_noClientSession) };
+  console.log("session握手成功", clientSession);
+  if (isCurrentUploadStatusPause()) {
+    clientSession.close();
+    return { err: Error(UPLOAD_MSG.err_pauseByUser) };
   }
   // console.log("写入头部信息");
   // 第一步，写入头部信息
@@ -472,6 +464,10 @@ export const apiUploadSingle = async (
   // 假如offset 不一致 error 断开
   // console.log("encodedHeader", encodedHeader, encodedHeader.length);
   await writeHeaderInSession(clientSession, encodedHeader);
+  if (isCurrentUploadStatusPause()) {
+    clientSession.close();
+    return { err: Error(UPLOAD_MSG.err_pauseByUser) };
+  }
   // 第二步，发文件
   const fileBuffer = await params.file.arrayBuffer();
   // console.log("fileBuffer", fileBuffer);
@@ -488,7 +484,15 @@ export const apiUploadSingle = async (
       clearInterval(timerSpeed);
       return;
     }
-    if (clientSession.isClosed || isCurrentUploadStatusPause()) {
+    // 设置速度过程中 session close
+    if (clientSession.isClosed) {
+      console.log("设置速度过程中 session close");
+      clearInterval(timerSpeed);
+      return;
+    }
+    // 设置速度过程中 用户手动暂停
+    if (isCurrentUploadStatusPause()) {
+      console.log("设置速度过程中 用户手动暂停");
       clearInterval(timerSpeed);
       return;
     }
@@ -504,9 +508,10 @@ export const apiUploadSingle = async (
         uniqueId,
         toSetProgressVal,
         toSetBytesPerSecond,
-        clientSession.isClosed || isCurrentUploadStatusPause()
-          ? "pause"
-          : "uploading"
+        "uploading"
+        // clientSession.isClosed || isCurrentUploadStatusPause()
+        //   ? "pause"
+        //   : "uploading"
       );
     } else {
       params.setProgressSpeedStatus(
@@ -521,8 +526,21 @@ export const apiUploadSingle = async (
 
   try {
     while (startLen <= maxSendLength) {
-      if (clientSession.isClosed || isCurrentUploadStatusPause()) {
-        return { err: Error("任务暂停") };
+      if (clientSession.isClosed) {
+        // 1.如果是用户主动暂停
+        if (isCurrentUploadStatusPause()) {
+          return { err: Error(UPLOAD_MSG.err_pauseByUser) };
+        } else {
+          // 2.如果是未暂停但session closed,重试
+          console.log("session被动close,自动重试");
+          await useDelay(2000);
+          return await apiUploadSingle(params);
+          // return { err: Error(UPLOAD_MSG.err_sessionClosed) };
+        }
+      }
+      if (isCurrentUploadStatusPause()) {
+        clientSession.close();
+        return { err: Error(UPLOAD_MSG.err_pauseByUser) };
       }
       const toWriteChunk = new Uint8Array(
         fileBuffer.slice(
@@ -543,41 +561,14 @@ export const apiUploadSingle = async (
       // .catch((e) => console.log("session-write-error", e));
       startLen += MAX_MTU;
       hadSendLen += MAX_MTU;
-      // 设置进度 start
-      // if (params.setProgressSpeedStatus) {
-      //   // 最大set 到90, 剩余的10 要等websocket 成功返回文件信息才设置!
-      //   const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
-      //   if (toSetProgressVal < 98) {
-      //     const curDiffSeconds = dayjs().diff(startTime, "second");
-      //     if (curDiffSeconds > diffSeconds) {
-      //       toSetBytesPerSecond =
-      //         hadSendLen / dayjs().diff(startTime, "second");
-      //       diffSeconds = curDiffSeconds;
-      //     }
-      //     params.setProgressSpeedStatus(
-      //       uniqueId,
-      //       toSetProgressVal,
-      //       toSetBytesPerSecond,
-      //       clientSession.isClosed || isCurrentUploadStatusPause()
-      //         ? "pause"
-      //         : "uploading"
-      //     );
-      //   } else {
-      //     params.setProgressSpeedStatus(
-      //       uniqueId,
-      //       98,
-      //       0,
-      //       "waiting" // 等待ws 返回确认
-      //     );
-      //   }
-      // }
-      // 设置进度 end
     }
     // console.log("escape while loop", startLen, maxSendLength);
-    return { data: { msg: "session成功写入" } };
+    return { data: { msg: UPLOAD_MSG.success_sessionWrite } };
   } catch (err) {
-    // console.log(err);
-    return { err: Error("任务暂停") };
+    console.log("session被动close,自动重试", err); // session close
+    await useDelay(2000);
+    return apiUploadSingle(params);
+    // return { err: err };
   }
 };
 

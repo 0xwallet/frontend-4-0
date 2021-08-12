@@ -21,3 +21,12 @@ export const NKN_SUB_CLIENT_COUNT = 4;
 export const LEN_OF_HEADER_U8_LENGTH = 4;
 /** 最多打开的窗口数量 */
 export const MAX_FILEITEM_COUNT = 100;
+/** 上传错误对象 */
+export const UPLOAD_MSG = {
+  success_sessionWrite: "session成功写入",
+  err_noNknClient:'multiClient未初始化',
+  err_noClientSession:'no clientSession',
+  err_noParams:'noParams',
+  err_sessionClosed: "session_closed",
+  err_pauseByUser: "用户手动暂停",
+};
