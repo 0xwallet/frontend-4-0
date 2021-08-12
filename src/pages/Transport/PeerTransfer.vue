@@ -1,216 +1,451 @@
 <template>
-  <div class="pb-4">
+  <div
+    :style="{
+      background: '#F0F2F5',
+      height: '100%',
+    }"
+  >
+    <!-- border: '1px solid blue', -->
+    <!-- 这个为隐藏的作为选择文件用的 -->
     <input
       multiple
       class="hidden"
       type="file"
-      id="sendFile"
-      @change="onInputFileChange"
+      id="transferFileInput"
+      @change="onChangeMultipleUploadFile"
     />
-    <div class="h-full">
-      <div
-        :style="{
-          'background-color': '#e6f7ff',
-          'border-radius': '2px',
-          border: '1px solid #91d5ff',
-          'font-size': '12px',
-        }"
-        class="mb-2 py-1 px-3 ant-alert-info flex items-center"
-      >
-        <InfoCircleOutlined class="ant-color-blue-6 mr-1" />
-        适用于大文件传输场景
-      </div>
-      <a-row class="mb-2" type="flex">
-        <a-radio-group v-model:value="actionType">
-          <a-radio value="send">发送文件</a-radio>
-          <a-radio value="receive">接收文件</a-radio>
-        </a-radio-group>
-      </a-row>
-      <a-row class="mb-2" type="flex" align="middle">
-        <a-input disabled addon-before="您的地址" v-model:value="localAddr">
-          <template #addonAfter>
-            <a href="javascript:;" @click="onCopyMyAddr">复制</a>
-          </template>
-        </a-input>
-      </a-row>
-      <a-row v-show="actionType === 'send'" class="mb-2" type="flex">
-        <a-input addon-before="对方地址" v-model:value="remotAddr">
-          <!-- <template #addonAfter>
-            <a href="javascript:;" @click="onCopyMyAddr">复制</a>
-          </template> -->
-        </a-input>
-      </a-row>
-      <div
-        :style="{
-          border: '1px solid #d9d9d9',
-          'border-radius': '2px',
-        }"
-      >
+    <div class="send mb-4">
+      <!-- 未选择任何文件前 -->
+      <div v-if="tableSend.length === 0">
+        <div class="font-20 p-4 font-semibold">发送</div>
         <div
-          :style="{
-            padding: '0 11px',
-            height: '32px',
-            'line-height': '32px',
-            'background-color': '#fafafa',
-            'border-bottom': '1px solid #d9d9d9',
-          }"
+          class="flex items-center justify-center pb-12 h-32 cursor-pointer"
+          @click="onSelectFiles"
         >
-          {{ actionType === "send" ? "发送文件列表" : "接收文件列表" }}
-          <a-button
-            v-if="actionType === 'send'"
-            class="ml-2"
-            size="small"
-            type="primary"
-            @click="onSelectFile"
-            >选择文件</a-button
+          <PlusOutlined
+            class="ant-color-blue-6"
+            :style="{
+              'font-size': '50px',
+            }"
+          />
+        </div>
+      </div>
+      <!-- 选有文件后 -->
+      <div v-else-if="receiveLink.length === 0 && sendReceiveCode.length === 0">
+        <div class="flex items-center p-4">
+          <div class="mr-2 cursor-pointer">
+            <PlusOutlined
+              class="ant-color-blue-6"
+              :style="{
+                'font-size': '30px',
+              }"
+            />
+          </div>
+          <div class="flex-1">
+            <div class="font-semibold font-20 mb-1">添加文件</div>
+            <!-- <div class="text-gray-400">Total 1 files - 50mb</div> -->
+            <div class="text-gray-400 font-12">
+              {{
+                `总共 ${totalSendInfo.count}个文件  -  ${totalSendInfo.showSize}`
+              }}
+            </div>
+          </div>
+          <a
+            href="javascript:;"
+            class="block font-12 text-gray-400 self-end pr-1"
+            @click="onResetSend"
           >
-          <!-- <a-button
-            v-if="actionType === 'send'"
-            class="ml-2"
-            size="small"
-            type="danger"
-            @click="onTestShakeHand"
-            >握手测试</a-button
-          > -->
+            重置
+          </a>
+        </div>
+        <!-- 发送文件表格 -->
+        <div class="px-4 mb-4">
+          <div
+            class="relative rounded"
+            :style="{
+              'background-color': '#fafafa',
+              height: '206px',
+              border: '1px solid rgba(0,0,0,.12)',
+              overflow: 'hidden',
+              'overflow-y': 'auto',
+            }"
+          >
+            <div class="py-1">
+              <div
+                v-for="item in tableSend"
+                :key="item.uniqueId"
+                class="
+                  tableSendItemBox
+                  flex
+                  items-center
+                  justify-between
+                  px-2
+                  h-6
+                  cursor-pointer
+                  hover:bg-white
+                "
+              >
+                <div class="font-12">
+                  {{ item.fileName }}
+                </div>
+                <div class="tableSendItemSize font-12 text-gray-400">
+                  {{ formatBytes(item.fileSize) }}
+                </div>
+                <div
+                  class="
+                    tableSendItemDelete
+                    px-1
+                    rounded
+                    block
+                    hidden
+                    flex
+                    items-center
+                  "
+                  @click="onDeleteSendItem(item.uniqueId)"
+                >
+                  <DeleteOutlined class="text-gray-400 font-12" />
+                </div>
+              </div>
+            </div>
+            <!-- <XTableFiles
+              disableSelect
+              rowKey="uniqueId"
+              :showHeader="false"
+              :columns="columnsSend"
+              :data="tableSend"
+            >
+              <template #name="{ record }">
+                <div class="flex items-center justify-between">
+                  <div class="font-12">
+                    {{ record.fileName }}
+                  </div>
+                  <div class="font-12 text-gray-400">
+                    {{ formatBytes(record.fileSize) }}
+                  </div>
+                </div>
+              </template>
+            </XTableFiles> -->
+          </div>
+        </div>
+        <!-- 选择方式 -->
+        <div class="px-4 mb-4 flex items-center justify-between text-gray-400">
+          <a
+            @click="onSetCurrentSendType('link')"
+            href="javascript:;"
+            class="
+              btnSendType
+              cursor-pointer
+              rounded
+              flex-1
+              py-2
+              text-center
+              mr-6
+            "
+            :class="{
+              activeBtnSendType: currentSendType === 'link',
+            }"
+          >
+            <LinkOutlined class="mr-1" />
+            Link
+          </a>
+          <a
+            @click="onSetCurrentSendType('direct')"
+            href="javascript:;"
+            class="btnSendType cursor-pointer rounded flex-1 py-2 text-center"
+            :class="{
+              activeBtnSendType: currentSendType === 'direct',
+            }"
+          >
+            <SendOutlined class="mr-1" />
+            Direct
+          </a>
+        </div>
+        <!-- 发送按钮 -->
+        <div class="px-4 pb-6">
           <a-button
-            :disabled="tableDataOfSend.length === 0"
-            :loading="loadingOfSend"
-            v-if="actionType === 'send'"
-            class="ml-2"
-            size="small"
+            block
+            size="large"
             type="primary"
-            @click="onSendFileList"
-            >开始发送</a-button
+            :loading="sendBtnLoading"
+            @click="onClickSendBtn"
+          >
+            发送
+          </a-button>
+        </div>
+      </div>
+      <!-- 生成有link 链接后 -->
+      <div
+        v-else-if="receiveLink.length > 0 || sendReceiveCode.length > 0"
+        class="pb-6"
+      >
+        <template v-if="totalSendProgess === 0 && receiveLink.length > 0">
+          <!-- 传输前 -->
+          <div class="p-4 flex items-start">
+            <a
+              href="javascript:;"
+              class="block BackIcon mt-1 mr-2 rounded px-1 py-0"
+              @click="onBackReceiveLink"
+            >
+              <ArrowLeftOutlined class="font-12" />
+            </a>
+            <div>
+              <div class="font-20 font-semibold mb-1">等待中...</div>
+              <div class="text-gray-400 font-12">
+                复制以下链接发送给对方,过期时间
+                <span :style="{ color: '#FF2D55' }">{{ countdownText }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="px-4 py-6 break-all">
+            <div class="text-center px-5">
+              <span :title="receiveLink"
+                >{{ receiveLink.slice(0, 50) }}...</span
+              >
+              <a-button type="link" @click="onCopyReceiveLink">复制</a-button>
+            </div>
+          </div>
+        </template>
+        <template v-if="totalSendProgess === 0 && sendReceiveCode.length > 0">
+          <!-- 传输前 -->
+          <div class="p-4 flex items-start">
+            <a
+              href="javascript:;"
+              class="block BackIcon mt-1 mr-2 rounded px-1 py-0"
+              @click="onBackReceiveCode"
+            >
+              <ArrowLeftOutlined class="font-12" />
+            </a>
+            <div>
+              <div class="font-20 font-semibold mb-1">等待中...</div>
+              <div class="text-gray-400 font-12">
+                复制接收码发送给对方,过期时间
+                <span :style="{ color: '#FF2D55' }">{{ countdownText }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="px-4 py-4 break-all">
+            <div class="flex items-center justify-center mb-2">
+              <div
+                v-for="num in sendReceiveCode"
+                :key="num"
+                class="bg-gray-100 mr-2 px-2 py-2 text-3xl"
+              >
+                {{ num }}
+              </div>
+            </div>
+            <div class="text-center">
+              <a-button type="link" @click="onCopyReceiveCode">复制</a-button>
+            </div>
+          </div>
+        </template>
+        <template v-else-if="totalSendProgess > 0 && totalSendProgess < 100">
+          <!-- 传输中 -->
+          <div class="p-4 flex items-start">
+            <div class="w-full">
+              <div class="font-20 font-semibold mb-5">发送中...</div>
+              <div class="flex-1 relative w-full mb-4">
+                <div
+                  class="absolute z-50 left-0 right-0 text-center text-white"
+                  :style="{
+                    color: isTotalSendProgressBarTextWhite
+                      ? '#FFF '
+                      : '#3C6889',
+                    height: '30px',
+                    'line-height': '30px',
+                  }"
+                >
+                  <span id="totalProgressBarText">
+                    总进度: {{ `${totalSendProgess}%` }}
+                  </span>
+                </div>
+                <a-progress
+                  class="peerTransferProgressBar"
+                  :showInfo="false"
+                  :percent="totalSendProgess"
+                />
+              </div>
+              <div
+                class="text-gray-400 font-12 flex items-center justify-between"
+              >
+                <div>总共{{ tableSend.length }}个文件</div>
+                <div>
+                  <span class="ant-color-blue-6 font-semibold">{{
+                    formatBytes(hadSendSize)
+                  }}</span>
+                  <span> / </span>
+                  <span>{{ formatBytes(totalSendSize) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-else-if="totalSendProgess === 100">
+          <!-- 传输完成 -->
+          <div class="p-4 pb-0 flex items-start">
+            <div class="w-full">
+              <div class="font-20 font-semibold mb-5">传输完成</div>
+              <div class="text-gray-400 font-12 mb-4">
+                {{
+                  `总共 ${totalSendInfo.count}个文件  -  ${totalSendInfo.showSize}`
+                }}
+              </div>
+              <div>
+                <a-button size="large" type="primary" block @click="onSendOk"
+                  >OK</a-button
+                >
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- 生成有接收码后 -->
+      <!-- <div v-else-if="sendReceiveCode.length > 0">有接收码的界面</div> -->
+    </div>
+    <div class="receive relative">
+      <!-- nkn 状态 -->
+      <div
+        v-if="!isUserLoggedIn"
+        class="absolute"
+        :style="{
+          top: '22px',
+          right: '20px',
+        }"
+      >
+        <img
+          class="inline-block"
+          :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
+          :style="{
+            width: '14px',
+            height: '14px',
+          }"
+        />
+      </div>
+      <template v-if="tableReceive.length === 0">
+        <div class="font-20 p-4 font-semibold">接收</div>
+        <div class="px-4 pb-6">
+          <a-input
+            placeholder="输入接收码"
+            :disabled="receiveInputLoading"
+            v-model:value="receiveInputCode"
+          >
+            <template #suffix>
+              <a href="javascript:;" @click="onClickReceive">
+                <!-- TODO loading -->
+                <LoadingOutlined v-if="receiveInputLoading" />
+                <DownloadOutlined v-else />
+              </a>
+            </template>
+          </a-input>
+        </div>
+      </template>
+      <template v-else-if="totalReceiveProgress < 100">
+        <div class="font-20 p-4 font-semibold">接收中...</div>
+        <div class="flex-1 relative w-full mb-4 px-4">
+          <div
+            class="absolute z-50 left-0 right-0 text-center text-white"
+            :style="{
+              color: isTotalReceiveProgressBarTextWhite ? '#FFF ' : '#3C6889',
+              height: '30px',
+              'line-height': '30px',
+            }"
+          >
+            <span id="totalProgressBarText">
+              总进度: {{ `${totalReceiveProgress}%` }}
+            </span>
+          </div>
+          <a-progress
+            class="peerTransferProgressBar"
+            :showInfo="false"
+            :percent="totalReceiveProgress"
+          />
+        </div>
+        <div
+          class="
+            text-gray-400
+            font-12
+            flex
+            items-center
+            justify-between
+            pb-6
+            px-4
+          "
+        >
+          <div>总共{{ totalReceiveCount }}个文件</div>
+          <div>
+            <span class="ant-color-blue-6 font-semibold">{{
+              formatBytes(hadReceiveSize)
+            }}</span>
+            <span> / </span>
+            <span>{{ formatBytes(totalReceiveSize) }}</span>
+          </div>
+        </div>
+      </template>
+      <template v-else-if="totalReceiveProgress === 100">
+        <div class="font-20 p-4 font-semibold mb-5">接收完成</div>
+        <div class="px-4 text-gray-400 font-12 mb-4">
+          {{
+            `总共 ${totalReceiveCount}个文件  -  ${formatBytes(
+              totalReceiveSize
+            )}`
+          }}
+        </div>
+        <div class="px-4 pb-6">
+          <a-button size="large" type="primary" block @click="onReceiveOk"
+            >OK</a-button
           >
         </div>
-        <!-- 表格 发送文件列表 -->
-        <XTableFiles
-          v-show="actionType === 'send'"
-          disableSelect
-          rowKey="uniqueId"
-          :showHeader="false"
-          :columns="columns"
-          :data="tableDataOfSend"
-        >
-          <template #name="{ record }">
-            <!-- <div>55----{{ record }}</div> -->
-            <div :title="record.fileName">
-              <XFileTypeIcon class="w-6 h-6 mr-2" :type="record.fileType" />
-              <span>{{ record.fileName }}</span>
-            </div>
-          </template>
-          <template #fileInfo="{ record }">
-            <div class="text-gray-400">
-              {{ formatBytes(record.fileSize) }}
-            </div>
-          </template>
-          <template #speed="{ record }">
-            <div class="text-gray-400">
-              {{ `${formatBytes(record.speed)} / s` }}
-            </div>
-          </template>
-          <template #uploadProgressBar="{ record }">
-            <a-progress
-              :percent="record.progress"
-              :showInfo="false"
-            ></a-progress>
-          </template>
-          <template #statusText="{ record }">
-            <div class="text-gray-400">
-              {{ calcStatusText(record.status) }}
-            </div>
-          </template>
-          <template #action="{ record }">
-            <a
-              v-if="
-                !['sending', 'receiving', 'waiting'].includes(record.status)
-              "
-              href="javascript:;"
-              @click="onRecordSendClear(record)"
-            >
-              <CloseOutlined />
-            </a>
-          </template>
-        </XTableFiles>
-        <!-- 表格 接收文件列表 -->
-        <XTableFiles
-          v-show="actionType === 'receive'"
-          disableSelect
-          rowKey="uniqueId"
-          :showHeader="false"
-          :columns="columns"
-          :data="tableDataOfReceive"
-        >
-          <template #name="{ record }">
-            <!-- <div>55----{{ record }}</div> -->
-            <div :title="record.fileName">
-              <XFileTypeIcon class="w-6 h-6 mr-2" :type="record.fileType" />
-              <span>{{ record.fileName }}</span>
-            </div>
-          </template>
-          <template #fileInfo="{ record }">
-            <div class="text-gray-400">
-              {{ formatBytes(record.fileSize) }}
-            </div>
-          </template>
-          <template #speed="{ record }">
-            <div class="text-gray-400">
-              {{ `${formatBytes(record.speed)} / s` }}
-            </div>
-          </template>
-          <template #uploadProgressBar="{ record }">
-            <a-progress
-              :percent="record.progress"
-              :showInfo="false"
-            ></a-progress>
-          </template>
-          <template #statusText="{ record }">
-            <div class="text-gray-400">
-              {{ calcStatusText(record.status) }}
-            </div>
-          </template>
-          <template #action="{ record }">
-            <a
-              v-if="
-                !['sending', 'receiving', 'waiting'].includes(record.status)
-              "
-              href="javascript:;"
-              @click="onRecordReceiveClear(record)"
-            >
-              <CloseOutlined />
-            </a>
-          </template>
-        </XTableFiles>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { useUserStore } from "@/store";
-import { useClipboard } from "@vueuse/core";
+import {
+  computed,
+  defineComponent,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import {
+  DownloadOutlined,
+  LoadingOutlined,
+  PlusOutlined,
+  CloseOutlined,
+  DeleteOutlined,
+  SendOutlined,
+  LinkOutlined,
+  ArrowLeftOutlined,
+} from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
-import { defineComponent, reactive, ref } from "vue";
-import { useI18n } from "vue-i18n";
-import { InfoCircleOutlined, CloseOutlined } from "@ant-design/icons-vue";
 import { XFileTypeIcon, XTableFiles } from "@/components";
 import {
-  getFileType,
-  formatBytes,
-  getRepeatlyClientDialFn,
-  writeHeaderInSession,
-  readHeaderInSession,
-  mergeUint8Array,
   downloadFileByBlob,
+  formatBytes,
+  getFileType,
+  getRandomNumStr,
+  getRepeatlyClientDialFn,
+  mergeUint8Array,
+  readHeaderInSession,
+  writeHeaderInSession,
 } from "@/utils";
+import { remove } from "lodash-es";
+import { useDelay } from "@/hooks";
+import { useBaseStore, useTransportStore, useUserStore } from "@/store";
+import { useClipboard } from "@vueuse/core";
+import { Channel } from "phoenix";
+import { useRoute } from "vue-router";
 import { classMultiClient, TMessageType, TSession } from "nkn";
+import { getAnonymousMultiClient } from "@/apollo/nknConfig";
 import { decode, encode } from "@msgpack/msgpack";
 import dayjs from "dayjs";
 import { MAX_MTU } from "@/constants";
 import pLimit from "p-limit";
-import { remove, uniqueId } from "lodash-es";
-type ActionType = "send" | "receive";
-type FileItem = {
+
+type TransferFile = {
   file?: File;
   uniqueId: string;
   fileName: string;
@@ -237,8 +472,8 @@ const makeUniqueId = (name: string, size: number) => `${name}-${size}`;
 /** 创建-确认信息 */
 const makeConfirmMessage = (uniqueId: string) => `received-${uniqueId}`;
 /** map 状态对应的文字 */
-const calcStatusText = (status: FileItem["status"]) => {
-  const mapText: { [key in FileItem["status"]]: string } = {
+const calcStatusText = (status: TransferFile["status"]) => {
+  const mapText: { [key in TransferFile["status"]]: string } = {
     queueing: "等待发送",
     sending: "发送中",
     receiving: "接收中",
@@ -249,127 +484,279 @@ const calcStatusText = (status: FileItem["status"]) => {
   };
   return mapText[status];
 };
-const columns = [
-  {
-    title: "name",
-    slots: { customRender: "name" },
+/** 获取节点准备好的nkn client */
+const getReadyAnonymousMultiClient = () => {
+  return new Promise<classMultiClient>((resolve, reject) => {
+    // 10s 4个节点, 不然就重置
+    let client = getAnonymousMultiClient();
+    let counter = 0;
+    let id = setInterval(() => {
+      counter += 1;
+      if (client.readyClientIDs().length >= 2) {
+        counter = 0;
+        console.log("匿名client节点满足", client);
+        resolve(client);
+        clearInterval(id);
+        // 超过10s 还未ready 的话就重置client
+      } else if (counter >= 10) {
+        counter = 0;
+        client = getAnonymousMultiClient();
+        console.log("重置匿名client", client);
+      }
+    }, 1000);
+  });
+};
+/** nkn client握手消息 */
+const SHAKE_HAND = "shake_hand";
+const RECEIVE_PREFIX = "totalReceive";
+/** 总大小信息格式 */
+const totalInfoGuard = {
+  _encode(totalSize: number, totalCount: number) {
+    return `${RECEIVE_PREFIX}:${totalCount}-${totalSize}`;
   },
-  {
-    title: "fileInfo",
-    slots: { customRender: "fileInfo" },
-    width: 100,
+  _decode(str: string) {
+    const a = str.split(":")[1];
+    const [count, size] = a.split("-");
+    return { count: +count, size: +size };
   },
-  {
-    title: "speed",
-    slots: { customRender: "speed" },
-    width: 100,
-  },
-  {
-    title: "uploadProgressBar",
-    slots: { customRender: "uploadProgressBar" },
-    width: 140,
-  },
-  {
-    title: "statusText",
-    slots: { customRender: "statusText" },
-    width: 100,
-  },
-  {
-    title: "action",
-    slots: { customRender: "action" },
-    width: 50,
-  },
-];
+};
+type SendType = "direct" | "link";
 
 export default defineComponent({
-  name: "TransportPeerTransfer",
   components: {
-    InfoCircleOutlined,
+    DownloadOutlined,
+    LoadingOutlined,
+    PlusOutlined,
     CloseOutlined,
+    DeleteOutlined,
+    SendOutlined,
+    LinkOutlined,
+    ArrowLeftOutlined,
     XFileTypeIcon,
     XTableFiles,
   },
   setup() {
-    const { t } = useI18n();
     const userStore = useUserStore();
-    const localAddr = ref<string>("");
-    const remotAddr = ref<string>("");
-    const actionType = ref<ActionType>("send");
-    const loadingOfSend = ref(false);
-    const tableDataOfSend = reactive<FileItem[]>([]);
-    const tableDataOfReceive = reactive<FileItem[]>([]);
-
-    async function useMultiClient() {
-      const client = await userStore.getMultiClient();
-      if (!client) return;
-      console.log("useMultiClient");
-      localAddr.value = client.addr;
-      client.listen();
-      // 一个session 只用来发送一个文件
-      client.onSession(async (session) => {
-        // console.log("session", session);
-        // session.read(10).then((data) => console.log(data));
-        // session.read(10).then((data) => console.log(data));
-        // session.read(1000).then((data) => console.log(data));
-        const headerUint8Array = await readHeaderInSession(session);
-        const headerObj = decode(headerUint8Array) as FileHeader;
-        let toDownloadFile: File | null = null;
-        console.log("读取文件头部信息", headerObj);
-        const uniqueId = makeUniqueId(headerObj.fileName, headerObj.fileSize);
-        const itemToPush: FileItem = {
-          file: new File(["0"], headerObj.fileName, {
-            type: headerObj.MIMEType,
-          }),
-          fileName: headerObj.fileName,
-          fileSize: headerObj.fileSize,
-          uniqueId,
-          fileType: getFileType({ isDir: false, fileName: headerObj.fileName }),
+    const baseStore = useBaseStore();
+    const transportStore = useTransportStore();
+    const route = useRoute();
+    let nknClient: null | classMultiClient = null;
+    const nknStatusCount = ref(0);
+    /** 统一的获取client 接口(区分登录/未登录) */
+    const initMultiClient = async () => {
+      if (nknClient) return nknClient;
+      if (userStore.isLoggedIn) {
+        nknClient = await userStore.getMultiClient();
+      } else {
+        nknClient = await getReadyAnonymousMultiClient();
+      }
+      return nknClient;
+    };
+    initMultiClient().then((client) => {
+      nknStatusCount.value = client?.readyClientIDs().length ?? 0;
+    });
+    const isUserLoggedIn = computed(() => userStore.isLoggedIn);
+    watch(
+      () => nknClient,
+      (newVal) => {
+        console.log("newVal", newVal);
+      },
+      {
+        immediate: true,
+      }
+    );
+    /** 发送文件 */
+    function useSend() {
+      const currentSendType = ref<SendType>("link");
+      /** link 方式的url */
+      const receiveLink = ref("");
+      /** 生成的接收码 */
+      const sendReceiveCode = ref("");
+      const sendBtnLoading = ref(false);
+      /** 倒计时 */
+      const countdownText = ref("");
+      const columnsSend = [
+        {
+          title: "name",
+          slots: { customRender: "name" },
+        },
+      ];
+      const tableSend = ref<TransferFile[]>([]);
+      const totalSendInfo = computed(() => {
+        const count = tableSend.value.length;
+        if (count === 0) return { count, showSize: "0" };
+        const totalSize = tableSend.value.reduce(
+          (a, b) => (a += b.fileSize),
+          0
+        );
+        const showSize = formatBytes(totalSize);
+        return { count, showSize };
+      });
+      const totalSendProgessNoPercent = computed(() => {
+        if (tableSend.value.length === 0) return 0;
+        const list = tableSend.value;
+        return (
+          list.reduce((a, b) => (a += b.progress), 0) / (list.length * 100)
+        );
+      });
+      /** 发送总进度 */
+      const totalSendProgess = computed(() => {
+        return Math.floor(totalSendProgessNoPercent.value * 100);
+      });
+      /** 要发文件总大小 */
+      const totalSendSize = computed(() => {
+        const list = tableSend.value;
+        if (!list.length) return 0;
+        return list.reduce((a, b) => (a += b.fileSize), 0);
+      });
+      /** 已发文件大小 */
+      const hadSendSize = computed(() => {
+        return totalSendSize.value * (+totalSendProgess.value / 100);
+      });
+      const isTotalSendProgressBarTextWhite = ref(false);
+      // z总宽度-左右边距
+      const totalSendProgressBarWidth = 268;
+      watch(
+        () => totalSendProgess.value,
+        (newVal) => {
+          const currentPercentWidth =
+            totalSendProgressBarWidth * (newVal / 100);
+          isTotalSendProgressBarTextWhite.value = currentPercentWidth > 168;
+        }
+      );
+      const onCopyReceiveLink = () => {
+        const text = receiveLink.value;
+        useClipboard({ read: false })
+          .copy(text)
+          .then(() => message.success("复制成功"));
+      };
+      let timerCountdown: number;
+      const onBackReceiveLink = () => {
+        receiveLink.value = "";
+        sendReceiveCode.value = "";
+        resetClientListener.forEach((removeFn) => removeFn());
+        clearInterval(timerCountdown);
+      };
+      const onBackReceiveCode = () => {
+        sendReceiveCode.value = "";
+        receiveLink.value = "";
+        resetClientListener.forEach((removeFn) => removeFn());
+        clearInterval(timerCountdown);
+      };
+      const onCopyReceiveCode = () => {
+        const text = sendReceiveCode.value;
+        useClipboard({ read: false })
+          .copy(text)
+          .then(() => message.success("复制成功"));
+      };
+      /** 选择完文件点确认后生成的6位码 */
+      const sendCode = ref("");
+      const onSelectFiles = () => {
+        // 这个去触发 onChangeMultipleUploadFile
+        document.getElementById("transferFileInput")?.click();
+      };
+      const onChangeMultipleUploadFile = (e: Event) => {
+        const input = e.target as HTMLInputElement;
+        if (!input.files?.length) return;
+        const fileArr: TransferFile[] = [...input.files].map((i) => ({
+          file: i,
+          fileName: i.name,
+          fileSize: i.size,
+          uniqueId: makeUniqueId(i.name, i.size),
+          fileType: getFileType({ isDir: false, fileName: i.name }),
           progress: 0,
           speed: 0,
           status: "queueing",
+        }));
+        console.log("fileArr", fileArr);
+        tableSend.value.push(...fileArr);
+        // 清空input 的缓存
+        input.value = "";
+      };
+      /** 发送成功的ok点击 */
+      const onSendOk = () => {
+        onResetSend();
+      };
+      /** 重置 */
+      const onResetSend = () => {
+        console.log("click-onResetSend");
+        // TODO如果正在发送中,提示是否取消发送
+        tableSend.value.length = 0;
+        currentSendType.value = "link";
+        receiveLink.value = "";
+        resetClientListener.forEach((removeFn) => removeFn());
+        const elInput = document.getElementById(
+          "transferFileInput"
+        ) as HTMLInputElement;
+        if (elInput) elInput.value = "";
+      };
+      const onDeleteSendItem = (uniqueId: string) => {
+        remove(tableSend.value, (v) => v.uniqueId === uniqueId);
+      };
+      const onSetCurrentSendType = (type: SendType) => {
+        if (type === "direct" && !userStore.isLoggedIn) {
+          baseStore.changeIsShowLoginModal(true);
+          return;
+        }
+        currentSendType.value = type;
+      };
+      const resetClientListener: (() => void)[] = [];
+      /** 发送一个文件 */
+      const onSendOneFile = async (remotAddr: string, item: TransferFile) => {
+        if (!item.file) return;
+        if (!nknClient) return;
+        const repeatlyDial = getRepeatlyClientDialFn(nknClient, remotAddr);
+        const session = await repeatlyDial();
+        if (!session) {
+          message.warning("session 握手失败");
+          console.log("session 握手失败");
+          item.status = "failed";
+          item.file = undefined; // 清空文件缓存 不允许再次操作
+          return;
+        }
+        console.log("session", session);
+        item.status = "sending";
+        // console.log("session", session);
+        const header: FileHeader = {
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          MIMEType: item.file.type,
         };
-        tableDataOfReceive.push(itemToPush);
-        // console.log(headerObj);
-        const maxReceiveLength = headerObj.fileSize;
-        let fileBuffer = new Uint8Array(0);
+        const uniqueId = makeUniqueId(item.file.name, item.file.size);
+        await writeHeaderInSession(session, encode(header));
+        // while fileSize MAX_MTU
         let startLen = 0;
         const startTime = dayjs();
         let diffSeconds = 0;
         let toSetBytesPerSecond = 0;
-        while (startLen <= maxReceiveLength) {
+        const fileBuffer = await item.file.arrayBuffer();
+        // console.log("fileBuffer", fileBuffer);
+        const maxSendLength = fileBuffer.byteLength;
+        const setItemProgressSpeedStatus = (
+          progress: number,
+          speed: number,
+          status: TransferFile["status"]
+        ) => {
+          item.progress = progress;
+          item.speed = speed;
+          item.status = status;
+        };
+        while (startLen <= maxSendLength) {
           if (session.isClosed) {
             console.error("session closed");
             return;
           }
-          const toReadLength =
-            startLen < maxReceiveLength ? MAX_MTU : startLen - maxReceiveLength;
-          const roundRead = await session.read(toReadLength);
-          fileBuffer = mergeUint8Array(fileBuffer, roundRead);
-          // console.log(
-          //   "已经写入的array-正在接收的chunk长度",
-          //   fileBuffer,
-          //   roundRead
-          // );
+          const toWriteChunk = new Uint8Array(
+            fileBuffer.slice(
+              startLen,
+              Math.min(startLen + MAX_MTU, maxSendLength)
+            )
+          );
+          // console.log("正在传的chunk开始长度", startLen);
+          await session.write(toWriteChunk);
           startLen += MAX_MTU;
           // 设置进度 start
-          const setItemProgressSpeedStatus = (
-            progress: number,
-            speed: number,
-            status: FileItem["status"]
-          ) => {
-            // 防止push 的过程idx 变了, 所以得重新查找
-            const idx = tableDataOfReceive.findIndex(
-              (i) => i.uniqueId === uniqueId
-            );
-            if (idx !== -1) {
-              tableDataOfReceive[idx].progress = progress;
-              tableDataOfReceive[idx].speed = speed;
-              tableDataOfReceive[idx].status = status;
-            }
-          };
-          const toSetProgressVal = Math.floor(
-            (startLen / maxReceiveLength) * 100
-          );
+          const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
           if (toSetProgressVal < 100) {
             const curDiffSeconds = dayjs().diff(startTime, "second");
             if (curDiffSeconds > diffSeconds) {
@@ -380,256 +767,529 @@ export default defineComponent({
             setItemProgressSpeedStatus(
               toSetProgressVal,
               toSetBytesPerSecond,
-              "receiving"
+              "sending"
             );
           } else {
-            setItemProgressSpeedStatus(100, 0, "successReceive");
+            setItemProgressSpeedStatus(98, 0, "waiting");
           }
+          // 设置进度 end
         }
-        // 发送-确认信息
-        client.send(session.remoteAddr, makeConfirmMessage(uniqueId));
-        toDownloadFile = new File([fileBuffer], headerObj.fileName, {
-          type: headerObj.MIMEType,
-        });
-        downloadFileByBlob(toDownloadFile, headerObj.fileName);
-        toDownloadFile = null;
-      });
-      // client.onMessage((message) => {
-      //   console.log("message", message);
-      // });
-    }
-    useMultiClient();
-    const onCopyMyAddr = () => {
-      useClipboard({ read: false })
-        .copy(localAddr.value)
-        .then(() => message.success(t("metanet.copySuccess")));
-    };
-    const onSelectFile = () => {
-      document.getElementById("sendFile")?.click();
-    };
-    const onTestShakeHand = async () => {
-      if (!remotAddr.value.length) {
-        message.warning("请输入对方地址");
-        return;
-      }
-      const client = await userStore.getMultiClient();
-      if (!client) return;
-      client.send(remotAddr.value, "hello,what").catch((e) => {
-        message.warning("握手失败");
-        console.log("sendmsg-error", e);
-      });
-      // client.listen();
-      // console.log("begin-dial", client);
-      const session = await client?.dial(remotAddr.value);
-      console.log("session", session);
-    };
-    const onInputFileChange = (e: Event) => {
-      const input = e.target as HTMLInputElement;
-      if (!input.files?.length) return;
-      // tableDataOfSend.length = 0;
-      const fileArr: FileItem[] = [...input.files].map((i) => ({
-        file: i,
-        fileName: i.name,
-        fileSize: i.size,
-        uniqueId: makeUniqueId(i.name, i.size),
-        fileType: getFileType({ isDir: false, fileName: i.name }),
-        progress: 0,
-        speed: 0,
-        status: "queueing",
-      }));
-      console.log("fileArr", fileArr);
-      tableDataOfSend.push(...fileArr);
-      // 清空input 的缓存
-      input.value = "";
-    };
-    const checkRemoteArr = () => remotAddr.value.length > 0;
-    const onSendFileList = async () => {
-      if (!checkRemoteArr()) {
-        message.warning("请输入对方地址");
-        return;
-      }
-      console.log("onSendFileList", tableDataOfSend);
-      const limit = pLimit(2);
-      loadingOfSend.value = true;
-      const canSendList = tableDataOfSend
-        // 还有file 文件的
-        .filter(
-          // 过滤掉状态为 已经成功的 / 等待确认的
-          (i) => i.file && !["successSend", "waiting"].includes(i.status)
-        );
-      console.log("canSendList", canSendList);
-      if (canSendList.length) {
-        await Promise.all(
-          canSendList.map((item) => {
-            item.status = "queueing";
-            return limit(() => onSendOneFile(item));
-          })
-        );
-      }
-      loadingOfSend.value = false;
-      // console.log("filelist-发送完毕");
-    };
-    const onSendOneFile = async (item: FileItem) => {
-      if (!item.file) return;
-      const fileName = item.file.name;
-      const client = await userStore.getMultiClient();
-      if (!client) return;
-      const repeatlyDial = getRepeatlyClientDialFn(client, remotAddr.value);
-      const session = await repeatlyDial();
-      if (!session) {
-        message.warning("session 握手失败");
-        console.log("session 握手失败");
-        // const idx = tableDataOfSend.findIndex(
-        //   (i) => i.file && i.file.name === fileName
-        // );
-        // if (idx !== -1) {
-        //   tableDataOfSend[idx].status = "failed";
-        //   tableDataOfSend[idx].file = undefined; // 清空文件缓存 不允许再次操作
-        // }
-        item.status = "failed";
-        item.file = undefined; // 清空文件缓存 不允许再次操作
-        return;
-      }
-      console.log("session", session);
-      item.status = "sending";
-      // console.log("session", session);
-      const header: FileHeader = {
-        fileName: item.file.name,
-        fileSize: item.file.size,
-        MIMEType: item.file.type,
+        const confirmMessage = makeConfirmMessage(uniqueId);
+        /** 删除client 里的监听释放内存 */
+        const clearConfirmListener = () => {
+          if (nknClient) {
+            remove(
+              nknClient.eventListeners.message,
+              (v) => v === confirmMessage
+            );
+          }
+        };
+        const handleConfirmMessage = (message: TMessageType) => {
+          console.log("received-remote-message", message);
+          if (message.payload === confirmMessage) {
+            setItemProgressSpeedStatus(100, 0, "successSend");
+            if (userStore.isLoggedIn)
+              transportStore.makePeerTransferSuccessItem(
+                "send",
+                item.fileName,
+                item.fileSize
+              );
+            // 清空文件节省内存
+            item.file = undefined;
+            clearConfirmListener();
+          }
+        };
+        nknClient.onMessage(handleConfirmMessage);
+        setTimeout(() => {
+          clearConfirmListener();
+          if (item.status !== "successSend") {
+            item.status = "failed";
+            item.file = undefined;
+          }
+        }, 30000);
+        // client.eventListeners
       };
-      const uniqueId = makeUniqueId(item.file.name, item.file.size);
-      await writeHeaderInSession(session, encode(header));
-      // while fileSize MAX_MTU
-      let startLen = 0;
-      const startTime = dayjs();
-      let diffSeconds = 0;
-      let toSetBytesPerSecond = 0;
-      const fileBuffer = await item.file.arrayBuffer();
-      // console.log("fileBuffer", fileBuffer);
-      const maxSendLength = fileBuffer.byteLength;
-      const setItemProgressSpeedStatus = (
-        progress: number,
-        speed: number,
-        status: FileItem["status"]
-      ) => {
-        // 防止push 的过程idx 变了, 所以得重新查找
-        // const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
-        // if (idx !== -1) {
-        //   tableDataOfSend[idx].progress = progress;
-        //   tableDataOfSend[idx].speed = speed;
-        //   tableDataOfSend[idx].status = status;
-        // }
-        item.progress = progress;
-        item.speed = speed;
-        item.status = status;
-      };
-      while (startLen <= maxSendLength) {
-        if (session.isClosed) {
-          console.error("session closed");
+      const onClickSendBtn = async () => {
+        if (!nknClient) {
+          message.warning("请等待nkn节点就绪");
           return;
         }
-        const toWriteChunk = new Uint8Array(
-          fileBuffer.slice(
-            startLen,
-            Math.min(startLen + MAX_MTU, maxSendLength)
-          )
-        );
-        // console.log("正在传的chunk开始长度", startLen);
-        await session.write(toWriteChunk);
-        startLen += MAX_MTU;
-        // 设置进度 start
-        const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
-        if (toSetProgressVal < 100) {
-          const curDiffSeconds = dayjs().diff(startTime, "second");
-          if (curDiffSeconds > diffSeconds) {
-            toSetBytesPerSecond = startLen / dayjs().diff(startTime, "second");
-            diffSeconds = curDiffSeconds;
-          }
-          setItemProgressSpeedStatus(
-            toSetProgressVal,
-            toSetBytesPerSecond,
-            "sending"
-          );
+        // 1.链接方式
+        if (currentSendType.value === "link") {
+          const transferUrl = location.href.match(/^.*peerTransfer/g)?.[0];
+          // http://...peertransfer
+          const myAddr = nknClient.addr;
+          sendBtnLoading.value = true;
+          await useDelay(300);
+          sendBtnLoading.value = false;
+          receiveLink.value = `${transferUrl}?addr=${myAddr}`;
+          console.log("生成link", receiveLink.value);
+          const limit = pLimit(2);
+          let lock = false;
+          // countdownText
+          countdownText.value = "10:00";
+          let duration = 60 * 10 - 1; // 10mins - 1s
+          /** link or 验证码 过期倒计时 */
+          timerCountdown = window.setInterval(() => {
+            let minutes = ((duration / 60) | 0) + "";
+            let seconds = (duration % 60 | 0) + "";
+            // 转换一位到两位显示  9=>09
+            minutes = +minutes < 10 ? "0" + minutes : minutes;
+            seconds = +seconds < 10 ? "0" + seconds : seconds;
+            countdownText.value = `${minutes}:${seconds}`;
+            if (--duration < 0) {
+              lock = true; // 超时加锁,onMessage 监听不能再用了
+              clearInterval(timerCountdown);
+            }
+          }, 1000);
+          /** 防止内存泄漏? */
+          // onUnmounted(() => clearInterval(timer));
+          // 监听接收方发来的message 信息TMessageType
+
+          const handleShakeHandMessage = async ({
+            payload,
+            src,
+          }: TMessageType) => {
+            if (lock) {
+              // 因为没有off 方法, 这里设置了防止重复接收message , 只能用一次
+              return;
+            }
+            if (payload === SHAKE_HAND) {
+              clearInterval(timerCountdown);
+              console.log(
+                "收到接收方发来的消息,即将发送文件总大小消息",
+                payload
+              );
+              await nknClient?.send(
+                src,
+                totalInfoGuard._encode(
+                  totalSendSize.value,
+                  tableSend.value.length
+                ),
+                {
+                  noReply: true,
+                }
+              );
+              lock = true;
+              Promise.all(
+                tableSend.value.map((item) => {
+                  limit(() => onSendOneFile(src, item));
+                })
+              ).finally(() => {
+                remove(
+                  nknClient?.eventListeners.message ?? [],
+                  (v) => v === handleShakeHandMessage
+                );
+              });
+              // writeFiles();
+              // TODO 发送文件list
+            }
+          };
+          nknClient.onMessage(handleShakeHandMessage);
+          resetClientListener.push(() => {
+            if (nknClient) {
+              remove(
+                nknClient.eventListeners.message,
+                (v) => v === handleShakeHandMessage
+              );
+              console.log(
+                "after-removeListener",
+                nknClient.eventListeners.message
+              );
+            }
+          });
         } else {
-          setItemProgressSpeedStatus(98, 0, "waiting");
-        }
-        // 设置进度 end
-      }
-      const confirmMessage = makeConfirmMessage(uniqueId);
-      /** 删除client 里的监听释放内存 */
-      const clearConfirmListener = () =>
-        remove(client.eventListeners.message, (v) => v === confirmMessage);
-      const handleConfirmMessage = (message: TMessageType) => {
-        console.log("received-remote-message", message);
-        if (message.payload === confirmMessage) {
-          setItemProgressSpeedStatus(100, 0, "successSend");
-          // 清空文件节省内存
-          // const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
-          // if (idx !== -1) {
-          //   tableDataOfSend[idx].file = undefined;
-          // }
-          item.file = undefined;
-          clearConfirmListener();
+          const { socket } = userStore;
+          if (!socket) return;
+          console.log("direct");
+          sendBtnLoading.value = true;
+          await useDelay(300);
+          sendBtnLoading.value = false;
+          sendReceiveCode.value = getRandomNumStr(6);
+          countdownText.value = "10:00";
+          let duration = 60 * 10 - 1; // 10mins - 1s
+          /** link or 验证码 过期倒计时 */
+          timerCountdown = window.setInterval(() => {
+            let minutes = ((duration / 60) | 0) + "";
+            let seconds = (duration % 60 | 0) + "";
+            // 转换一位到两位显示  9=>09
+            minutes = +minutes < 10 ? "0" + minutes : minutes;
+            seconds = +seconds < 10 ? "0" + seconds : seconds;
+            countdownText.value = `${minutes}:${seconds}`;
+            if (--duration < 0) {
+              // lock = true; // 超时加锁,onMessage 监听不能再用了
+              clearInterval(timerCountdown);
+            }
+          }, 1000);
+          const sendChannel = socket.channel(
+            // `airdrop:${sendReceiveCode.value}`
+            `airdrop:111111`
+          );
+          sendChannel
+            .join()
+            .receive("ok", (resp) => {
+              console.log("[Ready] join airdrop send-channel", resp);
+            })
+            .receive("error", (err) => {
+              console.log("join airdrop send-channel error", err);
+              console.error(err);
+            });
+          sendChannel.on(SHAKE_HAND, (data) => {
+            console.log("shakehand-data", data);
+            clearInterval(timerCountdown);
+          });
         }
       };
-      client.onMessage(handleConfirmMessage);
-      setTimeout(() => {
-        clearConfirmListener();
-        // 超时还未确认的话就当取消
-        // const idx = tableDataOfSend.findIndex((i) => i.uniqueId === uniqueId);
-        // if (idx !== -1) {
-        //   if (tableDataOfSend[idx].status !== "successSend") {
-        //     tableDataOfSend[idx].status = "failed";
-        //     // 清空文件节省内存
-        //     tableDataOfSend[idx].file = undefined;
-        //   }
-        // }
-        if (item.status !== "successSend") {
-          item.status = "failed";
-          item.file = undefined;
+      return {
+        currentSendType,
+        receiveLink,
+        sendReceiveCode,
+        countdownText,
+        sendBtnLoading,
+        columnsSend,
+        tableSend,
+        totalSendInfo,
+        sendCode,
+        totalSendProgess,
+        totalSendSize,
+        hadSendSize,
+        isTotalSendProgressBarTextWhite,
+        onCopyReceiveLink,
+        onBackReceiveLink,
+        onBackReceiveCode,
+        onCopyReceiveCode,
+        onSelectFiles,
+        onChangeMultipleUploadFile,
+        onSendOk,
+        onResetSend,
+        onDeleteSendItem,
+        onSetCurrentSendType,
+        onClickSendBtn,
+      };
+    }
+    /** 接收文件 */
+    function useReceive() {
+      const tableReceive = ref<TransferFile[]>([]);
+      const receiveInputLoading = ref(false);
+      const receiveInputCode = ref("");
+      const onClickReceive = () => {
+        if (!receiveInputCode.value.length) {
+          message.warning("请输入接收码");
+          return;
         }
-      }, 30000);
-      // client.eventListeners
-    };
+        if (receiveInputLoading.value) {
+          return;
+        }
+        console.log("输入的接收码是:", receiveInputCode.value);
+        const { socket } = userStore;
+        if (!socket) return;
+        receiveInputLoading.value = true;
+        const receiveChannel = socket.channel(
+          // `airdrop:${receiveInputCode.value}`
+          `airdrop:111111`
+        );
+        receiveChannel
+          .join()
+          .receive("ok", (resp) => {
+            console.log("[Ready] join airdrop receive-channel", resp);
+          })
+          .receive("error", (err) => {
+            console.log("join airdrop receive-channel error", err);
+            console.error(err);
+          });
+        receiveChannel
+          .push(SHAKE_HAND, { addr: userStore.multiClient?.addr })
+          .receive("ok", (payload) => console.log("phoenix replied:", payload))
+          .receive("error", (err) => console.log("phoenix errored", err))
+          .receive("timeout", () => console.log("timed out pushing"));
+        handleReceiveFile("code");
+      };
+      /** 接收总大小 */
+      const totalReceiveSize = ref(0);
+      /** 接收总多少个文件 */
+      const totalReceiveCount = ref(0);
+      /** 接收总进度 */
+      const totalReceiveProgressNoPercent = computed(() => {
+        const list = tableReceive.value;
+        if (!list.length) return 0;
+        return (
+          list.reduce((a, b) => (a += b.progress), 0) /
+          (totalReceiveCount.value * 100)
+        );
+      });
+      const totalReceiveProgress = computed(() => {
+        return Math.floor(totalReceiveProgressNoPercent.value * 100);
+      });
 
-    /** 删除发送item */
-    const onRecordSendClear = (record: FileItem) => {
-      remove(tableDataOfSend, (v) => v.uniqueId === record.uniqueId);
-    };
-    /** 删除接收item */
-    const onRecordReceiveClear = (record: FileItem) => {
-      remove(tableDataOfReceive, (v) => v.uniqueId === record.uniqueId);
-    };
-    // File
-    // lastModified: 1626790643596
-    // lastModifiedDate: Tue Jul 20 2021 22:17:23 GMT+0800 (中国标准时间) {}
-    // name: "31995417527941.jpg"
-    // size: 1048576
-    // type: "image/jpeg"
-    // webkitRelativePath: ""
+      /** 总共接收了多少数据 */
+      const hadReceiveSize = computed(() => {
+        return totalReceiveSize.value * totalReceiveProgressNoPercent.value;
+      });
+      const isTotalReceiveProgressBarTextWhite = ref(false);
+      // z总宽度-左右边距
+      const totalReceiveProgressBarWidth = 268;
+      watch(
+        () => totalReceiveProgress.value,
+        (newVal) => {
+          const currentPercentWidth =
+            totalReceiveProgressBarWidth * (newVal / 100);
+          isTotalReceiveProgressBarTextWhite.value = currentPercentWidth > 168;
+        }
+      );
+      const onReceiveOk = () => {
+        tableReceive.value.length = 0;
+        totalReceiveSize.value = 0;
+        totalReceiveCount.value = 0;
+        receiveInputLoading.value = false;
+      };
+      // 如果当前是未登录的, 自动nkn  ?
+      // 未登录状态 -start
+      const handleReceiveFile = (
+        type: "link" | "code",
+        remoteAddr?: string
+      ) => {
+        receiveInputLoading.value = true;
+        const checkNknClientReady = () => {
+          return new Promise<classMultiClient>((resolve) => {
+            const id = setInterval(() => {
+              if (nknClient) {
+                resolve(nknClient);
+                clearInterval(id);
+              }
+            }, 1000);
+          });
+        };
+        checkNknClientReady().then(async (client) => {
+          // 必须要listen 才能onSession
+          client.listen();
+          // 发送回去消息,告诉接收方准备好了
+          if (type === "link" && remoteAddr) {
+            await client.send(remoteAddr, SHAKE_HAND, { noReply: true });
+          }
+          const handleFileTotalMsg = (msgObj: TMessageType) => {
+            if (msgObj.payload.includes(RECEIVE_PREFIX)) {
+              const { count, size } = totalInfoGuard._decode(msgObj.payload);
+              totalReceiveSize.value = size;
+              totalReceiveCount.value = count;
+              console.log(`收到文件总量信息:总共${count}个文件,${size}`);
+              remove(
+                client.eventListeners.message,
+                (v) => v === handleFileTotalMsg
+              );
+            }
+          };
+          client.onMessage(handleFileTotalMsg);
+          await useDelay(500);
+          // const session = await client.dial(remoteAddr);
+          // console.log("session---------", session);
+          // 一个session 只用来发送一个文件
+          const handleSession = async (session: TSession) => {
+            const headerUint8Array = await readHeaderInSession(session);
+            const headerObj = decode(headerUint8Array) as FileHeader;
+            let toDownloadFile: File | null = null;
+            console.log("读取文件头部信息", headerObj);
+            const uniqueId = makeUniqueId(
+              headerObj.fileName,
+              headerObj.fileSize
+            );
+            const itemToPush: TransferFile = reactive({
+              file: new File(["0"], headerObj.fileName, {
+                type: headerObj.MIMEType,
+              }),
+              fileName: headerObj.fileName,
+              fileSize: headerObj.fileSize,
+              uniqueId,
+              fileType: getFileType({
+                isDir: false,
+                fileName: headerObj.fileName,
+              }),
+              progress: 0,
+              speed: 0,
+              status: "queueing",
+            });
+            tableReceive.value.push(itemToPush);
+            // console.log(headerObj);
+            const maxReceiveLength = headerObj.fileSize;
+            let fileBuffer = new Uint8Array(0);
+            let startLen = 0;
+            const startTime = dayjs();
+            let diffSeconds = 0;
+            let toSetBytesPerSecond = 0;
+            while (startLen <= maxReceiveLength) {
+              if (session.isClosed) {
+                console.error("session closed");
+                return;
+              }
+              const toReadLength =
+                startLen < maxReceiveLength
+                  ? MAX_MTU
+                  : startLen - maxReceiveLength;
+              const roundRead = await session.read(toReadLength);
+              fileBuffer = mergeUint8Array(fileBuffer, roundRead);
+              // console.log(
+              //   "已经写入的array-正在接收的chunk长度",
+              //   fileBuffer,
+              //   roundRead
+              // );
+              startLen += MAX_MTU;
+              // 设置进度 start
+              const setItemProgressSpeedStatus = (
+                progress: number,
+                speed: number,
+                status: TransferFile["status"]
+              ) => {
+                // 防止push 的过程idx 变了, 所以得重新查找
+                const idx = tableReceive.value.findIndex(
+                  (i) => i.uniqueId === uniqueId
+                );
+                if (idx !== -1) {
+                  tableReceive.value[idx].progress = progress;
+                  tableReceive.value[idx].speed = speed;
+                  tableReceive.value[idx].status = status;
+                }
+              };
+              const toSetProgressVal = Math.floor(
+                (startLen / maxReceiveLength) * 100
+              );
+              if (toSetProgressVal < 100) {
+                const curDiffSeconds = dayjs().diff(startTime, "second");
+                if (curDiffSeconds > diffSeconds) {
+                  toSetBytesPerSecond =
+                    startLen / dayjs().diff(startTime, "second");
+                  diffSeconds = curDiffSeconds;
+                }
+                setItemProgressSpeedStatus(
+                  toSetProgressVal,
+                  toSetBytesPerSecond,
+                  "receiving"
+                );
+              } else {
+                setItemProgressSpeedStatus(100, 0, "successReceive");
+                if (userStore.isLoggedIn)
+                  transportStore.makePeerTransferSuccessItem(
+                    "receive",
+                    headerObj.fileName,
+                    headerObj.fileSize
+                  );
+              }
+            }
+            // 发送-确认信息
+            await client.send(
+              session.remoteAddr,
+              makeConfirmMessage(uniqueId),
+              {
+                noReply: true,
+              }
+            );
+            receiveInputLoading.value = false;
+            toDownloadFile = new File([fileBuffer], headerObj.fileName, {
+              type: headerObj.MIMEType,
+            });
+            downloadFileByBlob(toDownloadFile, headerObj.fileName);
+            toDownloadFile = null;
+            remove(client.eventListeners.session, (v) => v === handleSession);
+          };
+          client.onSession(handleSession);
+          // client.onMessage((message) => {
+          //   console.log("message", message);
+          // });
+        });
+      };
+      const remoteAddr = route.query.addr as string;
+      if (remoteAddr) {
+        //检测到路由有link, 开始监听文件接收
+        handleReceiveFile("link", remoteAddr);
+      }
+      // 未登录状态 -end
+
+      return {
+        tableReceive,
+        receiveInputLoading,
+        receiveInputCode,
+        onClickReceive,
+        totalReceiveCount,
+        totalReceiveSize,
+        totalReceiveProgress,
+        hadReceiveSize,
+        onReceiveOk,
+        isTotalReceiveProgressBarTextWhite,
+      };
+    }
     return {
-      localAddr,
-      remotAddr,
-      actionType,
-      onCopyMyAddr,
-      onSelectFile,
-      onTestShakeHand,
-      onInputFileChange,
+      isUserLoggedIn,
+      nknStatusCount,
+      ...useSend(),
+      ...useReceive(),
       calcStatusText,
-      onSendFileList,
-      columns,
-      loadingOfSend,
-      tableDataOfSend,
-      tableDataOfReceive,
       formatBytes,
-      onRecordSendClear,
-      onRecordReceiveClear,
     };
   },
 });
 </script>
 
 <style lang="less" scoped>
-/* #f0f0f0 */
+.send,
+.receive {
+  width: 300px;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.08),
+    0 44px 32px 0 rgba(0, 0, 0, 0.25);
+  background-color: #fff;
+  transition: all 0.2s ease-in-out;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 166px;
+}
+/*定义滚动条轨道
+ 内阴影+圆角*/
+::-webkit-scrollbar-track {
+  display: none;
+}
+/*定义滑块
+ 内阴影+圆角*/
+::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.BackIcon {
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+.btnSendType {
+  &:hover {
+    background: #fafafa;
+  }
+}
+.activeBtnSendType {
+  color: #1890ff;
+  background: #fafafa;
+}
+.tableSendItemDelete {
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+.tableSendItemBox {
+  &:hover {
+    .tableSendItemSize {
+      display: none;
+      color: blue;
+    }
+    .tableSendItemDelete {
+      display: block;
+    }
+  }
+}
+.peerTransferProgressBar {
+  :deep(.ant-progress-inner) {
+    height: 30px;
+    line-height: 30px;
+  }
+  :deep(.ant-progress-bg) {
+    height: 30px !important;
+    line-height: 30px !important;
+  }
+}
 </style>

@@ -13,10 +13,18 @@ const NKN_CONFIG = {
 };
 
 /** 返回 nkn MultiClient */
-export function getMultiClient(wallet: ClassWallet) {
+export const getMultiClient = (wallet: ClassWallet) => {
   return new MultiClient({
     seed: wallet.getSeed(),
     identifier: dayjs(),
     ...NKN_CONFIG,
   });
-}
+};
+
+/** 返回匿名用户的 MultiClient */
+export const getAnonymousMultiClient = () => {
+  return new MultiClient({
+    identifier: dayjs(),
+    ...NKN_CONFIG,
+  });
+};

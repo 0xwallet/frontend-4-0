@@ -1,5 +1,12 @@
 <template>
   <div>
+    <!-- 这个为隐藏的作为选择文件用的 -->
+    <input
+      class="hidden"
+      type="file"
+      id="shareSingleInput"
+      @change="onChangeUploadFile"
+    />
     <!-- 功能区 height 32px-->
     <div class="relative h-8 flex items-center mb-3 pr-1">
       <a-button
@@ -75,6 +82,17 @@
                 ><CopyOutlined
               /></a>
             </a-tooltip>
+            <!-- 替换 -->
+            <template v-if="!record.userFile.isDir">
+              <a-tooltip title="更新文件">
+                <a
+                  class="shortcutButton ml-1"
+                  href="javascript:;"
+                  @click="onRecordReplaceShareFile(record)"
+                  ><RotateRightOutlined
+                /></a>
+              </a-tooltip>
+            </template>
             <!-- 删除 -->
             <a-tooltip title="取消分享">
               <a
@@ -193,6 +211,7 @@ import {
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   CopyOutlined,
+  RotateRightOutlined,
   CloseCircleOutlined,
   EllipsisOutlined,
 } from "@ant-design/icons-vue";
@@ -212,13 +231,14 @@ import { message, Modal } from "ant-design-vue";
 import {
   formatBytes,
   getFileLocation,
+  getFileSHA256,
   getFileType,
   getShareInfoByUriAndCode,
   lastOfArray,
 } from "@/utils";
 import { cloneDeep } from "lodash-es";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
-import { useBaseStore, useUserStore } from "@/store";
+import { useBaseStore, useTransportStore, useUserStore } from "@/store";
 import { useClipboard } from "@vueuse/core";
 import { useRoute, useRouter } from "vue-router";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
@@ -239,6 +259,7 @@ export default defineComponent({
     XFileTypeIcon,
     SyncOutlined,
     InfoCircleOutlined,
+    RotateRightOutlined,
     CloseCircleOutlined,
     CopyOutlined,
     EllipsisOutlined,
@@ -250,6 +271,7 @@ export default defineComponent({
     const tableLoading = ref(false);
     const userStore = useUserStore();
     const baseStore = useBaseStore();
+    const transportStore = useTransportStore();
     const router = useRouter();
     const route = useRoute();
     // 名称	创建时间	有效期	访问码	操作
@@ -393,61 +415,59 @@ export default defineComponent({
         });
     });
     /** 根据目录数组返回包含id 的对象 */
-    async function getLastItemIdByNameArr(nameArr: string[]) {
-      // console.log("call-getLastItemIdByNameArr", nameArr);
-      try {
-        const resultOfAll = await Promise.all(
-          nameArr.map(async (item, idx) => {
-            const resItem = await apiQueryFileByDir(
-              // 查询上级目录
-              idx === 0
-                ? {
-                    dirId: "root",
-                  }
-                : {
-                    fullName: nameArr.slice(0, idx),
-                  }
-            );
-            const foundItem = resItem.data?.driveListFiles.find(
-              (i) => i && lastOfArray(i.fullName) === item
-            );
-            if (!foundItem) {
-              //  throw Error();
-              // { err: `${item}-找不到对应目录` };
-              return {
-                id: "ErrorNotFound",
-                name: "ErrorNotFound",
-                isShared: false,
-              };
-            }
-            return {
-              id: foundItem.id,
-              name: item,
-              isShared: foundItem.isShared,
-            };
-          })
-        );
-        return resultOfAll;
-      } catch (err) {
-        console.log("getLastItemIdByNameArr-err", err);
-      }
-    }
+    // async function getLastItemIdByNameArr(nameArr: string[]) {
+    //   // console.log("call-getLastItemIdByNameArr", nameArr);
+    //   try {
+    //     const resultOfAll = await Promise.all(
+    //       nameArr.map(async (item, idx) => {
+    //         const resItem = await apiQueryFileByDir(
+    //           // 查询上级目录
+    //           idx === 0
+    //             ? {
+    //                 dirId: "root",
+    //               }
+    //             : {
+    //                 fullName: nameArr.slice(0, idx),
+    //               }
+    //         );
+    //         const foundItem = resItem.data?.driveListFiles.find(
+    //           (i) => i && lastOfArray(i.fullName) === item
+    //         );
+    //         if (!foundItem) {
+    //           //  throw Error();
+    //           // { err: `${item}-找不到对应目录` };
+    //           return {
+    //             id: "ErrorNotFound",
+    //             name: "ErrorNotFound",
+    //             isShared: false,
+    //           };
+    //         }
+    //         return {
+    //           id: foundItem.id,
+    //           name: item,
+    //           isShared: foundItem.isShared,
+    //         };
+    //       })
+    //     );
+    //     return resultOfAll;
+    //   } catch (err) {
+    //     console.log("getLastItemIdByNameArr-err", err);
+    //   }
+    // }
     /** 表格里名字的点击 */
     const onClickTableItemName = async (record: TTableShareFileItem) => {
       // console.log("clicktablename", record);
       if (record.userFile.isDir) {
-        const folderArr = await getLastItemIdByNameArr(
-          record.userFile.fullName
-        );
+        // const folderArr = await getLastItemIdByNameArr(
+        //   record.userFile.fullName
+        // );
         // console.log("folderArr", folderArr);
         const windowId = baseStore.getNewOpenWindowId();
         router.push({
           name: "MetanetFile",
           query: {
             id: windowId,
-          },
-          params: {
-            folderArrStr: JSON.stringify(folderArr),
+            path: "~/" + record.userFile.fullName.join("/"),
           },
         });
       }
@@ -551,6 +571,45 @@ export default defineComponent({
       useClipboard({ read: false })
         .copy(shareInfo)
         .then(() => message.success(t("metanet.copySuccess")));
+    };
+    /** 要替换的老的文件id */
+    const currentToUpdateFileId = ref("");
+
+    /** 表格里单项替换文件 */
+    const onRecordReplaceShareFile = (record: TTableShareFileItem) => {
+      if (userStore.isLoadingMultiClient) {
+        message.warning("请等待nkn节点就绪");
+        return;
+      }
+      currentToUpdateFileId.value = record.userFile.id;
+      document.getElementById("shareSingleInput")?.click();
+    };
+    const onChangeUploadFile = async (e: Event) => {
+      const input = e.target as HTMLInputElement;
+      if (!input.files?.length) return;
+      router.push({ name: "TransportUploading" });
+      // console.log("input", input.files);
+      const file = input.files[0];
+      // 如果当前没有任务正在上传, 增加回合id
+      if (!transportStore.uploadingList.length) {
+        transportStore.plusCurRoundId();
+      }
+      const fileHash = await getFileSHA256(file);
+      await transportStore.uploadFile({
+        file,
+        action: "update",
+        fullName: [file.name],
+        fileType: getFileType({
+          isDir: false,
+          fileName: file.name,
+        }),
+        fileHash,
+        roundId: transportStore.uploadCurRoundId,
+        description: "",
+        toUpdateFileId: currentToUpdateFileId.value,
+      });
+      currentToUpdateFileId.value = "";
+      input.value = "";
     };
     /** 表格里单项取消分享 */
     const onRecordCancel = (record: TTableShareFileItem) => {
@@ -708,6 +767,8 @@ export default defineComponent({
       onBatchDelete,
       onRecordDetail,
       onRecordCopyShare,
+      onRecordReplaceShareFile,
+      onChangeUploadFile,
       onRecordCancel,
       onRecordEdit,
       currenDetailInfo,

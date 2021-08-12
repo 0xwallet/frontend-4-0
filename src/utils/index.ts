@@ -102,11 +102,13 @@ export const getRepeatlyClientDialFn = (
   addr: string
 ): (() => Promise<TSession | null>) => {
   let dialTryTimes = 0;
-  const maxDialTimes = 10;
+  /** 最多重试次数 */
+  const maxDialTimes = 20;
   const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
     try {
-      res = await client.dial(addr, { dialTimeout: 3000 });
+      // 10s 过期
+      res = await client.dial(addr, { dialTimeout: 10000 });
       // 过期就重试
     } catch (error) {
       console.error("clientDial-error-dialTryTimes", error, dialTryTimes);
@@ -189,4 +191,28 @@ export const getRandomNumStr = (n = 6): string => {
     .fill(null)
     .map(() => one())
     .join("");
+};
+
+/** 从文件应用路由中提取窗口id */
+export const exactWindowId = (fileRoutePath: string) => {
+  const match = /id=(\d*)&?/g.exec(fileRoutePath);
+  if (!match) throw Error(`提取路由中的窗口id 失败${fileRoutePath}`);
+  const id = match?.[1];
+  return +id;
+};
+
+const uniqueIdCache: { [key: string]: string } = {};
+/** 从路由fullPath中获取唯一的标识(带缓存) */
+export const exactUniqueTabId = (fullPath: string) => {
+  // 缓存编译结果
+  if (uniqueIdCache[fullPath]) return uniqueIdCache[fullPath];
+  // metanet/file?id=2&path=~
+  // 1. 文件应用就用windowId
+  // 2. 其他应用就用对应的path
+  uniqueIdCache[fullPath] = fullPath.includes("peerTransfer")
+    ? "peerTransfer"
+    : fullPath.includes("metanet/file")
+    ? exactWindowId(fullPath).toString()
+    : fullPath;
+  return uniqueIdCache[fullPath];
 };

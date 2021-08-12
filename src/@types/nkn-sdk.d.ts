@@ -111,7 +111,18 @@ declare module "nkn" {
     onSession: (fn: (session: TSession) => void) => void;
     onMessage: (fn: (msgObj: TMessageType) => void) => void;
     listen: () => void;
-    send: (remoteAddr: string, msg: string) => Promise<void>;
+    send: (
+      remoteAddr: string,
+      msg: string,
+      options?: {
+        responseTimeout?: number;
+        encrypt?: boolean;
+        msgHoldingSeconds?: number;
+        noReply?: boolean;
+        messageId?: Uint8Array;
+        replyToId?: Uint8Array;
+      }
+    ) => Promise<void>;
     readyClientIDs(): string[];
     defaultClient: classNknClient;
     msgCache: typeof CacheClass;
@@ -124,6 +135,7 @@ declare module "nkn" {
     eventListeners: {
       connect: unknown[];
       message: unknown[];
+      session: unknown[];
     };
     isReady: boolean;
     isClosed: boolean;
@@ -133,13 +145,14 @@ declare module "nkn" {
     // ...
     new ({ password: string }): ClassWallet;
   }
+  type InewClassMultiClientParams = {
+    seed?: string;
+    numSubClients: number;
+    sessionConfig: { mtu: number };
+    identifier: string;
+  };
   interface InewClassMultiClient {
-    new ({
-      seed: string,
-      numSubClients: number,
-      sessionConfig: { mtu: number },
-      identifier: string,
-    }): classMultiClient;
+    new (InewClassMultiClientParams): classMultiClient;
   }
   export type TSession = {
     isClosed: boolean;

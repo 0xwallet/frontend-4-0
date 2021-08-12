@@ -2,7 +2,7 @@ import { apiUploadSingle, ParamsUploadSingle } from "@/apollo/api";
 import { UPLOAD_MSG } from "@/constants";
 import { useDelay } from "@/hooks";
 import { getFileType, lastOfArray } from "@/utils";
-import { unset, values } from "lodash-es";
+import { uniqueId, unset, values } from "lodash-es";
 import pLimit from "p-limit";
 import { defineStore } from "pinia";
 import { useUserStore } from ".";
@@ -24,6 +24,9 @@ export type UploadStatus =
   | "pause"
   | "waiting"
   | "success"
+  | "successUpdate" // 成功更新文件
+  | "successPeerTransferSend"
+  | "successPeerTransferReceive"
   | "failed";
 
 export type UploadItem = {
@@ -35,6 +38,8 @@ export type UploadItem = {
   fileSize: number;
   progress: number;
   status: UploadStatus;
+  action: "drive" | "update";
+  toUpdateFileId?: string;
   roundId: number; // 回合id 用于计算总进度
   description: string;
   isSecondUpload?: boolean; // 是否急速上传
@@ -51,6 +56,12 @@ type TransportState = {
 };
 
 const SUCCESS_STORAGE_KEY = "uploadSuccessList";
+const SUCCESS_STATUS_ARR = [
+  "success",
+  "successUpdate",
+  "successPeerTransferSend",
+  "successPeerTransferReceive",
+];
 let timerStorage: null | number = null;
 
 export default defineStore({
@@ -80,7 +91,9 @@ export default defineStore({
     },
     /** 上传成功的文件列表 */
     uploadSuccessList: (state) => {
-      return values(state.uploadHashMap).filter((i) => i.status === "success");
+      return values(state.uploadHashMap).filter((i) => {
+        return SUCCESS_STATUS_ARR.includes(i.status);
+      });
     },
   },
   actions: {
@@ -106,6 +119,32 @@ export default defineStore({
         this.uploadHashMap[item.uniqueId] = { ...item, roundId: -1 };
       });
     },
+    /** 创建空投成功 函数 */
+    makePeerTransferSuccessItem(
+      type: "send" | "receive",
+      fileName: string,
+      fileSize: number
+    ) {
+      const peerTransferUniqueId = `${+Date.now()}`;
+      this.uploadHashMap[peerTransferUniqueId] = {
+        uniqueId: peerTransferUniqueId,
+        fileHash: peerTransferUniqueId,
+        fullName: [fileName],
+        fileType: getFileType({ isDir: false, fileName }),
+        fileSize,
+        progress: 100,
+        status:
+          type === "send"
+            ? "successPeerTransferSend"
+            : "successPeerTransferReceive",
+        roundId: -1,
+        description: "",
+        speed: 1,
+        action: "drive",
+      };
+      // console.log("call-makePeerTransferSuccessItem", this.uploadHashMap);
+      this.timeOutSetStorageFinishedList();
+    },
     plusCurRoundId() {
       this.uploadCurRoundId += 1;
     },
@@ -126,7 +165,8 @@ export default defineStore({
         fileHash: item.fileHash,
         roundId: item.roundId,
         description: item.description,
-        action: "drive", // TODO 如果是update?
+        action: item.action,
+        // action: "drive", // TODO 如果是update?
       });
     },
     /** 暂停上传: close uploadSession,set status pause */
@@ -143,8 +183,9 @@ export default defineStore({
     /** 删除item */
     clearItem(uniqueId: string) {
       //如果删除的是成功项, 跟localStorage 同步
-      const isToClearItemSuccess =
-        this.uploadHashMap[uniqueId].status === "success";
+      const isToClearItemSuccess = SUCCESS_STATUS_ARR.includes(
+        this.uploadHashMap[uniqueId].status
+      );
       if (isToClearItemSuccess) this.timeOutSetStorageFinishedList();
       if (this.uploadHashMap[uniqueId]) {
         unset(this.uploadHashMap, uniqueId);
@@ -205,7 +246,8 @@ export default defineStore({
       status: UploadStatus
     ) {
       this.setUploadItemByAssign(uniqueId, { progress, speed, status });
-      if (status === "success") this.timeOutSetStorageFinishedList();
+      if (SUCCESS_STATUS_ARR.includes(status))
+        this.timeOutSetStorageFinishedList();
     },
     /** 在store 中上传单个文件 */
     async uploadFile({
@@ -216,6 +258,7 @@ export default defineStore({
       roundId,
       description,
       action,
+      toUpdateFileId,
     }: {
       file: File;
       fullName: string[]; // 包含路径的name
@@ -224,6 +267,7 @@ export default defineStore({
       roundId: number;
       description: string;
       action: "drive" | "update";
+      toUpdateFileId?: string;
     }) {
       // console.log(
       //   "uploadFile-params",
@@ -248,7 +292,11 @@ export default defineStore({
           progress: 0,
           status: "queueing",
           speed: 0,
+          action,
         };
+        if (toUpdateFileId) {
+          this.uploadHashMap[uniqueId].toUpdateFileId = toUpdateFileId;
+        }
       }
       const userStore = useUserStore();
       // 如果nkn 节点未就绪, 暂停该文件
@@ -271,6 +319,11 @@ export default defineStore({
           // 中间状态(0-99) 传递给api 函数调用
           setProgressSpeedStatus:
             this.setUploadItemProgressSpeedStatus.bind(this),
+          ...(toUpdateFileId
+            ? {
+                toUpdateFileId,
+              }
+            : {}),
         })
       );
       // console.log("resultUploadSingle", resultUploadSingle);
@@ -302,13 +355,19 @@ export default defineStore({
           return { err: resultWaitWs.err };
         }
       }
-      this.setUploadItemProgressSpeedStatus(uniqueId, 100, 0, "success");
+      this.setUploadItemProgressSpeedStatus(
+        uniqueId,
+        100,
+        0,
+        // 如果是上传设置为上传成功 否则 更新成功
+        action === "drive" ? "success" : "successUpdate"
+      );
       this.uploadHashMap[uniqueId].file = undefined; // 清空file 释放内存
       // console.log("store", this);
       return {
-        data: `${lastOfArray(
-          this.uploadHashMap[uniqueId].fullName
-        )} - 上传成功`,
+        data: `${lastOfArray(this.uploadHashMap[uniqueId].fullName)} - ${
+          action === "drive" ? "上传" : "更新"
+        }成功`,
       };
     },
   },

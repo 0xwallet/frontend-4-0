@@ -9,14 +9,14 @@ import { useUserStore } from "@/store";
 import { defineComponent, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import Common from "./Common.vue";
-import SharedFile from "./SharedFile.vue";
+import NoLogin from "./NoLogin.vue";
 
-type Layout = "SharedFile" | "Common";
+type Layout = "NoLogin" | "Common";
 
 export default defineComponent({
   components: {
     Common,
-    SharedFile,
+    NoLogin,
   },
   setup() {
     const userStore = useUserStore();
@@ -26,15 +26,23 @@ export default defineComponent({
     const dupSetCurLayout = (str: Layout) => {
       if (curLayout.value !== str) curLayout.value = str;
     };
+    const isRoutePathShowInNoLogin = (path: string) => {
+      return (
+        !userStore.isLoggedIn &&
+        (path.includes("sharedFile") || path.includes("peerTransfer"))
+      );
+    };
     watch(
       () => route,
       (newVal) => {
         // console.log("layout-index-watch-route", newVal);
-        // 如果是 分享链接页面&&未登录 , 用SharedFile layout
+        // 如果当前也需要显示在未登录上 , 用NoLogin layout
+        console.log(
+          "isRoutePathShowInNoLogin(newVal.path)",
+          isRoutePathShowInNoLogin(newVal.path)
+        );
         dupSetCurLayout(
-          newVal.path.includes("sharedFile") && !userStore.isLoggedIn
-            ? "SharedFile"
-            : "Common"
+          isRoutePathShowInNoLogin(newVal.path) ? "NoLogin" : "Common"
         );
       },
       {

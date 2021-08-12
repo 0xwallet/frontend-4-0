@@ -31,6 +31,13 @@ export default defineStore({
     changeIsShowLoginModal(v: boolean) {
       this.isShowLoginModal = v;
     },
+    // 加载存储里的fileWindow数据
+    loadStorageFileWindow() {
+      const rawFileWindow = localStorage.getItem("fileWindow");
+      if (!rawFileWindow) return;
+      const fileWindow = JSON.parse(rawFileWindow);
+      Object.assign(this.fileWindow, fileWindow);
+    },
     /** 设置对应的id 为默认的或者是{path,tag}或者null */
     setWindowIdItem(id: number, v: "default" | FileWindowItem | null) {
       if (v === "default") {
@@ -41,6 +48,7 @@ export default defineStore({
       } else {
         this.fileWindow[id] = v;
       }
+      localStorage.setItem("fileWindow", JSON.stringify(this.fileWindow));
     },
     /** 获取尚未激活的窗口id,激活并返回这个id */
     getNewOpenWindowId() {

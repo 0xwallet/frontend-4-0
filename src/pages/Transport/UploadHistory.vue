@@ -36,7 +36,13 @@
       </template>
       <template #fileDir="{ record }">
         <div class="text-gray-400" title="路径全名">
-          {{ fullNameToFileDir(record) }}
+          {{
+            ["successPeerTransferSend", "successPeerTransferReceive"].includes(
+              record.status
+            )
+              ? "本地路径"
+              : fullNameToFileDir(record)
+          }}
         </div>
       </template>
       <template #status="{ record }">
@@ -47,11 +53,35 @@
           </div>
           <div class="text-gray-400">极速秒传</div>
         </div>
-        <div v-else class="flex items-center">
+        <div v-else-if="record.status === 'success'" class="flex items-center">
           <div class="w-3.5 h-3.5 mr-2">
             <img src="~@/assets/images/success_upload.png" alt="" />
           </div>
           <div class="text-gray-400">上传成功</div>
+        </div>
+        <div v-else-if="record.status === 'successUpdate'" class="flex items-center">
+          <div class="w-3.5 h-3.5 mr-2">
+            <img src="~@/assets/images/success_upload.png" alt="" />
+          </div>
+          <div class="text-gray-400">更新成功</div>
+        </div>
+        <div
+          v-else-if="record.status === 'successPeerTransferSend'"
+          class="flex items-center"
+        >
+          <div class="w-3.5 h-3.5 mr-2">
+            <img src="~@/assets/images/success_peerTransfer.png" alt="" />
+          </div>
+          <div class="text-gray-400">空投发送成功</div>
+        </div>
+        <div
+          v-else-if="record.status === 'successPeerTransferReceive'"
+          class="flex items-center"
+        >
+          <div class="w-3.5 h-3.5 mr-2">
+            <img src="~@/assets/images/success_peerTransfer.png" alt="" />
+          </div>
+          <div class="text-gray-400">空投接收成功</div>
         </div>
       </template>
       <template #action="{ record }">
@@ -60,6 +90,12 @@
             class="flex-1"
             href="javascript:;"
             @click="onRecordOpenDir(record)"
+            v-if="
+              ![
+                'successPeerTransferSend',
+                'successPeerTransferReceive',
+              ].includes(record.status)
+            "
           >
             <a-tooltip title="打开所在文件夹">
               <FolderOutlined />
@@ -193,13 +229,13 @@ export default defineComponent({
             //  throw Error();
             // { err: `${item}-找不到对应目录` };
             return {
-              id: "ErrorNotFound",
+              // id: "ErrorNotFound",
               name: "ErrorNotFound",
               isShared: false,
             };
           }
           return {
-            id: foundItem.id,
+            // id: foundItem.id,
             name: item,
             isShared: foundItem.isShared,
           };
@@ -217,7 +253,7 @@ export default defineComponent({
         folderArr = await getLastItemIdByNameArr(fullName.slice(0, -1));
       }
       // 找不到对应的文件夹(用户已经在文件夹列表中删除)
-      if (folderArr.some((item) => item.id === "ErrorNotFound")) {
+      if (folderArr.some((item) => item.name === "ErrorNotFound")) {
         Modal.confirm({
           icon: createVNode(ExclamationCircleOutlined),
           content: "文件已被删除,是否清除这条记录?",
@@ -233,10 +269,11 @@ export default defineComponent({
         name: "MetanetFile",
         query: {
           id: windowId,
+          path: folderArr.map((i) => i.name),
         },
-        params: {
-          folderArrStr: JSON.stringify(folderArr),
-        },
+        // params: {
+        //   folderArrStr: JSON.stringify(folderArr),
+        // },
       });
     };
     /** 清除单项成功记录 */

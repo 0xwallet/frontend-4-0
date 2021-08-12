@@ -100,6 +100,7 @@ export default defineStore({
       this.channel = null;
       this.socket = null;
       userLocalStorage.value = {};
+      localStorage.clear();
     },
     /** 设置钱包数据 */
     setWallet() {

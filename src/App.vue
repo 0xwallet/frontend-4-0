@@ -221,6 +221,10 @@ body,
 .font-12 {
   font-size: 0.75rem; //12px
 }
+.borderTest {
+  // 测试用边框
+  border: 1px solid red;
+}
 </style>
 
 <style lang="less">

@@ -35,7 +35,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     component: LayoutIndex,
-    redirect: "/metanet/file?id=1", // TODO change it
+    redirect: "/metanet/file?id=1&path=~", // TODO change it
     // redirect: "/general/metanet", // TODO change it
     children: [
       {
@@ -151,7 +151,7 @@ const routes: RouteRecordRaw[] = [
         path: "transport/peerTransfer",
         name: "TransportPeerTransfer",
         meta: {
-          needAuth: true,
+          needAuth: false,
           title: "transport.peerTransfer",
         },
         component: TransportPeerTransfer,
