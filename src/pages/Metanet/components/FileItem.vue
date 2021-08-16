@@ -1217,6 +1217,7 @@ export default defineComponent({
             ...(withPathFileNameArr?.length ? withPathFileNameArr : [fileName]),
           ],
           description: "",
+          action:'drive'
         });
         // console.log("resultUploadSingle", resultUploadSingle);
       };

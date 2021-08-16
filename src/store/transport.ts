@@ -126,6 +126,7 @@ export default defineStore({
         fileHash: item.fileHash,
         roundId: item.roundId,
         description: item.description,
+        action: "drive", // TODO 如果是update?
       });
     },
     /** 暂停上传: close uploadSession,set status pause */
@@ -214,6 +215,7 @@ export default defineStore({
       fileHash,
       roundId,
       description,
+      action,
     }: {
       file: File;
       fullName: string[]; // 包含路径的name
@@ -221,6 +223,7 @@ export default defineStore({
       fileHash: string;
       roundId: number;
       description: string;
+      action: "drive" | "update";
     }) {
       // console.log(
       //   "uploadFile-params",
@@ -261,7 +264,7 @@ export default defineStore({
           userId: useUserStore().id,
           space: "PRIVATE",
           description: description,
-          action: "drive",
+          action,
           setSecondUpload: this.setUploadItemByAssign.bind(this, uniqueId, {
             isSecondUpload: true,
           }),

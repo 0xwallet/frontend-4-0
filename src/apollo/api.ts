@@ -1,5 +1,5 @@
 import { DriveUserSetting, IUser, Session } from "../@types/apolloType";
-import { encode } from "@msgpack/msgpack";
+import { decode, encode } from "@msgpack/msgpack";
 import { useTransportStore, useUserStore } from "@/store";
 import { useApollo } from "./action";
 import {
@@ -9,13 +9,14 @@ import {
   NetFile_Publish,
   NetFile_Collection,
 } from "./documents";
-import { TSession } from "nkn";
+import { TMessageType, TSession } from "nkn";
 import { UPLOAD_MSG, MAX_MTU, REMOTE_ADDR } from "@/constants";
 import { getFileSHA256, writeHeaderInSession } from "@/utils";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
 import { makeUploadItemUniqueId, UploadStatus } from "@/store/transport";
 import { useDelay } from "@/hooks";
+import { remove } from "lodash-es";
 
 /** 通用的api 请求返回类型 */
 export type TApiRes<T> = Promise<
@@ -326,7 +327,8 @@ export type ParamsUploadSingle = {
   userId: string;
   space: "PRIVATE" | "PUBLIC";
   description: string;
-  action: "drive";
+  action: "drive" | "update";
+  toUpdateFileId?: string;
   setSecondUpload?: () => void;
   setProgressSpeedStatus?: (
     uniqueId: string,
@@ -373,32 +375,36 @@ export const apiUploadSingle = async (
   // const [resSecondUpload, errSecondUpload] = await apiSecondUpload({
   // 从那个位置开始传输
   let startOffset = 0;
-  const resultSecondUpload = await apiSecondUpload({
-    fullName: params.fullName,
-    fileHash: params.fileHash,
-    description: params.description,
-  });
-  if (resultSecondUpload.err) {
-    return { err: resultSecondUpload.err };
-  }
-  const { driveUploadByHash } = resultSecondUpload.data;
-  console.log("-秒传返回--", driveUploadByHash);
-  if (driveUploadByHash.id) {
-    // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
-    if (params.setProgressSpeedStatus) {
-      params.setProgressSpeedStatus(uniqueId, 100, 0, "uploading");
+  if (params.action === "drive") {
+    // 如果是上传, 调秒传
+    const resultSecondUpload = await apiSecondUpload({
+      fullName: params.fullName,
+      fileHash: params.fileHash,
+      description: params.description,
+    });
+    if (resultSecondUpload.err) {
+      return { err: resultSecondUpload.err };
     }
-    if (params.setSecondUpload) params.setSecondUpload();
-    return { data: { msg: "秒传成功" } };
+    const { driveUploadByHash } = resultSecondUpload.data;
+    console.log("-秒传返回--", driveUploadByHash);
+    if (driveUploadByHash.id) {
+      // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
+      if (params.setProgressSpeedStatus) {
+        params.setProgressSpeedStatus(uniqueId, 100, 0, "uploading");
+      }
+      if (params.setSecondUpload) params.setSecondUpload();
+      return { data: { msg: "秒传成功" } };
+    }
   }
-  if (driveUploadByHash.offset) {
-    console.log(
-      "秒传失败,接口有返回offset",
-      driveUploadByHash.offset,
-      "将从这个开始上传"
-    );
-    startOffset = driveUploadByHash.offset;
-  }
+
+  // if (driveUploadByHash.offset) {
+  //   console.log(
+  //     "秒传失败,接口有返回offset",
+  //     driveUploadByHash.offset,
+  //     "将从这个开始上传"
+  //   );
+  //   startOffset = driveUploadByHash.offset;
+  // }
   // 2. 秒传失败则调session
   // const { file } = params;
 
@@ -450,20 +456,73 @@ export const apiUploadSingle = async (
   }
   // console.log("写入头部信息");
   // 第一步，写入头部信息
-  const encodedHeader: Uint8Array = encode({
-    // File: "", // 需要传空字符串
-    FileHash: params.fileHash,
-    FullName: params.fullName,
-    FileSize: params.file.size,
-    UserId: params.userId,
-    Space: params.space,
-    Description: params.description,
-    Action: params.action,
-    Offset: startOffset,
-  });
+  const encodedHeader: Uint8Array =
+    params.action === "drive"
+      ? encode({
+          // File: "", // 需要传空字符串
+          FileHash: params.fileHash,
+          FullName: params.fullName,
+          FileSize: params.file.size,
+          UserId: params.userId,
+          Space: params.space,
+          Description: params.description,
+          Action: params.action,
+          // Offset: startOffset,
+        })
+      : encode({
+          // 老的文件id
+          UseFileId: params.toUpdateFileId, // TODO 需要传递进来
+          Space: params.space,
+          UserId: params.userId,
+          Action: params.action,
+          FileSize: params.file.size,
+          FileHash: params.fileHash,
+        });
+
+  // 拿 golang 来的offset
+  ///
   // 假如offset 不一致 error 断开
   // console.log("encodedHeader", encodedHeader, encodedHeader.length);
   await writeHeaderInSession(clientSession, encodedHeader);
+  const readOffsetFromMessage = () => {
+    // console.time("[性能] 接收offset时间");
+    return new Promise<number | null>((resolve) => {
+      const timer = setTimeout(() => {
+        // 相当于一个错误
+        console.log("等待offset 信息超时");
+        remove(
+          multiClient.eventListeners.message,
+          (v) => v === handleConfirmOffset
+        );
+        resolve(null);
+      }, 60_000);
+      const handleConfirmOffset = (msgObj: TMessageType) => {
+        // hash 和 offset
+        // console.log("msgObj", msgObj);
+        const parsedMsg: { FileHash: string; Offset: number } = JSON.parse(
+          msgObj.payload
+        );
+        console.log("收到offset消息推送", parsedMsg);
+        startOffset = parsedMsg.Offset; // TODO check payload
+        resolve(startOffset);
+        // console.timeEnd("[性能] 接收offset时间");
+        clearTimeout(timer);
+        remove(
+          multiClient.eventListeners.message,
+          (v) => v === handleConfirmOffset
+        );
+      };
+      multiClient.onMessage(handleConfirmOffset);
+    });
+  };
+  const offsetRes = await readOffsetFromMessage();
+  if (offsetRes === null) {
+    console.log("等待offset超时,主动关闭这次session 并重试下一次");
+    clientSession.close();
+    await useDelay(2000);
+    return await apiUploadSingle(params);
+  }
+  // await useDelay(100_000_000);
   if (isCurrentUploadStatusPause()) {
     clientSession.close();
     return { err: Error(UPLOAD_MSG.err_pauseByUser) };
