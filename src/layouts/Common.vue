@@ -327,7 +327,7 @@
                       right: '-2px',
                       border: '2px solid white',
                       background: userStatusColorMap[currentUserStatus].color,
-                      transition: 'all .2s ease-in-out',
+                      transition: 'all .s ease-in-out',
                     }"
                   ></div>
                 </div>
@@ -556,7 +556,6 @@
                   activeNavUniqueId !== exactUniqueTabId(item.routePath),
               }"
               :style="{
-                transition: '.3s',
                 height: '25px',
                 'line-height': '20px',
               }"

@@ -59,7 +59,10 @@
           </div>
           <div class="text-gray-400">上传成功</div>
         </div>
-        <div v-else-if="record.status === 'successUpdate'" class="flex items-center">
+        <div
+          v-else-if="record.status === 'successUpdate'"
+          class="flex items-center"
+        >
           <div class="w-3.5 h-3.5 mr-2">
             <img src="~@/assets/images/success_upload.png" alt="" />
           </div>
@@ -209,51 +212,31 @@ export default defineComponent({
       return transPortStore.uploadSuccessList;
     });
     /** 根据目录数组返回包含id 的对象 */
-    async function getLastItemIdByNameArr(nameArr: string[]) {
-      const resultOfAll = await Promise.all(
-        nameArr.map(async (item, idx) => {
-          const resItem = await apiQueryFileByDir(
-            // 查询上级目录
-            idx === 0
-              ? {
-                  dirId: "root",
-                }
-              : {
-                  fullName: nameArr.slice(0, idx),
-                }
-          );
-          const foundItem = resItem.data?.driveListFiles.find(
-            (i) => i && lastOfArray(i.fullName) === item
-          );
-          if (!foundItem) {
-            //  throw Error();
-            // { err: `${item}-找不到对应目录` };
-            return {
-              // id: "ErrorNotFound",
-              name: "ErrorNotFound",
-              isShared: false,
-            };
-          }
-          return {
-            // id: foundItem.id,
-            name: item,
-            isShared: foundItem.isShared,
-          };
-        })
+    async function checkFileFullNameIsExist(nameArr: string[]) {
+      // console.log("checkFileFullNameIsExist", nameArr);
+      const res = await apiQueryFileByDir({ fullName: nameArr.slice(0, -1) });
+      if (res.err || !res.data) {
+        return false;
+      }
+      const found = res.data.driveListFiles.find(
+        (item) =>
+          item &&
+          item.fullName.length &&
+          item.fullName.every((item, idx) => {
+            // console.log("item,idx", item, idx, nameArr);
+            return item === nameArr[idx];
+          })
       );
-      return resultOfAll;
+      return !!found;
     }
     /** 打开到所在文件夹 */
     const onRecordOpenDir = async (record: UploadItem) => {
       // console.log("onRecordOpenDir", record);
       const fullName = record.fullName;
-      let folderArr: THistoryDirItem[];
-      if (fullName.length === 1) folderArr = [];
-      else {
-        folderArr = await getLastItemIdByNameArr(fullName.slice(0, -1));
-      }
-      // 找不到对应的文件夹(用户已经在文件夹列表中删除)
-      if (folderArr.some((item) => item.name === "ErrorNotFound")) {
+      let isFileExist = await checkFileFullNameIsExist(fullName);
+      // console.log("folderArr", fullName, isFileExist);
+      // // 找不到对应的文件夹(用户已经在文件夹列表中删除)
+      if (!isFileExist) {
         Modal.confirm({
           icon: createVNode(ExclamationCircleOutlined),
           content: "文件已被删除,是否清除这条记录?",
@@ -261,24 +244,24 @@ export default defineComponent({
             transPortStore.clearItem(record.uniqueId);
           },
         });
-        return;
+      } else {
+        // console.log("folderArr", folderArr);
+        const windowId = baseStore.getNewOpenWindowId();
+        const upperPath = fullName.slice(0, -1);
+        router.push({
+          name: "MetanetFile",
+          query: {
+            id: windowId,
+            path: upperPath.length
+              ? "~/" + fullName.slice(0, -1).join("/")
+              : "~",
+          },
+        });
       }
-      // console.log("folderArr", folderArr);
-      const windowId = baseStore.getNewOpenWindowId();
-      router.push({
-        name: "MetanetFile",
-        query: {
-          id: windowId,
-          path: folderArr.map((i) => i.name),
-        },
-        // params: {
-        //   folderArrStr: JSON.stringify(folderArr),
-        // },
-      });
     };
     /** 清除单项成功记录 */
     const onRecordClear = (record: UploadItem) => {
-      console.log("onRecordClear", record);
+      // console.log("onRecordClear", record);
       transPortStore.clearItem(record.uniqueId);
     };
     /** 清除所有成功的记录 */

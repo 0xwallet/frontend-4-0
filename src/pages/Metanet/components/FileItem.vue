@@ -876,7 +876,7 @@ import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useClipboard, onClickOutside } from "@vueuse/core";
 import router from "@/router";
-import { useRoute } from "vue-router";
+import { onBeforeRouteUpdate, useRoute } from "vue-router";
 
 export type THistoryDirItem = {
   name: string;
@@ -1055,7 +1055,7 @@ export default defineComponent({
               }
             }
             getAndSetTableDataFn({
-              fullName: historyDir.value.slice(1).map((i) => i.name),
+              fullName: requestDirNameList.value,
             });
           },
           onCancel() {
@@ -1226,7 +1226,7 @@ export default defineComponent({
             ...(withPathFileNameArr?.length ? withPathFileNameArr : [fileName]),
           ],
           description: "",
-          action:'drive'
+          action: "drive",
         });
         // console.log("resultUploadSingle", resultUploadSingle);
       };
@@ -2221,14 +2221,17 @@ export default defineComponent({
       };
       /** 点击目录历史的面包屑 */
       const onClickHistoryDirUpperLevel = (idx: number) => {
+        const showInRoutePath = historyDir.value
+          .slice(0, idx + 1)
+          .map((i) => i.name)
+          .join("/");
+        historyDir.value.splice(idx + 1);
+        onRefreshTableData();
         router.push({
           name: "MetanetFile",
           query: {
             id: exactUniqueTabId(route.fullPath),
-            path: historyDir.value
-              .slice(0, idx + 1)
-              .map((i) => i.name)
-              .join("/"),
+            path: showInRoutePath,
           },
         });
       };
@@ -2255,15 +2258,19 @@ export default defineComponent({
           // }
           // onRefreshTableData();
           const curRouterWindowId = exactUniqueTabId(route.fullPath);
+          historyDir.value.push({
+            name: lastOfArray(fullName),
+            isShared,
+          });
+          onRefreshTableData();
           router.push({
             name: "MetanetFile",
             query: {
               id: curRouterWindowId,
-              path:
-                historyDir.value.map((i) => i.name).join("/") +
-                `/${fullName[0]}`,
+              path: historyDir.value.map((i) => i.name).join("/"),
             },
           });
+          // curFolderId.value = id;
         } else if (FILE_TYPE_MAP.image.includes(e)) {
           console.log("todo type-image");
         } else if (FILE_TYPE_MAP.text.includes(e)) {
@@ -2452,6 +2459,9 @@ export default defineComponent({
                 ) {
                   // 注册当前目录的id
                   curFolderId.value = obj.id;
+                  // 注册当前目录是否已分享
+                  historyDir.value[historyDir.value.length - 1].isShared =
+                    obj.isShared;
                   const curFileWindowId = exactUniqueTabId(route.fullPath);
                   // console.log("why this can", curFileWindowId, {
                   //   path: historyDir.value.map((i) => i.name).join("/"),
@@ -2491,65 +2501,80 @@ export default defineComponent({
           });
         });
       };
-      watch(
-        () => route,
-        (newVal) => {
-          // watch 是全局注册的, 所以这里要加个判断是否文件应用路由
-          if (!newVal.path.includes("metanet/file")) {
+      onActivated(() => {
+        // 只会执行一次?
+        // console.log("onActivated");
+        if (!route.path.includes("metanet/file")) {
+          return;
+        }
+        // metanet/file?id=2&path=~/材料清单
+        const routeDirPath = route.query.path as string;
+        let routeWindowId = exactUniqueTabId(route.fullPath);
+        if (!routeWindowId) {
+          routeWindowId = `${baseStore.getNewOpenWindowId()}`;
+          console.log("路由不存在文件应用windowId,重新获取", routeWindowId);
+        }
+        // console.log("routeDirPath", routeDirPath);
+        /** 导航到根目录 */
+        const routerToDefaultFilePath = () => {
+          console.log("call-routerToDefaultFilePath");
+          router.replace({
+            name: "MetanetFile",
+            query: { id: routeWindowId, path: "~" },
+          });
+        };
+        if (routeDirPath) {
+          // 删除原来~ 后面的路径
+          historyDir.value.splice(1);
+          // ~/test1/test222
+          // 正确的目录应该是 ~ 开头的
+          const pathArr = routeDirPath.split("/");
+          if (pathArr[0] !== "~") {
+            routerToDefaultFilePath();
             return;
           }
-          // metanet/file?id=2&path=~/材料清单
-          const routeDirPath = newVal.query.path as string;
-          let routeWindowId = exactUniqueTabId(route.fullPath);
-          if (!routeWindowId) {
-            routeWindowId = `${baseStore.getNewOpenWindowId()}`;
-            console.log("路由不存在文件应用windowId,重新获取", routeWindowId);
-          }
-          // console.log("routeDirPath", routeDirPath);
-          /** 导航到根目录 */
-          const routerToDefaultFilePath = () => {
-            console.log("call-routerToDefaultFilePath");
-            router.replace({
-              name: "MetanetFile",
-              query: { id: routeWindowId, path: "~" },
-            });
-          };
-          if (routeDirPath) {
-            // 删除原来~ 后面的路径
+          historyDir.value.push(
+            ...pathArr.slice(1).map((item) => ({
+              name: item,
+              isShared: false,
+            }))
+          );
+          // ~路径不传后端
+          const dirFullName = historyDir.value.slice(1).map((i) => i.name);
+          getAndSetTableDataFn({
+            fullName: dirFullName,
+          }).catch(() => {
+            console.log("路由的路径不存在数据,即将导航到根目录", dirFullName);
+            routerToDefaultFilePath();
+          });
+        } else {
+          // 如果没有path 重新给个path
+          routerToDefaultFilePath();
+        }
+      });
+      onBeforeRouteUpdate(async (to, from) => {
+        // console.log("beforeRouteUpdate", to, from);
+        // 浏览器的后退 前进点击, 这时候historyDir没有及时响应,所以这里修改
+        const routeDirPath = to.query.path as string;
+        if (routeDirPath) {
+          const pathArr = routeDirPath.split("/");
+          if (pathArr.length !== historyDir.value.length) {
+            // console.log("用路由update守卫去改变historyDir然后请求数据");
             historyDir.value.splice(1);
-            // ~/test1/test222
-            // 正确的目录应该是 ~ 开头的
-            const pathArr = routeDirPath.split("/");
-            if (pathArr[0] !== "~") {
-              routerToDefaultFilePath();
-              return;
-            }
             historyDir.value.push(
               ...pathArr.slice(1).map((item) => ({
                 name: item,
                 isShared: false,
               }))
             );
-            // ~路径不传后端
-            const dirFullName = historyDir.value.slice(1).map((i) => i.name);
-            getAndSetTableDataFn({
-              fullName: dirFullName,
-            }).catch(() => {
-              console.log("路由的路径不存在数据,即将导航到根目录", dirFullName);
-              routerToDefaultFilePath();
-            });
-          } else {
-            // 如果没有path 重新给个path
-            routerToDefaultFilePath();
+            onRefreshTableData();
           }
-          // TODO 分享 / 传输完成 跳转过来的
-        },
-        { deep: true, immediate: true }
-      );
-
+        }
+      });
       /** 清除当前组件的select数据, 然后重新获取表格数据 */
       const onRefreshTableData = () => {
-        getAndSetTableDataFn({ dirId: curFolderId.value });
+        // getAndSetTableDataFn({ dirId: curFolderId.value });
+        getAndSetTableDataFn({ fullName: requestDirNameList.value });
       };
       const onDownload = ({ user, space, id: fileId, fullName }: TFileItem) => {
         // TODO
