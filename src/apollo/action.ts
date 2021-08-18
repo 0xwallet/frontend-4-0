@@ -17,7 +17,7 @@ import { onError } from "@apollo/client/link/error";
 
 // import { getMainDefinition } from '@apollo/client/utilities';
 // // @ts-ignore
-import router from "@/router";
+import router from "@/PC/router";
 import { TSession } from "nkn";
 import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
 

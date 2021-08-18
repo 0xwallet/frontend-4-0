@@ -1,7 +1,6 @@
 import { apiUploadSingle, ParamsUploadSingle } from "@/apollo/api";
 import { UPLOAD_MSG } from "@/constants";
-import { useDelay } from "@/hooks";
-import { getFileType, lastOfArray } from "@/utils";
+import { useDelay, getFileType, lastOfArray } from "@/utils";
 import { uniqueId, unset, values } from "lodash-es";
 import pLimit from "p-limit";
 import { defineStore } from "pinia";

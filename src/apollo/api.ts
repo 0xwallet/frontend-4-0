@@ -11,11 +11,10 @@ import {
 } from "./documents";
 import { TMessageType, TSession } from "nkn";
 import { UPLOAD_MSG, MAX_MTU, REMOTE_ADDR } from "@/constants";
-import { getFileSHA256, writeHeaderInSession } from "@/utils";
+import { getFileSHA256, writeHeaderInSession, useDelay } from "@/utils";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
 import { makeUploadItemUniqueId, UploadStatus } from "@/store/transport";
-import { useDelay } from "@/hooks";
 import { remove } from "lodash-es";
 
 /** 通用的api 请求返回类型 */
