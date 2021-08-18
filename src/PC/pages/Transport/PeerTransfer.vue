@@ -14,7 +14,7 @@
       id="transferFileInput"
       @change="onChangeMultipleUploadFile"
     />
-    <div class="send mb-4">
+    <div v-if="isShowSendCard" class="send mb-4">
       <!-- 未选择任何文件前 -->
       <div v-if="tableSend.length === 0">
         <div class="font-20 p-4 font-semibold">发送</div>
@@ -33,7 +33,7 @@
       <!-- 选有文件后 -->
       <div v-else-if="receiveLink.length === 0 && sendReceiveCode.length === 0">
         <div class="flex items-center p-4">
-          <div class="mr-2 cursor-pointer">
+          <div class="mr-2 cursor-pointer" @click="onSelectFiles">
             <PlusOutlined
               class="ant-color-blue-6"
               :style="{
@@ -196,12 +196,17 @@
               </div>
             </div>
           </div>
-          <div class="px-4 py-6 break-all">
+          <div class="px-4 pt-2 pb-6 break-all">
             <div class="text-center px-5">
               <span :title="receiveLink"
                 >{{ receiveLink.slice(0, 50) }}...</span
               >
-              <a-button type="link" @click="onCopyReceiveLink">复制</a-button>
+              <a-button class="mb-2" type="link" @click="onCopyReceiveLink"
+                >复制</a-button
+              >
+              <div>
+                <XQrCode :url="receiveLink" :width="120" />
+              </div>
             </div>
           </div>
         </template>
@@ -421,7 +426,7 @@ import {
   ArrowLeftOutlined,
 } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
-import { XFileTypeIcon, XTableFiles } from "../../components";
+import { XFileTypeIcon, XTableFiles, XQrCode } from "../../components";
 import {
   useDelay,
   downloadFileByBlob,
@@ -466,6 +471,10 @@ type FileHeader = {
   fileName: string;
   fileSize: number;
   MIMEType: string;
+};
+/** channel shakehand message type */
+type ChannelMsgType = {
+  addr: string;
 };
 /** 根据文件名/大小 生成唯一key */
 const makeUniqueId = (name: string, size: number) => `${name}-${size}`;
@@ -534,6 +543,7 @@ export default defineComponent({
     ArrowLeftOutlined,
     XFileTypeIcon,
     XTableFiles,
+    XQrCode,
   },
   setup() {
     const userStore = useUserStore();
@@ -552,19 +562,10 @@ export default defineComponent({
       }
       return nknClient;
     };
-    initMultiClient().then((client) => {
+    const initClientStatus = initMultiClient().then((client) => {
       nknStatusCount.value = client?.readyClientIDs().length ?? 0;
     });
     const isUserLoggedIn = computed(() => userStore.isLoggedIn);
-    watch(
-      () => nknClient,
-      (newVal) => {
-        console.log("newVal", newVal);
-      },
-      {
-        immediate: true,
-      }
-    );
     /** 发送文件 */
     function useSend() {
       const currentSendType = ref<SendType>("link");
@@ -630,18 +631,15 @@ export default defineComponent({
           .copy(text)
           .then(() => message.success("复制成功"));
       };
-      let timerCountdown: number;
       const onBackReceiveLink = () => {
         receiveLink.value = "";
         sendReceiveCode.value = "";
         resetClientListener.forEach((removeFn) => removeFn());
-        clearInterval(timerCountdown);
       };
       const onBackReceiveCode = () => {
         sendReceiveCode.value = "";
         receiveLink.value = "";
         resetClientListener.forEach((removeFn) => removeFn());
-        clearInterval(timerCountdown);
       };
       const onCopyReceiveCode = () => {
         const text = sendReceiveCode.value;
@@ -668,8 +666,11 @@ export default defineComponent({
           speed: 0,
           status: "queueing",
         }));
-        console.log("fileArr", fileArr);
-        tableSend.value.push(...fileArr);
+        // 去掉已经加入的文件
+        const noSameFileArr = fileArr.filter(
+          (i) => !tableSend.value.some((e) => e.uniqueId === i.uniqueId)
+        );
+        tableSend.value.push(...noSameFileArr);
         // 清空input 的缓存
         input.value = "";
       };
@@ -684,7 +685,11 @@ export default defineComponent({
         tableSend.value.length = 0;
         currentSendType.value = "link";
         receiveLink.value = "";
+        sendReceiveCode.value = "";
         resetClientListener.forEach((removeFn) => removeFn());
+        resetClientListener.length = 0;
+        // 再清空下message 的listener数组
+        if (nknClient) nknClient.eventListeners.message.length = 0;
         const elInput = document.getElementById(
           "transferFileInput"
         ) as HTMLInputElement;
@@ -776,16 +781,8 @@ export default defineComponent({
         }
         const confirmMessage = makeConfirmMessage(uniqueId);
         /** 删除client 里的监听释放内存 */
-        const clearConfirmListener = () => {
-          if (nknClient) {
-            remove(
-              nknClient.eventListeners.message,
-              (v) => v === confirmMessage
-            );
-          }
-        };
         const handleConfirmMessage = (message: TMessageType) => {
-          console.log("received-remote-message", message);
+          console.log("收到确认信息", message);
           if (message.payload === confirmMessage) {
             setItemProgressSpeedStatus(100, 0, "successSend");
             if (userStore.isLoggedIn)
@@ -796,146 +793,112 @@ export default defineComponent({
               );
             // 清空文件节省内存
             item.file = undefined;
-            clearConfirmListener();
+            if (nknClient) {
+              remove(
+                nknClient.eventListeners.message,
+                (v) => v === confirmMessage
+              );
+            }
           }
         };
         nknClient.onMessage(handleConfirmMessage);
-        setTimeout(() => {
-          clearConfirmListener();
-          if (item.status !== "successSend") {
-            item.status = "failed";
-            item.file = undefined;
-          }
-        }, 30000);
-        // client.eventListeners
       };
       const onClickSendBtn = async () => {
         if (!nknClient) {
           message.warning("请等待nkn节点就绪");
           return;
         }
-        // 1.链接方式
-        if (currentSendType.value === "link") {
-          const transferUrl = location.href.match(/^.*peerTransfer/g)?.[0];
-          // http://...peertransfer
-          const myAddr = nknClient.addr;
-          sendBtnLoading.value = true;
-          await useDelay(300);
-          sendBtnLoading.value = false;
-          receiveLink.value = `${transferUrl}?addr=${myAddr}`;
-          console.log("生成link", receiveLink.value);
-          const limit = pLimit(2);
-          let lock = false;
-          // countdownText
-          countdownText.value = "10:00";
-          let duration = 60 * 10 - 1; // 10mins - 1s
-          /** link or 验证码 过期倒计时 */
-          timerCountdown = window.setInterval(() => {
-            let minutes = ((duration / 60) | 0) + "";
-            let seconds = (duration % 60 | 0) + "";
-            // 转换一位到两位显示  9=>09
-            minutes = +minutes < 10 ? "0" + minutes : minutes;
-            seconds = +seconds < 10 ? "0" + seconds : seconds;
-            countdownText.value = `${minutes}:${seconds}`;
-            if (--duration < 0) {
-              lock = true; // 超时加锁,onMessage 监听不能再用了
-              clearInterval(timerCountdown);
-            }
-          }, 1000);
-          /** 防止内存泄漏? */
-          // onUnmounted(() => clearInterval(timer));
-          // 监听接收方发来的message 信息TMessageType
-
-          const handleShakeHandMessage = async ({
-            payload,
-            src,
-          }: TMessageType) => {
-            if (lock) {
-              // 因为没有off 方法, 这里设置了防止重复接收message , 只能用一次
-              return;
-            }
-            if (payload === SHAKE_HAND) {
-              clearInterval(timerCountdown);
-              console.log(
-                "收到接收方发来的消息,即将发送文件总大小消息",
-                payload
-              );
-              await nknClient?.send(
-                src,
-                totalInfoGuard._encode(
-                  totalSendSize.value,
-                  tableSend.value.length
-                ),
-                {
-                  noReply: true,
-                }
-              );
-              lock = true;
-              Promise.all(
-                tableSend.value.map((item) => {
-                  limit(() => onSendOneFile(src, item));
-                })
-              ).finally(() => {
-                remove(
-                  nknClient?.eventListeners.message ?? [],
-                  (v) => v === handleShakeHandMessage
-                );
-              });
-              // writeFiles();
-              // TODO 发送文件list
-            }
-          };
-          nknClient.onMessage(handleShakeHandMessage);
-          resetClientListener.push(() => {
-            if (nknClient) {
+        let lock = false;
+        sendBtnLoading.value = true;
+        await useDelay(300);
+        sendBtnLoading.value = false;
+        const limit = pLimit(2);
+        // countdown -start
+        countdownText.value = "10:00";
+        let duration = 60 * 10 - 1; // 10mins - 1s
+        /** link or 验证码 过期倒计时 */
+        const timerCountdown = window.setInterval(() => {
+          let minutes = ((duration / 60) | 0) + "";
+          let seconds = (duration % 60 | 0) + "";
+          // 转换一位到两位显示  9=>09
+          minutes = +minutes < 10 ? "0" + minutes : minutes;
+          seconds = +seconds < 10 ? "0" + seconds : seconds;
+          countdownText.value = `${minutes}:${seconds}`;
+          if (--duration < 0) {
+            lock = true; // 超时加锁,onMessage 监听不能再用了
+            clearInterval(timerCountdown);
+          }
+        }, 1000);
+        resetClientListener.push(() => clearInterval(timerCountdown));
+        // countdown -end
+        const handleShakeHandMessage = async ({
+          payload,
+          src,
+        }: {
+          payload: string;
+          src: string;
+        }) => {
+          console.log("payload---", payload, src);
+          if (lock) {
+            // 因为没有off 方法, 这里设置了防止重复接收message , 只能用一次
+            return;
+          }
+          if (payload === SHAKE_HAND) {
+            clearInterval(timerCountdown);
+            console.log("收到接收方发来的消息,即将发送文件总大小消息", payload);
+            await nknClient?.send(
+              src,
+              totalInfoGuard._encode(
+                totalSendSize.value,
+                tableSend.value.length
+              ),
+              {
+                noReply: true,
+              }
+            );
+            lock = true;
+            Promise.all(
+              tableSend.value.map((item) => {
+                limit(() => onSendOneFile(src, item));
+              })
+            ).finally(() => {
               remove(
-                nknClient.eventListeners.message,
+                nknClient?.eventListeners.message ?? [],
                 (v) => v === handleShakeHandMessage
               );
-              console.log(
-                "after-removeListener",
-                nknClient.eventListeners.message
-              );
-            }
-          });
+            });
+          }
+        };
+        nknClient.onMessage(handleShakeHandMessage);
+        resetClientListener.push(() => {
+          if (nknClient) {
+            remove(
+              nknClient.eventListeners.message,
+              (v) => v === handleShakeHandMessage
+            );
+          }
+        });
+        //
+        if (currentSendType.value === "link") {
+          const transferUrl = location.href.match(/^.*peerTransfer/g)?.[0];
+          const myAddr = nknClient.addr;
+          receiveLink.value = `${transferUrl}?addr=${myAddr}`;
         } else {
           const { socket } = userStore;
           if (!socket) return;
-          console.log("direct");
-          sendBtnLoading.value = true;
-          await useDelay(300);
-          sendBtnLoading.value = false;
           sendReceiveCode.value = getRandomNumStr(6);
-          countdownText.value = "10:00";
-          let duration = 60 * 10 - 1; // 10mins - 1s
-          /** link or 验证码 过期倒计时 */
-          timerCountdown = window.setInterval(() => {
-            let minutes = ((duration / 60) | 0) + "";
-            let seconds = (duration % 60 | 0) + "";
-            // 转换一位到两位显示  9=>09
-            minutes = +minutes < 10 ? "0" + minutes : minutes;
-            seconds = +seconds < 10 ? "0" + seconds : seconds;
-            countdownText.value = `${minutes}:${seconds}`;
-            if (--duration < 0) {
-              // lock = true; // 超时加锁,onMessage 监听不能再用了
-              clearInterval(timerCountdown);
-            }
-          }, 1000);
           const sendChannel = socket.channel(
             `airdrop:${sendReceiveCode.value}`
           );
-          sendChannel
-            .join()
-            .receive("ok", (resp) => {
-              console.log("[Ready] join airdrop send-channel", resp);
-            })
-            .receive("error", (err) => {
-              console.log("join airdrop send-channel error", err);
-              console.error(err);
+          sendChannel.join();
+          const ref1 = sendChannel.on(SHAKE_HAND, (data: ChannelMsgType) => {
+            console.log("channel-shakehand", data);
+            handleShakeHandMessage({
+              payload: SHAKE_HAND,
+              src: data.addr,
             });
-          sendChannel.on(SHAKE_HAND, (data) => {
-            console.log("shakehand-data", data);
-            clearInterval(timerCountdown);
+            sendChannel.off(SHAKE_HAND, ref1);
+            sendChannel.leave();
           });
         }
       };
@@ -971,12 +934,17 @@ export default defineComponent({
       const tableReceive = ref<TransferFile[]>([]);
       const receiveInputLoading = ref(false);
       const receiveInputCode = ref("");
+      const isShowSendCard = ref(true);
       const onClickReceive = () => {
         if (!receiveInputCode.value.length) {
           message.warning("请输入接收码");
           return;
         }
         if (receiveInputLoading.value) {
+          return;
+        }
+        if (!nknClient) {
+          message.warning("请等待nkn节点就绪");
           return;
         }
         console.log("输入的接收码是:", receiveInputCode.value);
@@ -986,20 +954,10 @@ export default defineComponent({
         const receiveChannel = socket.channel(
           `airdrop:${receiveInputCode.value}`
         );
-        receiveChannel
-          .join()
-          .receive("ok", (resp) => {
-            console.log("[Ready] join airdrop receive-channel", resp);
-          })
-          .receive("error", (err) => {
-            console.log("join airdrop receive-channel error", err);
-            console.error(err);
-          });
-        receiveChannel
-          .push(SHAKE_HAND, { addr: userStore.multiClient?.addr })
-          .receive("ok", (payload) => console.log("phoenix replied:", payload))
-          .receive("error", (err) => console.log("phoenix errored", err))
-          .receive("timeout", () => console.log("timed out pushing"));
+        receiveChannel.join();
+        const addrMsg: ChannelMsgType = { addr: nknClient.addr };
+        receiveChannel.push(SHAKE_HAND, addrMsg);
+        useDelay(10_000).then(() => receiveChannel.leave());
         handleReceiveFile("code");
       };
       /** 接收总大小 */
@@ -1039,171 +997,174 @@ export default defineComponent({
         totalReceiveSize.value = 0;
         totalReceiveCount.value = 0;
         receiveInputLoading.value = false;
+        receiveInputCode.value = "";
+        // 再清空下session监听的数组
+        if (nknClient) nknClient.eventListeners.session.length = 0;
       };
       // 如果当前是未登录的, 自动nkn  ?
       // 未登录状态 -start
-      const handleReceiveFile = (
+      const handleReceiveFile = async (
         type: "link" | "code",
         remoteAddr?: string
       ) => {
         receiveInputLoading.value = true;
-        const checkNknClientReady = () => {
-          return new Promise<classMultiClient>((resolve) => {
-            const id = setInterval(() => {
-              if (nknClient) {
-                resolve(nknClient);
-                clearInterval(id);
-              }
-            }, 1000);
-          });
-        };
-        checkNknClientReady().then(async (client) => {
-          // 必须要listen 才能onSession
-          client.listen();
-          // 发送回去消息,告诉接收方准备好了
-          if (type === "link" && remoteAddr) {
-            await client.send(remoteAddr, SHAKE_HAND, { noReply: true });
-          }
-          const handleFileTotalMsg = (msgObj: TMessageType) => {
-            if (msgObj.payload.includes(RECEIVE_PREFIX)) {
-              const { count, size } = totalInfoGuard._decode(msgObj.payload);
-              totalReceiveSize.value = size;
-              totalReceiveCount.value = count;
-              console.log(`收到文件总量信息:总共${count}个文件,${size}`);
+        if (type === "link") await initClientStatus;
+        if (!nknClient) return;
+        // 必须要listen 才能onSession
+        nknClient.listen();
+        console.log("client-listen");
+        // 发送回去消息,告诉接收方准备好了
+        if (type === "link" && remoteAddr) {
+          await nknClient.send(remoteAddr, SHAKE_HAND, { noReply: true });
+        }
+        const handleFileTotalMsg = (msgObj: TMessageType) => {
+          if (msgObj.payload.includes(RECEIVE_PREFIX)) {
+            const { count, size } = totalInfoGuard._decode(msgObj.payload);
+            totalReceiveSize.value = size;
+            totalReceiveCount.value = count;
+            console.log(`收到文件总量信息:总共${count}个文件,${size}`);
+            if (nknClient) {
               remove(
-                client.eventListeners.message,
+                nknClient.eventListeners.message,
                 (v) => v === handleFileTotalMsg
               );
             }
-          };
-          client.onMessage(handleFileTotalMsg);
-          await useDelay(500);
-          // const session = await client.dial(remoteAddr);
-          // console.log("session---------", session);
-          // 一个session 只用来发送一个文件
-          const handleSession = async (session: TSession) => {
-            const headerUint8Array = await readHeaderInSession(session);
-            const headerObj = decode(headerUint8Array) as FileHeader;
-            let toDownloadFile: File | null = null;
-            console.log("读取文件头部信息", headerObj);
-            const uniqueId = makeUniqueId(
-              headerObj.fileName,
-              headerObj.fileSize
-            );
-            const itemToPush: TransferFile = reactive({
-              file: new File(["0"], headerObj.fileName, {
-                type: headerObj.MIMEType,
-              }),
-              fileName: headerObj.fileName,
-              fileSize: headerObj.fileSize,
-              uniqueId,
-              fileType: getFileType({
-                isDir: false,
-                fileName: headerObj.fileName,
-              }),
-              progress: 0,
-              speed: 0,
-              status: "queueing",
-            });
-            tableReceive.value.push(itemToPush);
-            // console.log(headerObj);
-            const maxReceiveLength = headerObj.fileSize;
-            let fileBuffer = new Uint8Array(0);
-            let startLen = 0;
-            const startTime = dayjs();
-            let diffSeconds = 0;
-            let toSetBytesPerSecond = 0;
-            while (startLen <= maxReceiveLength) {
-              if (session.isClosed) {
-                console.error("session closed");
-                return;
-              }
-              const toReadLength =
-                startLen < maxReceiveLength
-                  ? MAX_MTU
-                  : startLen - maxReceiveLength;
-              const roundRead = await session.read(toReadLength);
-              fileBuffer = mergeUint8Array(fileBuffer, roundRead);
-              // console.log(
-              //   "已经写入的array-正在接收的chunk长度",
-              //   fileBuffer,
-              //   roundRead
-              // );
-              startLen += MAX_MTU;
-              // 设置进度 start
-              const setItemProgressSpeedStatus = (
-                progress: number,
-                speed: number,
-                status: TransferFile["status"]
-              ) => {
-                // 防止push 的过程idx 变了, 所以得重新查找
-                const idx = tableReceive.value.findIndex(
-                  (i) => i.uniqueId === uniqueId
-                );
-                if (idx !== -1) {
-                  tableReceive.value[idx].progress = progress;
-                  tableReceive.value[idx].speed = speed;
-                  tableReceive.value[idx].status = status;
-                }
-              };
-              const toSetProgressVal = Math.floor(
-                (startLen / maxReceiveLength) * 100
-              );
-              if (toSetProgressVal < 100) {
-                const curDiffSeconds = dayjs().diff(startTime, "second");
-                if (curDiffSeconds > diffSeconds) {
-                  toSetBytesPerSecond =
-                    startLen / dayjs().diff(startTime, "second");
-                  diffSeconds = curDiffSeconds;
-                }
-                setItemProgressSpeedStatus(
-                  toSetProgressVal,
-                  toSetBytesPerSecond,
-                  "receiving"
-                );
-              } else {
-                setItemProgressSpeedStatus(100, 0, "successReceive");
-                if (userStore.isLoggedIn)
-                  transportStore.makePeerTransferSuccessItem(
-                    "receive",
-                    headerObj.fileName,
-                    headerObj.fileSize
-                  );
-              }
-            }
-            // 发送-确认信息
-            await client.send(
-              session.remoteAddr,
-              makeConfirmMessage(uniqueId),
-              {
-                noReply: true,
-              }
-            );
-            receiveInputLoading.value = false;
-            toDownloadFile = new File([fileBuffer], headerObj.fileName, {
+          }
+        };
+        nknClient.onMessage(handleFileTotalMsg);
+        await useDelay(500);
+        // const session = await nknClient.dial(remoteAddr);
+        // console.log("session---------", session);
+        // 一个session 只用来发送一个文件
+        const handleSession = async (session: TSession) => {
+          if (!nknClient) {
+            console.log("handleSession-error-noNknClient", nknClient);
+            return;
+          }
+          const headerUint8Array = await readHeaderInSession(session);
+          const headerObj = decode(headerUint8Array) as FileHeader;
+          let toDownloadFile: File | null = null;
+          console.log("读取文件头部信息", headerObj);
+          const uniqueId = makeUniqueId(headerObj.fileName, headerObj.fileSize);
+          const itemToPush: TransferFile = reactive({
+            file: new File(["0"], headerObj.fileName, {
               type: headerObj.MIMEType,
-            });
-            downloadFileByBlob(toDownloadFile, headerObj.fileName);
-            toDownloadFile = null;
-            remove(client.eventListeners.session, (v) => v === handleSession);
-          };
-          client.onSession(handleSession);
-          // client.onMessage((message) => {
-          //   console.log("message", message);
-          // });
-        });
+            }),
+            fileName: headerObj.fileName,
+            fileSize: headerObj.fileSize,
+            uniqueId,
+            fileType: getFileType({
+              isDir: false,
+              fileName: headerObj.fileName,
+            }),
+            progress: 0,
+            speed: 0,
+            status: "queueing",
+          });
+          tableReceive.value.push(itemToPush);
+          // console.log(headerObj);
+          const maxReceiveLength = headerObj.fileSize;
+          let fileBuffer = new Uint8Array(0);
+          let startLen = 0;
+          const startTime = dayjs();
+          let diffSeconds = 0;
+          let toSetBytesPerSecond = 0;
+          while (startLen <= maxReceiveLength) {
+            if (session.isClosed) {
+              console.error("session closed");
+              return;
+            }
+            const toReadLength =
+              startLen < maxReceiveLength
+                ? MAX_MTU
+                : startLen - maxReceiveLength;
+            const roundRead = await session.read(toReadLength);
+            fileBuffer = mergeUint8Array(fileBuffer, roundRead);
+            // console.log(
+            //   "已经写入的array-正在接收的chunk长度",
+            //   fileBuffer,
+            //   roundRead
+            // );
+            startLen += MAX_MTU;
+            // 设置进度 start
+            const setItemProgressSpeedStatus = (
+              progress: number,
+              speed: number,
+              status: TransferFile["status"]
+            ) => {
+              // 防止push 的过程idx 变了, 所以得重新查找
+              const idx = tableReceive.value.findIndex(
+                (i) => i.uniqueId === uniqueId
+              );
+              if (idx !== -1) {
+                tableReceive.value[idx].progress = progress;
+                tableReceive.value[idx].speed = speed;
+                tableReceive.value[idx].status = status;
+              }
+            };
+            const toSetProgressVal = Math.floor(
+              (startLen / maxReceiveLength) * 100
+            );
+            if (toSetProgressVal < 100) {
+              const curDiffSeconds = dayjs().diff(startTime, "second");
+              if (curDiffSeconds > diffSeconds) {
+                toSetBytesPerSecond =
+                  startLen / dayjs().diff(startTime, "second");
+                diffSeconds = curDiffSeconds;
+              }
+              setItemProgressSpeedStatus(
+                toSetProgressVal,
+                toSetBytesPerSecond,
+                "receiving"
+              );
+            } else {
+              setItemProgressSpeedStatus(100, 0, "successReceive");
+              if (userStore.isLoggedIn)
+                transportStore.makePeerTransferSuccessItem(
+                  "receive",
+                  headerObj.fileName,
+                  headerObj.fileSize
+                );
+            }
+          }
+          // 发送-确认信息
+          await nknClient.send(
+            session.remoteAddr,
+            makeConfirmMessage(uniqueId),
+            {
+              noReply: true,
+            }
+          );
+          receiveInputLoading.value = false;
+          toDownloadFile = new File([fileBuffer], headerObj.fileName, {
+            type: headerObj.MIMEType,
+          });
+          downloadFileByBlob(toDownloadFile, headerObj.fileName);
+          toDownloadFile = null;
+          remove(nknClient.eventListeners.session, (v) => v === handleSession);
+        };
+        nknClient.onSession(handleSession);
+        // client.onMessage((message) => {
+        //   console.log("message", message);
+        // });
       };
       const remoteAddr = route.query.addr as string;
       if (remoteAddr) {
-        //检测到路由有link, 开始监听文件接收
+        console.log("检测到路由有link, 开始监听文件接收");
+        // link 模式不显示发送卡
+        isShowSendCard.value = false;
+        const hideLoadingMsg = message.loading("连接nkn网络中...", 0);
+        initClientStatus.then(() => {
+          hideLoadingMsg();
+          message.success("连接nkn网络成功");
+        });
         handleReceiveFile("link", remoteAddr);
       }
-      // 未登录状态 -end
-
       return {
         tableReceive,
         receiveInputLoading,
         receiveInputCode,
+        isShowSendCard,
         onClickReceive,
         totalReceiveCount,
         totalReceiveSize,

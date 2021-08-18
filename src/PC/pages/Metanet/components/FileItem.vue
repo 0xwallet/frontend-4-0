@@ -2457,9 +2457,10 @@ export default defineComponent({
                 // 如果是当前目录, 注册fileWindow的路径和描述信息,然后返回null , 下一步把它去除(为了填到表格)
                 if (
                   obj.id === params.dirId ||
-                  obj.fullName.every(
-                    (item, idx) => item === params.fullName?.[idx]
-                  )
+                  (obj.fullName.length === params.fullName?.length &&
+                    obj.fullName.every(
+                      (item, idx) => item === params.fullName?.[idx]
+                    ))
                 ) {
                   // 注册当前目录的id
                   curFolderId.value = obj.id;
@@ -2475,6 +2476,10 @@ export default defineComponent({
                     path: historyDir.value.map((i) => i.name).join("/"),
                     desc: formatDescription(obj.info.description),
                   });
+                  console.log(
+                    "formatDescription(obj.info.description)",
+                    formatDescription(obj.info.description)
+                  );
                   return null;
                 }
                 // 如果是父级目录, 返回null , 下一步把它去除
