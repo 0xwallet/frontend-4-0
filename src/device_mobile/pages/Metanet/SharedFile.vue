@@ -475,6 +475,7 @@ export default defineComponent({
           return;
         }
         isCurrentShareCollected.value = true;
+        curShareCollectedCount.value += 1;
         Toast("收藏成功!");
       }
     };
