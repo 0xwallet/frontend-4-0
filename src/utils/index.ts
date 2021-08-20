@@ -1,5 +1,6 @@
 import { classMultiClient, TSession } from "nkn";
 import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
+import device from "current-device";
 
 /** 延迟函数,默认1000毫秒(1秒) */
 export const useDelay = (t = 1000): Promise<void> => {
@@ -233,10 +234,11 @@ export const exactUniqueTabId = (fullPath: string) => {
   return uniqueIdCache[fullPath];
 };
 
+// /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
 /** 判断userAgent是否是移动端 */
 export const isMobile = () =>
   !!navigator.userAgent.match(
-    /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
+    /(phone|pod|iPhone|iPod|ios|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
   );
 
 /** 增加标签到head */
