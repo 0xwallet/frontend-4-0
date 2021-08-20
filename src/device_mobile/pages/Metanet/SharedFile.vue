@@ -204,7 +204,10 @@
                     </div>
                   </div>
                   <div class="pl-7" v-if="!record.userFile.isDir">
-                    <van-checkbox v-model="record.checked" />
+                    <van-checkbox
+                      checked-color="#404A66"
+                      v-model="record.checked"
+                    />
                   </div>
                 </div>
               </template>
@@ -234,7 +237,7 @@
               round
               class="h-12 mr-4 font-semibold font-15"
               :style="{
-                'background-color': '#E1F4FF',
+                'background-color': 'rgba(64, 74, 102,.2)',
                 color: '#06A7FF',
                 border: 'none',
               }"
@@ -257,6 +260,7 @@
               class="h-12 w-32 font-semibold font-15"
               @click="saveToMetanetModalPreAction"
               :loading="isLoadingDirData"
+              color="#404A66"
               >保存到网盘</van-button
             >
           </div>
@@ -279,6 +283,7 @@
         }"
         v-model="popupState.dirId"
         :options="dirData"
+        close-icon="success"
         @close="onClosePopup"
         @change="onChangePopup"
       />
