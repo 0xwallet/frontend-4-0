@@ -869,7 +869,7 @@ import {
   downloadFileByUrl,
   exactUniqueTabId,
   formatBytes,
-  formatDescription,
+  cacheFormatDescription,
   getFileSHA256,
   getFileType,
   lastOfArray,
@@ -2019,8 +2019,8 @@ export default defineComponent({
         }
         isShowEditDescriptionModal.value = false;
         // 编辑成功后立马修改弹窗里的信息
-        currenDetailInfo.value.desc = formatDescription(
-          res.data.driveEditDescription.info.description
+        currenDetailInfo.value.desc = cacheFormatDescription(
+          res.data.driveEditDescription.info.description || ""
         );
         // 还要刷新列表, 因为详情是从列表拿的
         // 如果不刷新的话,再次点开弹窗依然是修改前的状态
@@ -2084,7 +2084,9 @@ export default defineComponent({
       };
       // 详情
       const onRecordDetail = (record: TFileItem) => {
-        const formatedDescObj = formatDescription(record.info.description);
+        const formatedDescObj = cacheFormatDescription(
+          record.info.description || ""
+        );
         // 点击详情的时候设置编辑描述的弹窗里的内容 -star
         editDescriptionModalRef.name = lastOfArray(record.fullName);
         editDescriptionModalRef.fileId = record.id;
@@ -2148,7 +2150,7 @@ export default defineComponent({
         // 这里暂时赋值, 保证视觉连贯性
         record.fullName = [currentRenameString.value];
         onResetRecordRenameState();
-        getAndSetTableDataFn({ dirId: curFolderId.value });
+        getAndSetTableDataFn({ fullName: requestDirNameList.value });
         message.success("重命名成功");
       };
       /** 清空编辑状态 */
@@ -2261,6 +2263,7 @@ export default defineComponent({
           //   });
           // }
           // onRefreshTableData();
+          // curFolderId.value = id;
           const curRouterWindowId = exactUniqueTabId(route.fullPath);
           historyDir.value.push({
             name: lastOfArray(fullName),
@@ -2453,6 +2456,7 @@ export default defineComponent({
               // 加上类型
               .map((i) => {
                 if (!i) return i;
+                if (!i.fullName.length) return null;
                 const obj = { ...i };
                 // 如果是当前目录, 注册fileWindow的路径和描述信息,然后返回null , 下一步把它去除(为了填到表格)
                 if (
@@ -2474,12 +2478,8 @@ export default defineComponent({
                   // });
                   baseStore.setWindowIdItem(+curFileWindowId, {
                     path: historyDir.value.map((i) => i.name).join("/"),
-                    desc: formatDescription(obj.info.description),
+                    desc: cacheFormatDescription(obj.info.description || ""),
                   });
-                  console.log(
-                    "formatDescription(obj.info.description)",
-                    formatDescription(obj.info.description)
-                  );
                   return null;
                 }
                 // 如果是父级目录, 返回null , 下一步把它去除

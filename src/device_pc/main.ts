@@ -5,6 +5,8 @@ import router from "./router";
 import { createPinia } from "pinia";
 import languages from "../languages";
 import { useLocalStorage } from "@vueuse/core";
+import { lastOfArray } from "../utils";
+
 const app = createApp(App);
 // 注册全局属性
 // 专门给模板中调试事件用的 @click="$log"
@@ -54,7 +56,6 @@ import {
   Spin,
   Layout,
 } from "ant-design-vue";
-import { lastOfArray } from "../utils";
 app
   .use(ConfigProvider)
   .use(Menu)

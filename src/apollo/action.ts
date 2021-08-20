@@ -1,5 +1,5 @@
 // apollo 相关逻辑
-import { Modal } from "ant-design-vue";
+// import { Modal } from "ant-design-vue";
 import { provide, Ref } from "vue";
 import { useUserStore } from "../store";
 
@@ -17,7 +17,6 @@ import { onError } from "@apollo/client/link/error";
 
 // import { getMainDefinition } from '@apollo/client/utilities';
 // // @ts-ignore
-import router from "@/PC/router";
 import { TSession } from "nkn";
 import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
 
@@ -46,6 +45,7 @@ export function initApollo(): TClient | null {
     });
     return forward(operation);
   });
+  // TODO graphql 的错误处理
   const error = onError(({ graphQLErrors, networkError }) => {
     if (graphQLErrors) {
       console.log("graphQLErrors", graphQLErrors);
@@ -61,9 +61,9 @@ export function initApollo(): TClient | null {
             "Found"
           )
         ) {
-          Modal.error({
-            content: (graphQLErrors as unknown as { detail: string }).detail,
-          });
+          // Modal.error({
+          //   content: (graphQLErrors as unknown as { detail: string }).detail,
+          // });
         }
         console.error((graphQLErrors as unknown as { detail: string }).detail);
       } else {
@@ -71,12 +71,11 @@ export function initApollo(): TClient | null {
           switch (message) {
             case "Please sign in first!":
               // TODO 有没有授权已过期的情况?
-              router.push({ name: "Login" });
               break;
             case "file hash not found":
               break;
             default:
-              Modal.error({ content: message });
+              // Modal.error({ content: message });
               console.log(
                 `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
               );

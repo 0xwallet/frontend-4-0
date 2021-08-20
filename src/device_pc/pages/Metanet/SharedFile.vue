@@ -273,9 +273,14 @@ import {
   TFileItem,
 } from "@/apollo/api";
 import dayjs from "dayjs";
-import { useRoute } from "vue-router";
+import { onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
-import { XFileTypeIcon, XTableFiles, XTdHash, XModalDir } from "../../components";
+import {
+  XFileTypeIcon,
+  XTableFiles,
+  XTdHash,
+  XModalDir,
+} from "../../components";
 import { useI18n } from "vue-i18n";
 import {
   downloadFileByUrl,
@@ -311,6 +316,7 @@ export default defineComponent({
   setup() {
     // 根据uri
     const { t } = useI18n();
+    const router = useRouter();
     const route = useRoute();
     const baseStore = useBaseStore();
     const userStore = useUserStore();
@@ -325,9 +331,9 @@ export default defineComponent({
     const checkLoginStatusAndOpenModal = (): boolean => {
       if (!userStore.isLoggedIn || !userStore.token) {
         baseStore.changeIsShowLoginModal(true);
-        return false;
+        return true;
       }
-      return true;
+      return false;
     };
     const selectedRowKeys = ref<string[]>([]);
     const selectedRows = ref<QueryShareFileItem[]>([]);
@@ -352,7 +358,7 @@ export default defineComponent({
         return;
       }
       confirmLoading.value = true;
-      getAndSetFileData().then(() => {
+      getAndSetFileData().finally(() => {
         confirmLoading.value = false;
       });
     };
@@ -398,7 +404,7 @@ export default defineComponent({
     // TODO 文件夹 支持上一级目录
     /** shortcut-下载 */
     const onRecordDownload = (record: QueryShareFileItem) => {
-      if (checkLoginStatusAndOpenModal() === false) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       console.log("onRecordDownload", record);
@@ -418,21 +424,21 @@ export default defineComponent({
     };
     /** shortcut -收藏 */
     const onRecordCollect = (record: QueryShareFileItem) => {
-      if (checkLoginStatusAndOpenModal() === false) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       console.log("onRecordCollect", record);
     };
     /** shortcut -评价 */
     const onRecordScore = (record: QueryShareFileItem) => {
-      if (checkLoginStatusAndOpenModal() === false) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       console.log("onRecordScore", record);
     };
     /** 批量下载 */
     const onBatchDownload = () => {
-      if (checkLoginStatusAndOpenModal() === false) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       selectedRows.value.forEach((i) => {
@@ -443,14 +449,14 @@ export default defineComponent({
     };
     /** 批量收藏 */
     const onBatchCollect = () => {
-      if (checkLoginStatusAndOpenModal() === false) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       console.log("onBatchCollect");
     };
     /** 批量评价 */
     const onBatchScore = () => {
-      if (checkLoginStatusAndOpenModal() === false) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       console.log("onBatchScore");
@@ -496,59 +502,60 @@ export default defineComponent({
     // http://localhost:4000/#/metanet/sharedFile?uri=vQfgupqRey2465R5NCqtDg
     // vQfgupqRey2465R5NCqtDg
     // TODO 文件已经失效 userFile null
+    const handleUriChange = (queryUri: string) => {
+      if (currentUri.value !== queryUri) {
+        fileData.value.length = 0;
+        currentUri.value = queryUri;
+        apiPriviewSharedFile({ uri: queryUri }).then(({ data, err }) => {
+          if (err || !data || !data.drivePreviewShare) {
+            isValid.value = false;
+            lockPageLoading.value = false;
+            return;
+          }
+          const { userPreview: resUserPreview } = data.drivePreviewShare;
+          // 注册 分享来源用户的信息
+          userPreview.avatar = resUserPreview.avatar || "";
+          userPreview.bio = resUserPreview.bio;
+          userPreview.email = resUserPreview.email;
+          userPreview.username = resUserPreview.username;
+          // 如果文件需要访问码, 则 访问码控制false,等待后面输入
+          isCodeResolved.value = !data.drivePreviewShare.needCode;
+          const diffNow = dayjs(data.drivePreviewShare.expiredAt).diff(dayjs());
+          // 如果文件过期了
+          if (diffNow < 0) {
+            isValid.value = false;
+            lockPageLoading.value = false;
+            return;
+          }
+          expiredText.value = `${dayjs(data.drivePreviewShare.expiredAt).diff(
+            dayjs(),
+            "days"
+          )}天后过期`;
+          // 如果不需要访问码, 立即请求文件
+          if (isCodeResolved.value === true) {
+            getAndSetFileData().finally(() => {
+              lockPageLoading.value = false;
+            });
+          } else if (sessionStorage.getItem(queryUri)) {
+            // 如果sessionStorage 里有uri , 拿出来用
+            inputCode.value = sessionStorage.getItem(queryUri) as string;
+            getAndSetFileData().finally(() => {
+              lockPageLoading.value = false;
+            });
+          } else {
+            lockPageLoading.value = false;
+          }
+        });
+      }
+    };
+    // TODO 解决两个分享页的tab 点击后数据没变的问题
     onActivated(() => {
       console.log("onActivated-SharedFile-currentUri", currentUri);
       const queryUri = route.query.uri as string;
       if (queryUri) {
-        if (currentUri.value !== queryUri) {
-          fileData.value.length = 0;
-          currentUri.value = queryUri;
-          apiPriviewSharedFile({ uri: queryUri }).then(({ data, err }) => {
-            if (err || !data || !data.drivePreviewShare) {
-              isValid.value = false;
-              lockPageLoading.value = false;
-              return;
-            }
-            const { userPreview: resUserPreview } = data.drivePreviewShare;
-            // 注册 分享来源用户的信息
-            userPreview.avatar = resUserPreview.avatar || "";
-            userPreview.bio = resUserPreview.bio;
-            userPreview.email = resUserPreview.email;
-            userPreview.username = resUserPreview.username;
-            // 如果文件需要访问码, 则 访问码控制false,等待后面输入
-            isCodeResolved.value = !data.drivePreviewShare.needCode;
-            const diffNow = dayjs(data.drivePreviewShare.expiredAt).diff(
-              dayjs()
-            );
-            // 如果文件过期了
-            if (diffNow < 0) {
-              isValid.value = false;
-              lockPageLoading.value = false;
-              return;
-            }
-            expiredText.value = `${dayjs(data.drivePreviewShare.expiredAt).diff(
-              dayjs(),
-              "days"
-            )}天后过期`;
-            // 如果不需要访问码, 立即请求文件
-            if (isCodeResolved.value === true) {
-              getAndSetFileData().finally(() => {
-                lockPageLoading.value = false;
-              });
-            } else if (sessionStorage.getItem(queryUri)) {
-              // 如果sessionStorage 里有uri , 拿出来用
-              inputCode.value = sessionStorage.getItem(queryUri) as string;
-              getAndSetFileData().finally(() => {
-                lockPageLoading.value = false;
-              });
-            } else {
-              lockPageLoading.value = false;
-            }
-          });
-        }
+        handleUriChange(queryUri);
       }
     });
-
     /** 弹窗-保存到网盘 */
     function useSaveToMetanetModal() {
       const isShowSaveToMetanetModal = ref(false);
@@ -696,7 +703,7 @@ export default defineComponent({
       };
       /** 设置要移动的idList,操作类型 */
       const saveToMetanetModalPreAction = (item: TFileItem[]) => {
-        if (checkLoginStatusAndOpenModal() === false) {
+        if (checkLoginStatusAndOpenModal()) {
           return;
         }
         // 重置为全部文件

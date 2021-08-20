@@ -64,7 +64,7 @@
           class="flex items-center"
         >
           <div class="w-3.5 h-3.5 mr-2">
-            <img src="~@/assets/images/success_upload.png" alt="" />
+            <img src="~@/assets/images/success_update.png" alt="" />
           </div>
           <div class="text-gray-400">更新成功</div>
         </div>

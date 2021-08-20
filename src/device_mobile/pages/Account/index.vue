@@ -1,6 +1,6 @@
 <template>
   <div>
-    commonb layout
+account
   </div>
 </template>
 

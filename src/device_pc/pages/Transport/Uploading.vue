@@ -180,7 +180,7 @@
 
 <script lang="ts">
 import { useTransportStore, useUserStore } from "@/store";
-import { UploadItem, UploadStatus } from "@/store/transport";
+import { SUCCESS_STATUS_ARR, UploadItem, UploadStatus } from "@/store/transport";
 import {
   computed,
   defineComponent,
@@ -348,7 +348,11 @@ export default defineComponent({
             i.roundId === transPortStore.uploadCurRoundId
         );
         // console.log("totalPercent-filterListLen", list.length);
-        if (!list.length || list.every((i) => i.status === "success")) return 0;
+        if (
+          !list.length ||
+          list.every((i) => SUCCESS_STATUS_ARR.includes(i.status))
+        )
+          return 0;
         const val = Math.floor(
           (list.reduce((a, b) => (a += b.progress), 0) / (list.length * 100)) *
             100

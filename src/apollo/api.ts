@@ -247,6 +247,7 @@ export const apiQueryMeSpace = async (): TApiRes<ResponseQueryMeSpace> => {
 export type ParamsQueryFileByDir = {
   dirId?: string;
   fullName?: string[];
+  token?: string;
 };
 export type TFileItem = {
   fullName: string[];
@@ -470,23 +471,13 @@ export const apiUploadSingle = async (
         })
       : encode({
           // 老的文件id
-          UseFileId: params.toUpdateFileId,
+          UserFileId: params.toUpdateFileId,
           Space: params.space,
           UserId: params.userId,
           Action: params.action,
           FileSize: params.file.size,
           FileHash: params.fileHash,
         });
-  if (params.action === "update") {
-    console.log("更新文件的msgPack", {
-      UseFileId: params.toUpdateFileId,
-      Space: params.space,
-      UserId: params.userId,
-      Action: params.action,
-      FileSize: params.file.size,
-      FileHash: params.fileHash,
-    });
-  }
   // 拿 golang 来的offset
   ///
   // 假如offset 不一致 error 断开
@@ -1139,7 +1130,7 @@ export const apiPublishDelete = async (
 };
 
 type ParamsQueryCollectList = {
-  type?: "NetFile_Share" | "NetFile_Publish";
+  type?: "SHARE" | "PUBLISH" | "ALL";
 };
 export type QueryCollectItem = {
   id: string;

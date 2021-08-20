@@ -573,7 +573,15 @@ export default defineComponent({
         .then(() => message.success(t("metanet.copySuccess")));
     };
     /** 要替换的老的文件id */
-    const currentToUpdateFileId = ref("");
+    const currentToUpdateFile: { id: string; fullName: string[] } = reactive({
+      id: "",
+      fullName: [],
+    });
+    /** 重置当前要更新的文件 */
+    const resetCurrentToUpdateFile = () => {
+      currentToUpdateFile.id = "";
+      currentToUpdateFile.fullName = [];
+    };
 
     /** 表格里单项替换文件 */
     const onRecordReplaceShareFile = (record: TTableShareFileItem) => {
@@ -581,35 +589,55 @@ export default defineComponent({
         message.warning("请等待nkn节点就绪");
         return;
       }
-      currentToUpdateFileId.value = record.userFile.id;
+      currentToUpdateFile.id = record.userFile.id;
+      currentToUpdateFile.fullName = record.userFile.fullName;
       document.getElementById("shareSingleInput")?.click();
     };
     const onChangeUploadFile = async (e: Event) => {
       const input = e.target as HTMLInputElement;
       if (!input.files?.length) return;
-      router.push({ name: "TransportUploading" });
-      // console.log("input", input.files);
-      const file = input.files[0];
-      // 如果当前没有任务正在上传, 增加回合id
-      if (!transportStore.uploadingList.length) {
-        transportStore.plusCurRoundId();
-      }
-      const fileHash = await getFileSHA256(file);
-      await transportStore.uploadFile({
-        file,
-        action: "update",
-        fullName: [file.name],
-        fileType: getFileType({
-          isDir: false,
-          fileName: file.name,
-        }),
-        fileHash,
-        roundId: transportStore.uploadCurRoundId,
-        description: "",
-        toUpdateFileId: currentToUpdateFileId.value,
+      Modal.confirm({
+        title: `是否确认更新文件?`,
+        content: createVNode("div", {}, [
+          createVNode(
+            "div",
+            { class: "mt-2 font-12", style: { color: "red" } },
+            "更新后，旧文件将被删除，文件名称保持不变"
+          ),
+        ]),
+        icon: createVNode(ExclamationCircleOutlined),
+        onOk: async () => {
+          if (!input.files?.length) return;
+          // console.log("input", input.files);
+          const file = input.files[0];
+          // 如果当前没有任务正在上传, 增加回合id
+          if (!transportStore.uploadingList.length) {
+            transportStore.plusCurRoundId();
+          }
+          const fileHash = await getFileSHA256(file);
+          transportStore.uploadFile({
+            file,
+            action: "update",
+            // 因为更新后文件名不变,这里传更新前文件的名称
+            fullName: currentToUpdateFile.fullName,
+            fileType: getFileType({
+              isDir: false,
+              fileName: file.name,
+            }),
+            fileHash,
+            roundId: transportStore.uploadCurRoundId,
+            description: "",
+            toUpdateFileId: currentToUpdateFile.id,
+          });
+          resetCurrentToUpdateFile();
+          input.value = "";
+          router.push({ name: "TransportUploading" });
+        },
+        onCancel: () => {
+          resetCurrentToUpdateFile();
+          input.value = "";
+        },
       });
-      currentToUpdateFileId.value = "";
-      input.value = "";
     };
     /** 表格里单项取消分享 */
     const onRecordCancel = (record: TTableShareFileItem) => {

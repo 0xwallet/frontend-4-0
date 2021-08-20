@@ -55,7 +55,7 @@ type TransportState = {
 };
 
 const SUCCESS_STORAGE_KEY = "uploadSuccessList";
-const SUCCESS_STATUS_ARR = [
+export const SUCCESS_STATUS_ARR = [
   "success",
   "successUpdate",
   "successPeerTransferSend",

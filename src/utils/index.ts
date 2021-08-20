@@ -41,19 +41,26 @@ export const getFileSHA256 = async (file: File): Promise<string> => {
   return hashHex;
 };
 
+/** 缓存处理字符串的函数 */
+export const cacheFn = <T>(fn: (source: string) => T) => {
+  const cached: { [key: string]: T } = {};
+  return (str: string) => (cached[str] ??= fn(str));
+};
+
 export type DescObj = {
   tagArr: string[];
   text: string;
 };
 /** 格式化描述信息,区分tag和普通文字 */
 export const formatDescription = (sourceDesc: string | null): DescObj => {
-  if (sourceDesc === null) return { tagArr: [], text: "" };
+  if (!sourceDesc) return { tagArr: [], text: "" };
   // maybe length = 0
   const tagArr = [...sourceDesc.matchAll(/#(.*?)#/g)].map((i) => i[1].trim());
   const text = sourceDesc.replace(/#(.*?)#/g, "");
   return { tagArr, text };
 };
-
+/** 缓存处理描述的函数 */
+export const cacheFormatDescription = cacheFn(formatDescription);
 /** 根据isDir/ 文件名后缀返回文件类型 */
 export const getFileType = (obj: {
   isDir: boolean;
@@ -224,4 +231,22 @@ export const exactUniqueTabId = (fullPath: string) => {
     ? exactWindowId(fullPath).toString()
     : fullPath;
   return uniqueIdCache[fullPath];
+};
+
+/** 判断userAgent是否是移动端 */
+export const isMobile = () =>
+  /Android|webOS|iPhone|iPad|Mac|Macintosh|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+/** 增加标签到head */
+export const addHead = (tag: string, obj: { [key: string]: string }) => {
+  // <!-- Chrome, Firefox OS and Opera -->
+  // <meta name="theme-color" content="#4285f4">
+  const meta = document.createElement(tag);
+  // meta.setAttribute(key, val);
+  Object.entries(obj).forEach(([key, val]) => {
+    meta.setAttribute(key, val);
+  });
+  document.getElementsByTagName("head")[0].appendChild(meta);
 };

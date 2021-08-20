@@ -34,7 +34,7 @@ import en_US from "ant-design-vue/es/locale/en_US";
 import { computed, defineComponent, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useLocalStorage } from "@vueuse/core";
-import { useBaseStore, useUserStore } from "../store";
+import { useBaseStore, useUserStore } from "@/store";
 import { notification } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import { XModalLogin } from "./components";
@@ -46,9 +46,10 @@ export default defineComponent({
   // TODO 全局更改语言配置
   setup() {
     const baseStore = useBaseStore();
+    const userStore = useUserStore();
     const { t } = useI18n();
     async function trySignInWithLocalStorageAndRedirect() {
-      const { signInWithLocalStorage } = useUserStore();
+      const { signInWithLocalStorage } = userStore;
       // const [res, err] = await signInWithLocalStorage();
       const result = await signInWithLocalStorage();
       if (result.err) {

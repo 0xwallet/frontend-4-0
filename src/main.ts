@@ -1,20 +1,20 @@
-const isMobile =
-  /Android|webOS|iPhone|iPad|Mac|Macintosh|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-if (isMobile) {
+import { isMobile } from "./utils";
+
+if (isMobile()) {
+  console.log("isMobile");
   import(
     /* webpackChunkName: "mobile" */
     /* webpackMode: "lazy" */
-    "./MOBILE/main"
+    "./device_mobile/main"
   ).then((module) => {
     console.log("加载移动端模块_mobile_module", module);
   });
 } else {
+  console.log("isPC");
   import(
     /* webpackChunkName: "pc" */
     /* webpackMode: "lazy" */
-    "./PC/main"
+    "./device_pc/main"
   ).then((module) => {
     console.log("加载PC端模块_pc_module", module);
   });
