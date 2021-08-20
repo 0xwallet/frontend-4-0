@@ -235,8 +235,8 @@ export const exactUniqueTabId = (fullPath: string) => {
 
 /** 判断userAgent是否是移动端 */
 export const isMobile = () =>
-  /Android|webOS|iPhone|iPad|Mac|Macintosh|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
+  !!navigator.userAgent.match(
+    /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
   );
 
 /** 增加标签到head */
