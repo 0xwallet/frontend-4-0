@@ -847,6 +847,7 @@ import {
   apiMoveFileToDir,
   apiPublishCreate,
   apiPublishUpdate,
+  apiQueryDirSize,
   apiQueryFileByDir,
   apiQueryMeSpace,
   apiQueryPublishList,
@@ -2083,7 +2084,7 @@ export default defineComponent({
         isShowPublishModal.value = true;
       };
       // 详情
-      const onRecordDetail = (record: TFileItem) => {
+      const onRecordDetail = async (record: TFileItem) => {
         const formatedDescObj = cacheFormatDescription(
           record.info.description || ""
         );
@@ -2091,6 +2092,11 @@ export default defineComponent({
         editDescriptionModalRef.name = lastOfArray(record.fullName);
         editDescriptionModalRef.fileId = record.id;
         editDescriptionModalRef.desc = record.info.description || "";
+        // 如果是文件夹 请求文件夹大小接口
+        const showSize = record.isDir
+          ? (await apiQueryDirSize({ dirId: record.id })).data?.driveDirSize ??
+            0
+          : record.info.size;
         // 点击详情的时候设置编辑描述的弹窗里的内容 -end]
         currenDetailInfo.value = {
           name: lastOfArray(record.fullName),
@@ -2102,12 +2108,11 @@ export default defineComponent({
             isDir: record.isDir,
             fileName: lastOfArray(record.fullName),
           }),
-          size: formatBytes(+record.info.size),
+          size: formatBytes(+showSize),
           usedSpaceRatio:
-            (
-              (+record.info.size / +record.user.driveSetting.totalSpace) *
-              100
-            ).toFixed(3) + "%",
+            ((+showSize / +record.user.driveSetting.totalSpace) * 100).toFixed(
+              3
+            ) + "%",
           insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
           updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
           desc: formatedDescObj,

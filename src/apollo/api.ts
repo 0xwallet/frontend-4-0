@@ -289,6 +289,29 @@ export const apiQueryFileByDir = async (
     return { err };
   }
 };
+
+type ParamsDriveDirSize = {
+  dirId: string;
+};
+type ResponseDriveDirSize = {
+  driveDirSize: string;
+};
+/** 网盘-查询文件夹大小接口 */
+export const apiQueryDirSize = async (
+  params: ParamsDriveDirSize
+): TApiRes<ResponseDriveDirSize> => {
+  try {
+    const data = await useApollo<ResponseDriveDirSize>({
+      mode: "query",
+      gql: NetFile_Basic.driveDirSize,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err };
+  }
+};
+
 type ParamsEditFileDescption = {
   description: string;
   userFileId: string;
