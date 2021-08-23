@@ -703,7 +703,7 @@ export default defineComponent({
       fileData.value.length = 0;
       const { data, err } = await apiQuerySharedFile({
         uri: currentUri.value,
-        ...(!isCodeResolved.value
+        ...(!isCodeResolved.value || inputCode.value
           ? {
               code: inputCode.value,
             }

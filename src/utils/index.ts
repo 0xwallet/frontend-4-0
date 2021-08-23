@@ -1,6 +1,5 @@
 import { classMultiClient, TSession } from "nkn";
 import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
-import device from "current-device";
 
 /** 延迟函数,默认1000毫秒(1秒) */
 export const useDelay = (t = 1000): Promise<void> => {
