@@ -157,6 +157,33 @@
     </XTableFiles>
     <!-- 详情卡片 -->
     <ModalDetail v-model:visible="isShowDetailModal" :detail="currenDetailInfo">
+      <template #desc="{ record }">
+        <a-row class="mb-1" justify="space-between">
+          <a-col class="ant-color-gray" :span="6"
+            >描述
+            <a-tooltip title="编辑描述">
+              <a
+                href="javascript:;"
+                class="ml-2"
+                @click="onShowDescriptionModal"
+              >
+                <EditOutlined />
+              </a>
+            </a-tooltip>
+          </a-col>
+          <a-col :span="17">
+            <template v-if="record.desc.tagArr.length">
+              <a-tag
+                v-for="item in record.desc.tagArr"
+                color="orange"
+                :key="item"
+                >{{ item }}</a-tag
+              >
+            </template>
+            {{ record.desc.text }}
+          </a-col>
+        </a-row>
+      </template>
     </ModalDetail>
     <!-- 修改表格单项 有效期,访问码 -->
     <a-modal
@@ -229,6 +256,7 @@ import {
 } from "@/apollo/api";
 import { message, Modal } from "ant-design-vue";
 import {
+  cacheFormatDescription,
   formatBytes,
   getFileLocation,
   getFileSHA256,
@@ -541,6 +569,9 @@ export default defineComponent({
     /** 表格里单项详情 */
     const onRecordDetail = (record: TTableShareFileItem) => {
       console.log("onRecordDetail", record);
+      const formatedDescObj = cacheFormatDescription(
+        record.userFile.info.description || ""
+      );
       // 链接	Hash	类型	位置	修改时间	创建时间	描述(直接显示)
       currenDetailInfo.value = {
         type: getFileType({
@@ -553,7 +584,7 @@ export default defineComponent({
         shareHash: record.userFile.hash,
         insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
         updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
-        desc: record.userFile.info.description || "无",
+        desc: formatedDescObj,
       };
       isShowDetailModal.value = true;
     };

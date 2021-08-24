@@ -339,6 +339,16 @@ export const apiEditFileDescption = async (
   }
 };
 
+// https://github.com/0xwallet/issues/issues/52
+/** file receiver 返回格式 */
+export type MessageFileReceiver = {
+  state: 200 | 500;
+  /** 0其他类型消息,1断点续传偏移量 */
+  type: 0 | 1;
+  message: string;
+  content: { [key: string]: any };
+};
+
 export type ParamsUploadSingle = {
   // file: File;
   // File: Uint8Array;
@@ -405,12 +415,12 @@ export const apiUploadSingle = async (
       fileHash: params.fileHash,
       description: params.description,
     });
-    if (resultSecondUpload.err) {
-      return { err: resultSecondUpload.err };
-    }
-    const { driveUploadByHash } = resultSecondUpload.data;
-    console.log("-秒传返回--", driveUploadByHash);
-    if (driveUploadByHash.id) {
+    // if (resultSecondUpload.err) {
+    // return { err: resultSecondUpload.err };
+    // }
+    // const { driveUploadByHash } = resultSecondUpload.data;
+    if (resultSecondUpload.data?.driveUploadByHash?.id) {
+      console.log("-秒传返回--", resultSecondUpload.data);
       // if (params.SetProgress) params.SetProgress(100); 秒传成功后父组件设置了
       if (params.setProgressSpeedStatus) {
         params.setProgressSpeedStatus(uniqueId, 100, 0, "uploading");
@@ -521,18 +531,21 @@ export const apiUploadSingle = async (
       const handleConfirmOffset = (msgObj: TMessageType) => {
         // hash 和 offset
         // console.log("msgObj", msgObj);
-        const parsedMsg: { FileHash: string; Offset: number } = JSON.parse(
-          msgObj.payload
-        );
-        console.log("收到offset消息推送", parsedMsg);
-        startOffset = parsedMsg.Offset; // TODO check payload
-        resolve(startOffset);
-        // console.timeEnd("[性能] 接收offset时间");
-        clearTimeout(timer);
-        remove(
-          multiClient.eventListeners.message,
-          (v) => v === handleConfirmOffset
-        );
+        const parsedMsg: MessageFileReceiver = JSON.parse(msgObj.payload);
+        if (
+          parsedMsg.type === 1 &&
+          parsedMsg.content.fileHash === params.fileHash
+        ) {
+          console.log("收到offset消息推送", parsedMsg);
+          startOffset = parsedMsg.content.offset; // TODO check payload
+          resolve(startOffset);
+          // console.timeEnd("[性能] 接收offset时间");
+          clearTimeout(timer);
+          remove(
+            multiClient.eventListeners.message,
+            (v) => v === handleConfirmOffset
+          );
+        }
       };
       multiClient.onMessage(handleConfirmOffset);
     });
@@ -661,9 +674,8 @@ type ParamsSecondUpload = {
 type ResponseSecondUpload = {
   driveUploadByHash: {
     // id: "qDQt2b8Di1nZeDhN5cPWXE"
-    id?: string;
-    offset?: number;
-  };
+    id: string;
+  } | null;
 };
 /** 秒传接口 */
 export const apiSecondUpload = async (

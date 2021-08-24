@@ -123,12 +123,7 @@ export const driveUploadByHash = gql`
       hash: $hash
       description: $description
     ) {
-      ... on DriveUserFile {
-        id
-      }
-      ... on DriveOffsetInfo {
-        offset
-      }
+      id
     }
   }
 `;

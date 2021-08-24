@@ -198,11 +198,11 @@
                             >{{ tag }}</van-tag
                           >
                         </template>
-                        {{
+                        <!-- {{
                           cacheFormatDescription(
                             record.userFile.info.description
                           ).text || "&nbsp;"
-                        }}
+                        }} -->
                       </template>
                     </div>
                   </div>

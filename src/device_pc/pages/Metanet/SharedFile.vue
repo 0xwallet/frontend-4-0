@@ -123,7 +123,9 @@
                       :style="{ color: '#faad14' }"
                     />
                     <HeartOutlined v-else />
-                    {{ curShareCollectedCount }}
+                    <span class="text-gray-400">{{
+                      curShareCollectedCount
+                    }}</span>
                   </a-button>
                   <a-button
                     :disabled="selectedRowKeys.length === 0"
@@ -690,7 +692,7 @@ export default defineComponent({
     /** 弹窗-保存到网盘 */
     function useSaveToMetanetModal() {
       const isShowSaveToMetanetModal = ref(false);
-      const onSaveToMetanetModalConfirm = () => {
+      const onSaveToMetanetModalConfirm = async () => {
         console.log("onSaveToMetanetModalConfirm");
         // 如果是文件夹 不能保存到相同文件夹内
         const checkSameParent = (item: TFileItem) => {
@@ -718,7 +720,7 @@ export default defineComponent({
         }
         // 根目录不用传
         if (folderFullName[0] === "全部文件") folderFullName.shift();
-        return Promise.all(
+        await Promise.all(
           saveToMetanetModalSelectedFileList.value.map((i) =>
             apiSecondUpload({
               // 包含要保存的路径的文件全名数组
@@ -816,7 +818,7 @@ export default defineComponent({
                 dirName: lastOfArray(i.fullName),
                 parent: {
                   dirId: "root",
-                  dirName: "root",
+                  dirName: "全部文件",
                   parent: null,
                 },
               })
@@ -824,7 +826,7 @@ export default defineComponent({
           );
           const rootDir: TDir = {
             dirId: "root",
-            dirName: t("metanet.allFiles"),
+            dirName: "全部文件",
             parent: null,
             children: withChildrensDirList,
           };

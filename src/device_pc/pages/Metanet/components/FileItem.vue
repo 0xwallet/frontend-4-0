@@ -2022,7 +2022,8 @@ export default defineComponent({
         );
         // 还要刷新列表, 因为详情是从列表拿的
         // 如果不刷新的话,再次点开弹窗依然是修改前的状态
-        getAndSetTableDataFn({ dirId: curFolderId.value });
+        // getAndSetTableDataFn({ dirId: curFolderId.value });
+        getAndSetTableDataFn({ fullName: requestDirNameList.value });
         message.success("编辑成功!");
         // 重置挪到了关闭详情弹窗的时候,因为可能在已经打开详情窗口的情况下再次编辑
         // onResetEditDescriptionModal();
@@ -2174,7 +2175,7 @@ export default defineComponent({
             // if (res.data.driveDeleteFile === 1) {
             // }
             message.success(t("metanet.deleted"));
-            getAndSetTableDataFn({ dirId: curFolderId.value });
+            getAndSetTableDataFn({ fullName: requestDirNameList.value });
           },
         });
       };
