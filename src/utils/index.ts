@@ -223,13 +223,18 @@ export const exactUniqueTabId = (fullPath: string) => {
   // 缓存编译结果
   if (uniqueIdCache[fullPath]) return uniqueIdCache[fullPath];
   // metanet/file?id=2&path=~
-  // 1. 文件应用就用windowId
-  // 2. 其他应用就用对应的path
-  uniqueIdCache[fullPath] = fullPath.includes("peerTransfer")
-    ? "peerTransfer"
-    : fullPath.includes("metanet/file")
-    ? exactWindowId(fullPath).toString()
-    : fullPath;
+  // 1. 文件应用就用 windowId
+  // 2. 分享后链接用 MetanetSharedFile
+  // 3. 其他应用就用对应的 path
+  if (fullPath.includes("peerTransfer")) {
+    uniqueIdCache[fullPath] = "peerTransfer";
+  } else if (fullPath.includes("metanet/file")) {
+    uniqueIdCache[fullPath] = exactWindowId(fullPath).toString();
+  } else if (fullPath.includes("metanet/sharedFile")) {
+    uniqueIdCache[fullPath] = "MetanetSharedFile";
+  } else {
+    uniqueIdCache[fullPath] = fullPath;
+  }
   return uniqueIdCache[fullPath];
 };
 

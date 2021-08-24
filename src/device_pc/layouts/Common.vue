@@ -893,6 +893,13 @@ export default defineComponent({
                 exactUniqueTabId(i.routePath) === exactUniqueTabId(fullPath)
             );
             if (found) found.routePath = fullPath;
+          } else if (fullPath.includes("metanet/sharedFile")) {
+            // 如果是分享页面,更新routePath
+            const found = navList.value.find(
+              (i) =>
+                exactUniqueTabId(i.routePath) === exactUniqueTabId(fullPath)
+            );
+            if (found) found.routePath = fullPath;
           }
         },
         {

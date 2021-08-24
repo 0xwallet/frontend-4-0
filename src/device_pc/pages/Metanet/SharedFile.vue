@@ -98,9 +98,33 @@
               </div>
               <!-- 功能区 -->
               <div class="pt-3 px-5 mb-3 flex items-center">
-                <div class="mr-2">全部文件</div>
+                <div class="mr-2 flex items-center">
+                  <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
+                    <a
+                      :class="{
+                        'text-gray-400': idx === historyDir.length - 1,
+                      }"
+                      @click="onUpperLevel(idx)"
+                    >
+                      {{ dir.dirName }}
+                    </a>
+                    <span
+                      v-if="idx !== historyDir.length - 1"
+                      class="px-2 text-gray-400"
+                      >></span
+                    >
+                  </template>
+                </div>
                 <div class="flex-1"></div>
                 <div>
+                  <a-button class="mr-2" @click="onCollectShare">
+                    <HeartFilled
+                      v-if="isCurrentShareCollected"
+                      :style="{ color: '#faad14' }"
+                    />
+                    <HeartOutlined v-else />
+                    {{ curShareCollectedCount }}
+                  </a-button>
                   <a-button
                     :disabled="selectedRowKeys.length === 0"
                     @click="
@@ -120,14 +144,6 @@
                   >
                     <DownloadOutlined />
                     下载
-                  </a-button>
-                  <a-button
-                    :disabled="selectedRowKeys.length === 0"
-                    class="mr-2"
-                    @click="onBatchCollect"
-                  >
-                    <HeartOutlined />
-                    收藏
                   </a-button>
                   <a-button
                     :disabled="selectedRowKeys.length === 0"
@@ -157,9 +173,10 @@
                     <a
                       href="javascript:;"
                       class="ml-2"
-                      :title="record.userFile.fullName[0]"
+                      :title="$lastOfArray(record.userFile.fullName)"
+                      @click="onItemClick(record)"
                     >
-                      {{ record.userFile.fullName[0] }}
+                      {{ $lastOfArray(record.userFile.fullName) }}
                     </a>
                     <!-- hover 才显示的shortCut栏 -->
                     <!-- 非上级目录 -->
@@ -186,24 +203,15 @@
                           ><DownloadOutlined
                         /></a>
                       </a-tooltip>
-                      <!-- 收藏 -->
-                      <a-tooltip title="收藏">
-                        <a
-                          class="shortcutButton ml-1"
-                          href="javascript:;"
-                          @click="onRecordCollect(record)"
-                          ><HeartOutlined
-                        /></a>
-                      </a-tooltip>
                       <!-- 评价 -->
-                      <a-tooltip title="评价">
+                      <!-- <a-tooltip title="评价">
                         <a
                           class="shortcutButton ml-1"
                           href="javascript:;"
                           @click="onRecordScore(record)"
                           ><HighlightOutlined
                         /></a>
-                      </a-tooltip>
+                      </a-tooltip> -->
                     </div>
                   </div>
                 </template>
@@ -259,13 +267,16 @@ import {
   h,
   onActivated,
   onDeactivated,
+  onMounted,
   reactive,
   ref,
   watch,
 } from "vue";
 import {
+  apiCollectCreateByShare,
   apiGetPreviewToken,
   apiPriviewSharedFile,
+  apiQueryCollectList,
   apiQueryFileByDir,
   apiQuerySharedFile,
   apiSecondUpload,
@@ -291,6 +302,7 @@ import {
 import {
   ExportOutlined,
   DownloadOutlined,
+  HeartFilled,
   HeartOutlined,
   HighlightOutlined,
   LoadingOutlined,
@@ -298,6 +310,17 @@ import {
 } from "@ant-design/icons-vue";
 import { TDir } from "./components/FileItem.vue";
 import { useBaseStore, useUserStore } from "@/store";
+
+type ListItem = {
+  userFile: QueryShareFileItem["userFile"];
+  checked: boolean;
+  id: string; // 分享的id(没有就用空)
+  token: string;
+};
+
+function sortByDirType(a: ListItem, b: ListItem) {
+  return a.userFile?.isDir ? (b.userFile?.fullName[0] === "..." ? 1 : -1) : 1;
+}
 
 export default defineComponent({
   name: "MetanetSharedFile",
@@ -308,6 +331,7 @@ export default defineComponent({
     XModalDir,
     ExportOutlined,
     DownloadOutlined,
+    HeartFilled,
     HeartOutlined,
     HighlightOutlined,
     LoadingOutlined,
@@ -321,6 +345,12 @@ export default defineComponent({
     const baseStore = useBaseStore();
     const userStore = useUserStore();
     const currentUri = ref("");
+    const currentShareToken = ref("");
+    const currentShareId = ref("");
+    /** 当前这个分享的收藏数 */
+    const curShareCollectedCount = ref(0);
+    /** 当前的分享是否收藏过 */
+    const isCurrentShareCollected = ref(false);
     const userPreview = reactive({
       avatar: "",
       bio: "",
@@ -336,8 +366,13 @@ export default defineComponent({
       return false;
     };
     const selectedRowKeys = ref<string[]>([]);
-    const selectedRows = ref<QueryShareFileItem[]>([]);
-    const fileData = ref<QueryShareFileItem[]>([]);
+    const selectedRows = ref<ListItem[]>([]);
+    /** 清除当前选中的数据 */
+    const clearSelected = () => {
+      selectedRows.value.length = 0;
+      selectedRowKeys.value.length = 0;
+    };
+    const fileData = ref<ListItem[]>([]);
     /**  通过访问码控制了没 */
     const isCodeResolved = ref(false);
     /** 用户输入的访问码 */
@@ -349,16 +384,88 @@ export default defineComponent({
     const confirmLoading = ref(false);
     /** 锁住页面的显示,因为从页面打开到请求preview 中需要时间判断是否resolve了访问码 */
     const lockPageLoading = ref(true);
+    /** 目录面包屑
+     * 当点击第一个的时候是用share 的api,所以这里第一个dirId不会被用到 */
+    const historyDir = ref<{ dirId: string; dirName: string }[]>([
+      { dirId: "none", dirName: "/" },
+    ]);
+    /** 点击上一级 */
+    const onUpperLevel = (dirIdx: number) => {
+      // 最后一个就是当前目录,不用点击
+      if (dirIdx === historyDir.value.length - 1) {
+        return;
+      }
+      // 如果点的是全部文件
+      if (dirIdx === 0) {
+        clearSelected();
+        historyDir.value.splice(1);
+        getSetFileData();
+      } else {
+        clearSelected();
+        // 点击的不是第一个"全部文件",删除后面的目录
+        historyDir.value.splice(dirIdx + 1);
+        const dirId = lastOfArray(historyDir.value).dirId;
+        getSetDriveList(dirId);
+      }
+    };
+    /** 点击预览图片 */
+    const onItemClick = (record: ListItem) => {
+      // console.log("onItemClick", record);
+      if (!record.userFile) return;
+      const fileType = getFileType({
+        isDir: record.userFile.isDir,
+        fileName: lastOfArray(record.userFile.fullName),
+      });
+      if (/folder$/g.test(fileType)) {
+        // 1.是文件夹
+        // 1.1 change historyDir
+        historyDir.value.push({
+          dirId: record.userFile.id,
+          dirName: lastOfArray(record.userFile.fullName),
+        });
+        getSetDriveList(record.userFile.id);
+        // 1.2 change fileData
+      }
+    };
+    /** 请求目录里面的数据 */
+    const getSetDriveList = (dirId: string) => {
+      const token = currentShareToken.value;
+      apiQueryFileByDir({
+        dirId,
+        token,
+      }).then((res) => {
+        if (res.err || !res.data) {
+          return;
+        }
+        fileData.value.length = 0;
+        res.data.driveListFiles.forEach((item) => {
+          if (!item || item.id === dirId || item.fullName.length === 0) return;
+          fileData.value.push({
+            id: item.id,
+            checked: false,
+            token: currentShareToken.value,
+            userFile: {
+              ...item,
+              fileType: getFileType({
+                isDir: item.isDir,
+                fileName: lastOfArray(item.fullName),
+              }),
+            },
+          });
+        });
+        fileData.value.sort(sortByDirType);
+      });
+    };
     /** 输入访问码后的确认 */
     const onConfirmCode = () => {
-      console.log("onConfirmCode");
+      // console.log("onConfirmCode");
       if (!inputCode.value.length) {
         // TODO 跟分享的时候一起 加入对分享码的输入校验
         message.warning("请输入访问码");
         return;
       }
       confirmLoading.value = true;
-      getAndSetFileData().finally(() => {
+      getSetFileData().finally(() => {
         confirmLoading.value = false;
       });
     };
@@ -403,11 +510,11 @@ export default defineComponent({
     ];
     // TODO 文件夹 支持上一级目录
     /** shortcut-下载 */
-    const onRecordDownload = (record: QueryShareFileItem) => {
+    const onRecordDownload = (record: ListItem) => {
       if (checkLoginStatusAndOpenModal()) {
         return;
       }
-      console.log("onRecordDownload", record);
+      // console.log("onRecordDownload", record);
       // TODO 判断有没登录
       if (!record.userFile) return;
       const { user, space, id: fileId, fullName } = record.userFile;
@@ -422,19 +529,12 @@ export default defineComponent({
         downloadFileByUrl(url, fullName.slice(-1)[0]);
       });
     };
-    /** shortcut -收藏 */
-    const onRecordCollect = (record: QueryShareFileItem) => {
-      if (checkLoginStatusAndOpenModal()) {
-        return;
-      }
-      console.log("onRecordCollect", record);
-    };
     /** shortcut -评价 */
-    const onRecordScore = (record: QueryShareFileItem) => {
+    const onRecordScore = (record: ListItem) => {
       if (checkLoginStatusAndOpenModal()) {
         return;
       }
-      console.log("onRecordScore", record);
+      // console.log("onRecordScore", record);
     };
     /** 批量下载 */
     const onBatchDownload = () => {
@@ -448,11 +548,27 @@ export default defineComponent({
       });
     };
     /** 批量收藏 */
-    const onBatchCollect = () => {
+    const onCollectShare = async () => {
       if (checkLoginStatusAndOpenModal()) {
         return;
       }
-      console.log("onBatchCollect");
+      if (isCurrentShareCollected.value) {
+        message.info("你已收藏过改分享");
+        // const res = await apiCollectDelete({ id: currentShareId.value });
+        // if (res.err || !res.data) {
+        //   return;
+        // }
+        // isCurrentShareCollected.value = false;
+        // Toast("取消收藏成功");
+      } else {
+        const res = await apiCollectCreateByShare({ id: currentShareId.value });
+        if (res.err || !res.data) {
+          return;
+        }
+        isCurrentShareCollected.value = true;
+        curShareCollectedCount.value += 1;
+        message.success("收藏成功");
+      }
     };
     /** 批量评价 */
     const onBatchScore = () => {
@@ -462,7 +578,7 @@ export default defineComponent({
       console.log("onBatchScore");
     };
     /** 获取文件信息 */
-    const getAndSetFileData = async () => {
+    const getSetFileData = async () => {
       const { data, err } = await apiQuerySharedFile({
         uri: currentUri.value,
         ...(!isCodeResolved.value
@@ -482,8 +598,22 @@ export default defineComponent({
         isValid.value = false;
         return;
       }
+      // 注册当前分享的token
+      currentShareToken.value = data.driveFindShare.token;
+      currentShareId.value = data.driveFindShare.id;
+      // 查询当前分享是否收藏过
+      // isCurrentShareCollected
+      apiQueryCollectList({ type: "SHARE" }).then((res) => {
+        if (res.data) {
+          isCurrentShareCollected.value = res.data.driveListCollections.some(
+            (i) => i.item?.id === data.driveFindShare.id
+          );
+        }
+      });
+      curShareCollectedCount.value = data.driveFindShare.collectedCount;
       // 把用户输入过的存到sessionStorage 里
       sessionStorage.setItem(currentUri.value, inputCode.value);
+      fileData.value.length = 0;
       fileData.value.push({
         // 改变fullname 和fileType
         ...data.driveFindShare,
@@ -495,6 +625,7 @@ export default defineComponent({
             fileName: lastOfArray(data.driveFindShare.userFile.fullName),
           }),
         },
+        checked: false,
       });
       isValid.value = true;
       isCodeResolved.value = true;
@@ -533,13 +664,13 @@ export default defineComponent({
           )}天后过期`;
           // 如果不需要访问码, 立即请求文件
           if (isCodeResolved.value === true) {
-            getAndSetFileData().finally(() => {
+            getSetFileData().finally(() => {
               lockPageLoading.value = false;
             });
           } else if (sessionStorage.getItem(queryUri)) {
             // 如果sessionStorage 里有uri , 拿出来用
             inputCode.value = sessionStorage.getItem(queryUri) as string;
-            getAndSetFileData().finally(() => {
+            getSetFileData().finally(() => {
               lockPageLoading.value = false;
             });
           } else {
@@ -549,8 +680,8 @@ export default defineComponent({
       }
     };
     // TODO 解决两个分享页的tab 点击后数据没变的问题
-    onActivated(() => {
-      console.log("onActivated-SharedFile-currentUri", currentUri);
+    onMounted(() => {
+      // console.log("onActivated-SharedFile-currentUri", currentUri);
       const queryUri = route.query.uri as string;
       if (queryUri) {
         handleUriChange(queryUri);
@@ -736,19 +867,23 @@ export default defineComponent({
       inputCode,
       isValid,
       userPreview,
+      curShareCollectedCount,
+      isCurrentShareCollected,
       expiredText,
       confirmLoading,
       lockPageLoading,
+      historyDir,
+      onUpperLevel,
+      onItemClick,
       onConfirmCode,
       columns,
       selectedRowKeys,
       selectedRows,
       fileData,
       onRecordDownload,
-      onRecordCollect,
       onRecordScore,
       onBatchDownload,
-      onBatchCollect,
+      onCollectShare,
       onBatchScore,
       ...useSaveToMetanetModal(),
     };

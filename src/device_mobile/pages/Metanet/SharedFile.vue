@@ -127,7 +127,8 @@
           <template v-else>
             <div v-if="isShowDirNavBar" class="px-4 font-semibold">
               <div v-if="historyDir.length === 1">
-                共有{{ fileData.length }}个文件
+                <!-- 共有{{ fileData.length }}个文件 -->
+                /
               </div>
               <!-- <div v-else>全部文件/3200/所发生的</div> -->
               <div v-else class="flex items-center">
@@ -140,8 +141,10 @@
                   >
                     {{ dir.dirName }}
                   </div>
-                  <span v-if="idx !== historyDir.length - 1" class="px-1"
-                    >/</span
+                  <span
+                    v-if="idx !== historyDir.length - 1"
+                    class="px-2 text-gray-400"
+                    >></span
                   >
                 </template>
               </div>
@@ -204,7 +207,13 @@
                     </div>
                   </div>
                   <div class="pl-7" v-if="!record.userFile.isDir">
+                    <div
+                      v-if="!record.checked"
+                      class="bg-gray-300 rounded-full w-2 h-2 mr-1.5"
+                      @click="record.checked = true"
+                    ></div>
                     <van-checkbox
+                      v-else
                       checked-color="#404A66"
                       v-model="record.checked"
                     />
@@ -700,7 +709,6 @@ export default defineComponent({
     // };
     /** 获取文件信息 */
     const getSetFileData = async () => {
-      fileData.value.length = 0;
       const { data, err } = await apiQuerySharedFile({
         uri: currentUri.value,
         ...(!isCodeResolved.value || inputCode.value
@@ -735,6 +743,7 @@ export default defineComponent({
       curShareCollectedCount.value = data.driveFindShare.collectedCount;
       // 把用户输入过的存到sessionStorage 里
       sessionStorage.setItem(currentUri.value, inputCode.value);
+      fileData.value.length = 0;
       fileData.value.push({
         // 改变fullname 和fileType
         ...data.driveFindShare,
@@ -752,8 +761,10 @@ export default defineComponent({
       isValid.value = true;
       isCodeResolved.value = true;
     };
+    /** 目录面包屑
+     * 当点击第一个的时候是用share 的api,所以这里第一个dirId不会被用到 */
     const historyDir = ref<{ dirId: string; dirName: string }[]>([
-      { dirId: "root", dirName: "全部文件" },
+      { dirId: "none", dirName: "/" },
     ]);
     onMounted(() => {
       const queryUri = route.query.uri as string;
@@ -815,7 +826,7 @@ export default defineComponent({
         }
         fileData.value.length = 0;
         res.data.driveListFiles.forEach((item) => {
-          if (!item || item.id === dirId) return;
+          if (!item || item.id === dirId || item.fullName.length === 0) return;
           fileData.value.push({
             id: item.id,
             checked: false,
