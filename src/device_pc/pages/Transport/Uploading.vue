@@ -63,126 +63,144 @@
       </div>
     </div>
     <!-- 表格区 -->
-    <XTableFiles
-      rowKey="uniqueId"
-      :columns="columns"
-      :data="tableData"
-      :loading="tableLoading"
-      v-model:selectedRows="selectedRows"
-      v-model:selectedRowKeys="selectedRowKeys"
-    >
-      <template #name="{ record }">
-        <!-- <div>55----{{ record }}</div> -->
-        <div :title="$lastOfArray(record.fullName)">
-          <XFileTypeIcon class="w-6 h-6 mr-2" :type="record.fileType" />
-          <span>{{ $lastOfArray(record.fullName) }}</span>
-        </div>
-      </template>
-      <template #fileSize="{ record }">
-        <!-- 处于ws等待状态的时候 已发送大小显示手动改为文件的全大小, 因为progress实际上还没到100(为了等待故意暂停的) -->
-        <div class="text-gray-400">
-          {{
-            record.status === "waiting"
-              ? formatBytes(record.fileSize)
-              : formatBytes(record.fileSize * (record.progress / 100))
-          }}
-          /
-          {{ formatBytes(record.fileSize) }}
-        </div>
-      </template>
-      <template #status="{ record }">
-        <div class="text-gray-400 trProgressBox">
-          <a-progress
-            :style="{
-              height: '10px',
-              'margin-top': '-2px',
-              'margin-down': '-2px',
-            }"
-            :percent="record.progress"
-            :showInfo="false"
-          ></a-progress>
-          <div
-            :style="{
-              'margin-top': '-4px',
-            }"
-          >
-            <template v-if="isLoadingNknMulticlient">
-              <span> 等待nkn节点中,请稍后手动开始 </span>
-            </template>
-            <template v-else-if="record.status === 'uploading'">
-              <span class="ant-color-blue-6">
-                <!-- {{ calcStatusText(record.status) }} -->
-                {{ formatBytes(record.speed) }}/S
-              </span>
-              <span v-if="record.speed > 0">
-                - {{ calcTimeLeftText(record) }}</span
-              >
-            </template>
-            <template v-else-if="record.status === 'queueing'">
-              <span>排队中</span>
-            </template>
-            <template v-else-if="record.status === 'pause'">
-              <span>任务暂停</span>
-            </template>
-            <template v-else-if="record.status === 'waiting'">
-              <span>等待ws确认</span>
-            </template>
-            <template v-else-if="record.status === 'failed'">
-              <span>任务失败</span>
-            </template>
-            <template v-else>
-              <span> </span>
-            </template>
+    <div class="relative">
+      <!-- 拖拽上传区域 -->
+      <!-- pointer-events-none -->
+      <div
+        v-if="tableData.length === 0"
+        class="absolute inset-0 z-10"
+        @dragover="onDragOver"
+        @drop="onDrop"
+      ></div>
+      <XTableFiles
+        rowKey="uniqueId"
+        :columns="columns"
+        :data="tableData"
+        :loading="tableLoading"
+        :locale="emptyLocale"
+        v-model:selectedRows="selectedRows"
+        v-model:selectedRowKeys="selectedRowKeys"
+      >
+        <template #name="{ record }">
+          <!-- <div>55----{{ record }}</div> -->
+          <div :title="$lastOfArray(record.fullName)">
+            <XFileTypeIcon class="w-6 h-6 mr-2" :type="record.fileType" />
+            <span>{{ $lastOfArray(record.fullName) }}</span>
           </div>
-        </div>
-      </template>
-      <!-- <template #uploadStatus="{ record }">
+        </template>
+        <template #fileSize="{ record }">
+          <!-- 处于ws等待状态的时候 已发送大小显示手动改为文件的全大小, 因为progress实际上还没到100(为了等待故意暂停的) -->
+          <div class="text-gray-400">
+            {{
+              record.status === "waiting"
+                ? formatBytes(record.fileSize)
+                : formatBytes(record.fileSize * (record.progress / 100))
+            }}
+            /
+            {{ formatBytes(record.fileSize) }}
+          </div>
+        </template>
+        <template #status="{ record }">
+          <div class="text-gray-400 trProgressBox">
+            <a-progress
+              :style="{
+                height: '10px',
+                'margin-top': '-2px',
+                'margin-down': '-2px',
+              }"
+              :percent="record.progress"
+              :showInfo="false"
+            ></a-progress>
+            <div
+              :style="{
+                'margin-top': '-4px',
+              }"
+            >
+              <template v-if="isLoadingNknMulticlient">
+                <span> 等待nkn节点中,请稍后手动开始 </span>
+              </template>
+              <template v-else-if="record.status === 'uploading'">
+                <span class="ant-color-blue-6">
+                  <!-- {{ calcStatusText(record.status) }} -->
+                  {{ formatBytes(record.speed) }}/S
+                </span>
+                <span v-if="record.speed > 0">
+                  - {{ calcTimeLeftText(record) }}</span
+                >
+              </template>
+              <template v-else-if="record.status === 'queueing'">
+                <span>排队中</span>
+              </template>
+              <template v-else-if="record.status === 'pause'">
+                <span>任务暂停</span>
+              </template>
+              <template v-else-if="record.status === 'waiting'">
+                <span>等待ws确认</span>
+              </template>
+              <template v-else-if="record.status === 'failed'">
+                <span>任务失败</span>
+              </template>
+              <template v-else>
+                <span> </span>
+              </template>
+            </div>
+          </div>
+        </template>
+        <!-- <template #uploadStatus="{ record }">
         {{ calcStatusText(record.status) }}
       </template> -->
-      <template #action="{ record }">
-        <div class="flex items-center text-gray-600">
-          <a
-            class="flex-1"
-            href="javascript:;"
-            @click="onRecordStartOrPause(record)"
-          >
-            <template v-if="['pause'].includes(record.status)">
-              <a-tooltip title="开始">
-                <RightSquareOutlined />
+        <template #action="{ record }">
+          <div class="flex items-center text-gray-600">
+            <a
+              class="flex-1"
+              href="javascript:;"
+              @click="onRecordStartOrPause(record)"
+            >
+              <template v-if="['pause'].includes(record.status)">
+                <a-tooltip title="开始">
+                  <RightSquareOutlined />
+                </a-tooltip>
+              </template>
+              <template
+                v-if="['queueing', 'uploading'].includes(record.status)"
+              >
+                <a-tooltip title="暂停">
+                  <PauseOutlined />
+                </a-tooltip>
+              </template>
+              <template v-if="['failed'].includes(record.status)">
+                <a-tooltip title="重试">
+                  <ReloadOutlined />
+                </a-tooltip>
+              </template>
+            </a>
+            <a
+              class="flex-1"
+              href="javascript:;"
+              v-if="!['waiting'].includes(record.status)"
+              @click="onRecordCancel(record)"
+            >
+              <a-tooltip title="取消">
+                <CloseOutlined />
               </a-tooltip>
-            </template>
-            <template v-if="['queueing', 'uploading'].includes(record.status)">
-              <a-tooltip title="暂停">
-                <PauseOutlined />
-              </a-tooltip>
-            </template>
-            <template v-if="['failed'].includes(record.status)">
-              <a-tooltip title="重试">
-                <ReloadOutlined />
-              </a-tooltip>
-            </template>
-          </a>
-          <a
-            class="flex-1"
-            href="javascript:;"
-            v-if="!['waiting'].includes(record.status)"
-            @click="onRecordCancel(record)"
-          >
-            <a-tooltip title="取消">
-              <CloseOutlined />
-            </a-tooltip>
-          </a>
-        </div>
-      </template>
-    </XTableFiles>
+            </a>
+          </div>
+        </template>
+      </XTableFiles>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { useTransportStore, useUserStore } from "@/store";
-import { SUCCESS_STATUS_ARR, UploadItem, UploadStatus } from "@/store/transport";
+import {
+  SUCCESS_STATUS_ARR,
+  UploadItem,
+  UploadStatus,
+} from "@/store/transport";
 import {
   computed,
+  createVNode,
   defineComponent,
   nextTick,
   onMounted,
@@ -204,6 +222,9 @@ import { XFileTypeIcon, XTableFiles } from "../../components";
 import { formatBytes, getFileSHA256, getFileType } from "@/utils";
 import { NKN_SUB_CLIENT_COUNT } from "@/constants";
 import { throttle } from "lodash-es";
+import { Empty, message } from "ant-design-vue";
+import { apiQueryMeSpace } from "@/apollo/api";
+import { useRouter } from "vue-router";
 
 type TabKey = "uploading" | "uploadFinished" | "sendFile";
 
@@ -253,9 +274,14 @@ export default defineComponent({
   },
   setup() {
     const { t } = useI18n();
-    const transPortStore = useTransportStore();
+    const router = useRouter();
+    const transportStore = useTransportStore();
     // 测试用插入假数据 start
-    // transPortStore.uploadHashMap["22"] = {
+    // transportStore.uploadHashMap["22"] = {
+    //   uniqueId: "2",
+    //   action: "drive",
+    //   roundId: 1,
+    //   file: new File([], "t.txt"),
     //   fileHash: "22",
     //   fullName: ["fake.jpg"],
     //   fileType: "jpg",
@@ -265,7 +291,7 @@ export default defineComponent({
     //   description: "sdfs",
     //   speed: 1000,
     // };
-    // transPortStore.uploadHashMap["23"] = {
+    // transportStore.uploadHashMap["23"] = {
     //   fileHash: "23",
     //   fullName: ["fake.jpg"],
     //   fileType: "jpg",
@@ -300,11 +326,81 @@ export default defineComponent({
     }
     // 测试用 end
     const tableData = computed(() => {
-      return transPortStore.uploadingList;
+      return transportStore.uploadingList;
     });
-
+    /** 拖拽 */
+    function useDropUpload() {
+      const onDragOver = (event: DragEvent) => {
+        event.preventDefault();
+      };
+      const onDrop = async (event: DragEvent) => {
+        event.preventDefault();
+        const files = event.dataTransfer?.files;
+        if (!files) return;
+        const hide = message.loading("查询中...", 0);
+        // console.log(files);
+        const resultQuerySpace = await apiQueryMeSpace();
+        hide();
+        if (resultQuerySpace.err) {
+          return;
+        }
+        const { availableSpace } = resultQuerySpace.data.me.driveSetting;
+        // 如果即将要传的文件总大小超出可用, 退出
+        const toUploadFiles = [...files];
+        if (
+          toUploadFiles.reduce((a, b) => (a += b.size), 0) > +availableSpace
+        ) {
+          message.warning("超出最大可用容量!");
+          return;
+        }
+        try {
+          // 如果当前没有任务正在上传, 增加回合id
+          if (!transportStore.uploadingList.length) {
+            transportStore.plusCurRoundId();
+          }
+          Promise.all(
+            toUploadFiles.map((i) =>
+              onUploadSingleFile(i, transportStore.uploadCurRoundId)
+            )
+          );
+          // console.log("resOfAll", resOfAll);
+        } catch (error) {
+          console.log("上传文件错误", error);
+        }
+      };
+      /** 上传单个文件 */
+      const onUploadSingleFile = async (file: File, roundId: number) => {
+        const fileName = file.name;
+        const fileHash = await getFileSHA256(file);
+        await transportStore.uploadFile({
+          file,
+          fileHash,
+          roundId,
+          fileType: getFileType({
+            isDir: false,
+            fileName,
+          }),
+          fullName: [fileName],
+          description: "",
+          action: "drive",
+        });
+        // console.log("resultUploadSingle", resultUploadSingle);
+      };
+      return {
+        onDragOver,
+        onDrop,
+      };
+    }
     /** 表格数据 */
     function useTableData() {
+      const emptyLocale = {
+        emptyText: createVNode("div", {}, [
+          createVNode(Empty, {
+            image: Empty.PRESENTED_IMAGE_SIMPLE,
+            description: "暂无任务, 拖拽文件至此可直接上传到根目录",
+          }),
+        ]),
+      };
       const tableLoading = ref(false);
       const columns = [
         {
@@ -342,10 +438,10 @@ export default defineComponent({
         //   "failed",
         // ];
         // 当前回合的list
-        const list = transPortStore.uploadList.filter(
+        const list = transportStore.uploadList.filter(
           (i) =>
             // statusList.includes(i.status)
-            i.roundId === transPortStore.uploadCurRoundId
+            i.roundId === transportStore.uploadCurRoundId
         );
         // console.log("totalPercent-filterListLen", list.length);
         if (
@@ -394,32 +490,32 @@ export default defineComponent({
       const onRecordStartOrPause = (record: UploadItem) => {
         console.log("onRecordStartOrPause", record);
         if (canResumeStatusKeys.includes(record.status)) {
-          transPortStore.resumeItem(record.uniqueId);
+          transportStore.resumeItem(record.uniqueId);
         } else if (canPauseStatusKeys.includes(record.status)) {
-          transPortStore.pauseItem(record.uniqueId);
+          transportStore.pauseItem(record.uniqueId);
         }
       };
       const onRecordCancel = (record: UploadItem) => {
         console.log("onRecordCancel", record);
-        transPortStore.cancelItem(record.uniqueId);
+        transportStore.cancelItem(record.uniqueId);
       };
       const onBatchStart = () => {
         // console.log("onBatchStart");
-        transPortStore.uploadingList
+        transportStore.uploadingList
           .filter((i) => canResumeStatusKeys.includes(i.status))
-          .forEach((i) => transPortStore.resumeItem(i.uniqueId));
+          .forEach((i) => transportStore.resumeItem(i.uniqueId));
       };
       const onBatchPause = () => {
         // console.log("onBatchPause");
-        transPortStore.uploadingList
+        transportStore.uploadingList
           .filter((i) => canPauseStatusKeys.includes(i.status))
-          .forEach((i) => transPortStore.pauseItem(i.uniqueId));
+          .forEach((i) => transportStore.pauseItem(i.uniqueId));
       };
       const onBatchCancel = () => {
         // console.log("onBatchCancel");
-        transPortStore.uploadingList
+        transportStore.uploadingList
           .filter((i) => i.status !== "waiting")
-          .forEach((i) => transPortStore.cancelItem(i.uniqueId));
+          .forEach((i) => transportStore.cancelItem(i.uniqueId));
       };
       const calcStatusText = (status: UploadStatus) => {
         const mapText: { [key in UploadStatus]?: string } = {
@@ -432,6 +528,7 @@ export default defineComponent({
         return mapText[status];
       };
       return {
+        emptyLocale,
         tableLoading,
         columns,
         tableData,
@@ -462,6 +559,7 @@ export default defineComponent({
       ...useToolSet(),
       selectedRows,
       selectedRowKeys,
+      ...useDropUpload(),
       ...useTableData(),
       ...useNknStatus(),
     };

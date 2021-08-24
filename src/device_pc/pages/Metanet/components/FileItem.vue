@@ -227,9 +227,6 @@
     <XTableFiles
       ref="fileTableRef"
       rowKey="id"
-      :locale="{
-        emptyText: '空文件夹',
-      }"
       :rowClassName="rowClassName"
       :customRow="customRow"
       :columns="columns"

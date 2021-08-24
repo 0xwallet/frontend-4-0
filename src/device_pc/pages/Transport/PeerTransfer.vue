@@ -19,12 +19,30 @@
       <div v-if="tableSend.length === 0">
         <div class="font-20 p-4 font-semibold">发送</div>
         <div
-          class="flex items-center justify-center pb-12 h-32 cursor-pointer"
+          class="
+            relative
+            flex
+            items-center
+            justify-center
+            pb-12
+            h-32
+            cursor-pointer
+          "
           @click="onSelectFiles"
         >
+          <!-- 拖拽区域 -->
+          <a-tooltip title="可拖拽文件至此">
+            <div
+              class="absolute inset-0"
+              @dragover="onDragOver"
+              @drop="onDrop"
+            ></div>
+          </a-tooltip>
           <PlusOutlined
-            class="ant-color-blue-6"
+            class="p-6 ant-color-blue-6"
             :style="{
+              'border-radius': '4px',
+              border: '1px dashed #1890ff',
               'font-size': '50px',
             }"
           />
@@ -625,6 +643,29 @@ export default defineComponent({
           isTotalSendProgressBarTextWhite.value = currentPercentWidth > 168;
         }
       );
+      const onDragOver = (event: DragEvent) => {
+        event.preventDefault();
+      };
+      const onDrop = async (event: DragEvent) => {
+        event.preventDefault();
+        const files = event.dataTransfer?.files;
+        if (!files) return;
+        const fileArr: TransferFile[] = [...files].map((i) => ({
+          file: i,
+          fileName: i.name,
+          fileSize: i.size,
+          uniqueId: makeUniqueId(i.name, i.size),
+          fileType: getFileType({ isDir: false, fileName: i.name }),
+          progress: 0,
+          speed: 0,
+          status: "queueing",
+        }));
+        // 去掉已经加入的文件
+        const noSameFileArr = fileArr.filter(
+          (i) => !tableSend.value.some((e) => e.uniqueId === i.uniqueId)
+        );
+        tableSend.value.push(...noSameFileArr);
+      };
       const onCopyReceiveLink = () => {
         const text = receiveLink.value;
         useClipboard({ read: false })
@@ -916,6 +957,8 @@ export default defineComponent({
         totalSendSize,
         hadSendSize,
         isTotalSendProgressBarTextWhite,
+        onDragOver,
+        onDrop,
         onCopyReceiveLink,
         onBackReceiveLink,
         onBackReceiveCode,

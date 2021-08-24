@@ -2,6 +2,7 @@
   <a-table
     class="TableFiles"
     size="small"
+    :locale="locale"
     :showHeader="showHeader"
     :bordered="false"
     :rowKey="rowKey"
@@ -39,6 +40,10 @@ export default defineComponent({
     rowKey: {
       type: [String, Function],
       required: true,
+    },
+    locale: {
+      type: Object,
+      default: () => ({}),
     },
     data: {
       type: Array,

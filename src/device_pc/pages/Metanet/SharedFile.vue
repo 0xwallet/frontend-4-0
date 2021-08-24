@@ -619,7 +619,7 @@ export default defineComponent({
         ...data.driveFindShare,
         userFile: {
           ...data.driveFindShare.userFile,
-          fullName: data.driveFindShare.userFile.fullName.slice(-1),
+          fullName: data.driveFindShare.userFile.fullName,
           fileType: getFileType({
             isDir: data.driveFindShare.userFile.isDir,
             fileName: lastOfArray(data.driveFindShare.userFile.fullName),
@@ -717,7 +717,7 @@ export default defineComponent({
           folderFullName.unshift(dir.dirName);
         }
         // 根目录不用传
-        if (folderFullName[0] === "root") folderFullName.shift();
+        if (folderFullName[0] === "全部文件") folderFullName.shift();
         return Promise.all(
           saveToMetanetModalSelectedFileList.value.map((i) =>
             apiSecondUpload({
