@@ -878,6 +878,7 @@ import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useClipboard, onClickOutside } from "@vueuse/core";
 import { onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
+import { api as viewerApi } from "v-viewer";
 
 export type THistoryDirItem = {
   name: string;
@@ -983,6 +984,7 @@ export default defineComponent({
     const selectedRowKeys = ref<string[]>([]);
     const transportStore = useTransportStore();
     const baseStore = useBaseStore();
+    const userStore = useUserStore();
     const router = useRouter();
     const route = useRoute();
     /** 按钮功能集合 */
@@ -2214,7 +2216,8 @@ export default defineComponent({
       const dirArr = historyDir.value;
       return lastOfArray(dirArr).isShared;
     });
-
+    /** 预览图片数组 */
+    const previewImages = reactive<string[]>([]);
     function useTableData() {
       // 返回当前目录的上一级
       const onUpperLevel = () => {
@@ -2245,11 +2248,13 @@ export default defineComponent({
         });
       };
       /** 表格里每一行的名字的点击事件 */
-      const onClickTableItemName = ({
+      const onClickTableItemName = async ({
         fileType: e,
         id,
         fullName,
         isShared,
+        user,
+        space,
       }: TFileItem) => {
         if (!e) return;
         // console.log("点击的当前record", e, id);
@@ -2282,7 +2287,43 @@ export default defineComponent({
           });
           // curFolderId.value = id;
         } else if (FILE_TYPE_MAP.image.includes(e)) {
-          console.log("todo type-image");
+          previewImages.length = 0;
+          //  const { user, space, id: fileId, fullName } = item.userFile;
+          const resultPreviewToken = await apiGetPreviewToken();
+          // console.log("resultPreviewToken", resultPreviewToken);
+          if (resultPreviewToken.err) return;
+          const token = resultPreviewToken.data.drivePreviewToken;
+          const url = `https://drive-s.owaf.io/preview/${
+            user.id
+          }/${space.toLowerCase()}/${id}/${
+            fullName.slice(-1)[0]
+          }?token=${token}`;
+          previewImages.push(url);
+          const $viewer = viewerApi({
+            options: {
+              zIndex: 99999,
+              toolbar: {
+                zoomIn: 1,
+                zoomOut: 1,
+                oneToOne: 1,
+                reset: 0,
+                prev: 0,
+                play: {
+                  show: 0,
+                  size: "large",
+                },
+                next: 0,
+                rotateLeft: 0,
+                rotateRight: 0,
+                flipHorizontal: 0,
+                flipVertical: 0,
+              },
+              movable: true,
+              // initialViewIndex: 1,
+            },
+            images: previewImages,
+          });
+          $viewer.show();
         } else if (FILE_TYPE_MAP.text.includes(e)) {
           console.log("todo type-text");
         } else if (FILE_TYPE_MAP.archive.includes(e)) {
@@ -2291,6 +2332,18 @@ export default defineComponent({
           console.log("todo type-audio");
         } else if (FILE_TYPE_MAP.video.includes(e)) {
           console.log("todo type-video");
+        } else if (e === "pdf") {
+          // console.log("pdf");
+          const resultPreviewToken = await apiGetPreviewToken();
+          // console.log("resultPreviewToken", resultPreviewToken);
+          if (resultPreviewToken.err) return;
+          const token = resultPreviewToken.data.drivePreviewToken;
+          const pdfUrl = `https://drive-s.owaf.io/preview/${
+            user.id
+          }/${space.toLowerCase()}/${id}/${
+            fullName.slice(-1)[0]
+          }?token=${token}`;
+          window.open(pdfUrl, "_blank");
         } else {
           console.log("else unknown types");
           // type not found

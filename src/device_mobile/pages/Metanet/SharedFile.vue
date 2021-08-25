@@ -372,11 +372,7 @@ import {
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { MFileTypeIcon } from "../../components";
-import {
-  directive as viewer,
-  component as Viewer,
-  api as viewerApi,
-} from "v-viewer";
+import { api as viewerApi } from "v-viewer";
 import { useUserStore } from "@/store";
 import { FILE_TYPE_MAP } from "@/constants";
 
@@ -402,11 +398,6 @@ function sortByDirType(a: ListItem, b: ListItem) {
 }
 
 export default defineComponent({
-  directives: {
-    viewer: viewer({
-      debug: true,
-    }),
-  },
   components: {
     MFileTypeIcon,
   },
@@ -844,7 +835,7 @@ export default defineComponent({
       });
     };
     /** 点击预览图片 */
-    const onItemClick = (record: ListItem) => {
+    const onItemClick = async (record: ListItem) => {
       // console.log("onItemClick", record);
       // if (notLoggedInAndRoute()) {
       //   console.log("未登录,跳转");
@@ -867,30 +858,33 @@ export default defineComponent({
         // 1.2 change fileData
       } else if (FILE_TYPE_MAP.image.includes(fileType)) {
         // 2.是图片
-        // 把当前所有的图片类型都加到列表上
         previewImages.value.length = 0;
-        fileData.value.forEach((item) => {
-          if (
-            !item.userFile ||
-            !FILE_TYPE_MAP.image.includes(
-              getFileType({
-                isDir: item.userFile.isDir,
-                fileName: lastOfArray(item.userFile.fullName),
-              })
-            )
-          ) {
-            return;
-          }
-          const { user, space, id: fileId, fullName } = item.userFile;
-          const token = item.token;
-          const url = `https://drive-s.owaf.io/preview/${
-            user.id
-          }/${space.toLowerCase()}/${fileId}/${
-            fullName.slice(-1)[0]
-          }?token=${token}`;
-          previewImages.value.push(url);
-        });
+        const { user, space, id: fileId, fullName } = record.userFile;
+        // 分享的预览用的token 是该分享数据的token
+        const token = record.token;
+        const url = `https://drive-s.owaf.io/preview/${
+          user.id
+        }/${space.toLowerCase()}/${fileId}/${
+          fullName.slice(-1)[0]
+        }?token=${token}`;
+        previewImages.value.push(url);
+
         onShowViewer();
+      } else if (fileType === "pdf") {
+        console.log("pdf-类型");
+        const { user, space, id: fileId, fullName } = record.userFile;
+        const token = record.token;
+        const pdfUrl = `https://drive-s.owaf.io/preview/${
+          user.id
+        }/${space.toLowerCase()}/${fileId}/${
+          fullName.slice(-1)[0]
+        }?token=${token}`;
+        // window.open(pdfUrl, "_blank");
+        const pdfRoute = router.resolve({
+          name: "PdfView",
+          query: { url: pdfUrl },
+        });
+        window.open(pdfRoute.href, "_blank");
       } else {
         // 3.其他类型
         console.log("TODO-其他类型");
@@ -904,12 +898,12 @@ export default defineComponent({
             zoomOut: 0,
             oneToOne: 1,
             reset: 0,
-            prev: 1,
+            prev: 0,
             play: {
               show: 0,
               size: "large",
             },
-            next: 1,
+            next: 0,
             rotateLeft: 0,
             rotateRight: 0,
             flipHorizontal: 0,

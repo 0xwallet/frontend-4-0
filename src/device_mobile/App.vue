@@ -13,7 +13,7 @@
 import { useUserStore } from "@/store";
 import { addHead } from "@/utils";
 import { Toast } from "vant";
-import { defineComponent } from "vue";
+import { computed, defineComponent } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 export default defineComponent({
@@ -42,7 +42,8 @@ export default defineComponent({
         console.log("[从本地存储中登录失败] : ", result.err);
         return;
       }
-      Toast(`登录成功，欢迎回来 : ${result.data.username}`);
+      // pdf 预览页不需要登录提示
+      // Toast(`登录成功，欢迎回来 : ${result.data.username}`);
       console.log("route", route);
       if (route.name === "Login") {
         // TODO 这里暂时跳转到账户页

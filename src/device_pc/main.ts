@@ -6,8 +6,10 @@ import { createPinia } from "pinia";
 import languages from "../languages";
 import { useLocalStorage } from "@vueuse/core";
 import { lastOfArray } from "../utils";
-
+import "viewerjs/dist/viewer.css";
+import Viewer from "v-viewer";
 const app = createApp(App);
+app.use(Viewer);
 // 注册全局属性
 // 专门给模板中调试事件用的 @click="$log"
 app.config.globalProperties.$log = console.log;

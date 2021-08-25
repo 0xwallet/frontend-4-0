@@ -20,6 +20,7 @@ export default {
     release: "Release",
     file: "File",
     signIn: "sign in",
+    pdfView: "pdf preview",
     dashboard: "Dashboard",
     okText: "OK",
     closeText: "Close",

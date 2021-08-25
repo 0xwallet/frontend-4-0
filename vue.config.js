@@ -14,6 +14,7 @@ module.exports = {
     },
   },
   configureWebpack: (config) => {
+    // config.entry["pdf.worker"] = "pdfjs-dist/build/pdf.worker.entry";
     const isEnv = process.env.NODE_ENV === "development";
     // 不生成 sourceMap
     if (!isEnv) config.devtool = "none";
@@ -24,6 +25,7 @@ module.exports = {
       vue: "Vue",
       "vue-router": "VueRouter",
       "vue-i18n": "VueI18n",
+      "pdfjs-dist": "pdfjsLib",
     };
     config.optimization.splitChunks.cacheGroups.antd = {
       name: "chunk-antd",

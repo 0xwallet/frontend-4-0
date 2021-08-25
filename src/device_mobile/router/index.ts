@@ -41,6 +41,16 @@ const router = createRouter({
       component: MetanetSharedFile,
     },
     {
+      path: "/pdfview",
+      name: "PdfView",
+      meta: {
+        needAuth: false,
+        title: "common.pdfView",
+      },
+      component: () =>
+        import(/* webpackChunkName: "pdfview" */ "../pages/PdfView/index.vue"),
+    },
+    {
       path: "/:catchAll(.*)",
       redirect: "/account",
     },

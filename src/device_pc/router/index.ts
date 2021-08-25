@@ -21,6 +21,7 @@ import MetanetRecycle from "../pages/Metanet/Recycle.vue";
 import TransportUploading from "../pages/Transport/Uploading.vue";
 import TransportUploadHistory from "../pages/Transport/UploadHistory.vue";
 import TransportPeerTransfer from "../pages/Transport/PeerTransfer.vue";
+import PdfView from "../pages/PdfView/index.vue";
 
 const routes: RouteRecordRaw[] = [
   {

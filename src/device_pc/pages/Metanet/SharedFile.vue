@@ -312,6 +312,8 @@ import {
 } from "@ant-design/icons-vue";
 import { TDir } from "./components/FileItem.vue";
 import { useBaseStore, useUserStore } from "@/store";
+import { FILE_TYPE_MAP } from "@/constants";
+import { api as viewerApi } from "v-viewer";
 
 type ListItem = {
   userFile: QueryShareFileItem["userFile"];
@@ -410,8 +412,9 @@ export default defineComponent({
         getSetDriveList(dirId);
       }
     };
+    const previewImages = reactive<string[]>([]);
     /** 点击预览图片 */
-    const onItemClick = (record: ListItem) => {
+    const onItemClick = async (record: ListItem) => {
       // console.log("onItemClick", record);
       if (!record.userFile) return;
       const fileType = getFileType({
@@ -427,6 +430,54 @@ export default defineComponent({
         });
         getSetDriveList(record.userFile.id);
         // 1.2 change fileData
+      } else if (FILE_TYPE_MAP.image.includes(fileType)) {
+        previewImages.length = 0;
+        const { user, space, id: fileId, fullName } = record.userFile;
+        // 分享的预览用的token 是该分享数据的token
+        const token = record.token;
+        const url = `https://drive-s.owaf.io/preview/${
+          user.id
+        }/${space.toLowerCase()}/${fileId}/${
+          fullName.slice(-1)[0]
+        }?token=${token}`;
+        previewImages.push(url);
+        const $viewer = viewerApi({
+          options: {
+            zIndex: 99999,
+            toolbar: {
+              zoomIn: 1,
+              zoomOut: 1,
+              oneToOne: 1,
+              reset: 0,
+              prev: 0,
+              play: {
+                show: 0,
+                size: "large",
+              },
+              next: 0,
+              rotateLeft: 0,
+              rotateRight: 0,
+              flipHorizontal: 0,
+              flipVertical: 0,
+            },
+            movable: true,
+            // initialViewIndex: 1,
+          },
+          images: previewImages,
+        });
+        $viewer.show();
+      } else if (fileType === "pdf") {
+        // console.log("pdf");
+        const token = record.token;
+        const { user, space, id: fileId, fullName } = record.userFile;
+        const pdfUrl = `https://drive-s.owaf.io/preview/${
+          user.id
+        }/${space.toLowerCase()}/${fileId}/${
+          fullName.slice(-1)[0]
+        }?token=${token}`;
+        window.open(pdfUrl, "_blank");
+      } else {
+        console.log("other-type");
       }
     };
     /** 请求目录里面的数据 */

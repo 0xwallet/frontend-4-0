@@ -235,6 +235,7 @@ import {
 } from "vue";
 import {
   SyncOutlined,
+  EditOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   CopyOutlined,
@@ -285,6 +286,7 @@ export default defineComponent({
   name: "MetanetShare",
   components: {
     XFileTypeIcon,
+    EditOutlined,
     SyncOutlined,
     InfoCircleOutlined,
     RotateRightOutlined,

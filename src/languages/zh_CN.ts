@@ -20,6 +20,7 @@ export default {
     file: "文件",
     release: "发布",
     signIn: "登录",
+    pdfView: "pdf预览",
     dashboard: "Dashboard",
     okText: "确认",
     closeText: "关闭",

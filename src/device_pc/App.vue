@@ -47,6 +47,7 @@ export default defineComponent({
   setup() {
     const baseStore = useBaseStore();
     const userStore = useUserStore();
+    const route = useRoute();
     const { t } = useI18n();
     async function trySignInWithLocalStorageAndRedirect() {
       const { signInWithLocalStorage } = userStore;
