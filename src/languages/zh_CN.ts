@@ -45,6 +45,8 @@ export default {
     logoutMessage: "是否确认退出系统?",
     menuLoading: "菜单加载中...",
     dropdownItemLoginOut: "退出系统",
+
+    register: "登录",
   },
   countdown: {
     normalText: "获取验证码",

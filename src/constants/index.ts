@@ -24,9 +24,15 @@ export const MAX_FILEITEM_COUNT = 100;
 /** 上传错误对象 */
 export const UPLOAD_MSG = {
   success_sessionWrite: "session成功写入",
-  err_noNknClient:'multiClient未初始化',
-  err_noClientSession:'no clientSession',
-  err_noParams:'noParams',
+  err_noNknClient: "multiClient未初始化",
+  err_noClientSession: "no clientSession",
+  err_noParams: "noParams",
   err_sessionClosed: "session_closed",
   err_pauseByUser: "用户手动暂停",
+};
+/** 正则 */
+export const REG_OBJ = {
+  email:
+    // eslint-disable-next-line
+    /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
 };

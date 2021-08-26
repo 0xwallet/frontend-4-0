@@ -6,6 +6,8 @@ import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import { useUserStore } from "../../store";
 // vue 文件
 import Login from "../pages/Login/index.vue";
+import Register from "../pages/Register/index.vue";
+import ResetPwd from "../pages/ResetPwd/index.vue";
 import Dashboard from "../pages/Dashboard/index.vue";
 import Account from "../pages/Account/index.vue";
 import Security from "../pages/Security/index.vue";
@@ -25,6 +27,7 @@ import PdfView from "../pages/PdfView/index.vue";
 
 const routes: RouteRecordRaw[] = [
   {
+    //登录
     path: "/login",
     name: "Login",
     meta: {
@@ -32,6 +35,26 @@ const routes: RouteRecordRaw[] = [
       title: "signIn",
     },
     component: Login,
+  },
+  {
+    //注册
+    path: "/register",
+    name: "Register",
+    meta: {
+      needAuth: false,
+      title: "register",
+    },
+    component: Register,
+  },
+  {
+    //忘记密码
+    path: "/resetpassword",
+    name: "ResetPwd",
+    meta: {
+      needAuth: false,
+      title: "ResetPwd",
+    },
+    component: ResetPwd,
   },
   {
     path: "/",
@@ -183,7 +206,7 @@ const router = createRouter({
 
 // 守卫-登录权限
 router.beforeEach((to, from) => {
-  // console.log("to.name", to.name);
+  console.log("to.name", to.name);
   if (to.name !== "Login" && to.meta.needAuth && !useUserStore().isLoggedIn) {
     // TODO 路由跳转提示
     // message.error(i18n.global.t("pageLogin.pleaseSignInFirst"));
@@ -191,8 +214,14 @@ router.beforeEach((to, from) => {
       path: "/login",
       replace: true,
       query: {
-        redirect: to.path,
+        redirect: to.fullPath,
       },
+    };
+  }
+  if (to.name === "Login" && useUserStore().isLoggedIn) {
+    return {
+      path: "/",
+      replace: true,
     };
   }
 });

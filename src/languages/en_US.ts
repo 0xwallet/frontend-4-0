@@ -44,7 +44,8 @@ export default {
     logoutTip: "Reminder",
     logoutMessage: "Confirm to exit the system?",
     menuLoading: "Menu loading...",
-    dropdownItemLoginOut: "退出系统",
+    dropdownItemLoginOut: "log out",
+    register: "register",
   },
   countdown: {
     normalText: "Get Captcha",
