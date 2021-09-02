@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 功能区 height 32px-->
-    <div class="relative h-8 flex items-center mb-3">
+    <div class="relative h-8 flex items-center mb-3 pl-0">
       <!-- 这个为隐藏的作为选择文件用的 -->
       <input
         multiple
@@ -19,95 +19,6 @@
         webkitdirectory
         @change="onChangeMultipleUploadFolder"
       />
-      <div class="relative h-full" :style="{ width: '180px' }">
-        <transition name="no-mode-fade">
-          <!-- different key forceUdpate -->
-          <div key="1" class="absolute" v-if="selectedRows.length === 0">
-            <!-- 下拉 - 上传 -->
-            <a-dropdown class="mr-2">
-              <template #overlay>
-                <a-menu @click="onClickDropDownMenuUpload">
-                  <a-menu-item key="file">{{
-                    $t("metanet.uploadFile")
-                  }}</a-menu-item>
-                  <a-menu-item key="folder">{{
-                    $t("metanet.uploadFolder")
-                  }}</a-menu-item>
-                </a-menu>
-              </template>
-              <a-button type="primary">
-                <CloudUploadOutlined />
-                {{ $t("metanet.uploadButton") }}
-              </a-button>
-            </a-dropdown>
-            <!-- 下拉 - 新建 -->
-            <a-dropdown class="mr-2">
-              <template #overlay>
-                <a-menu @click="onClickDropDownMenuCreate">
-                  <!-- 新建文件 -->
-                  <a-menu-item key="file">{{
-                    $t("metanet.createFile")
-                  }}</a-menu-item>
-                  <!-- 新建文件夹 -->
-                  <a-menu-item key="folder">{{
-                    $t("metanet.createFolder")
-                  }}</a-menu-item>
-                  <!-- 新建by 导入 -->
-                  <a-menu-item key="import">{{
-                    $t("metanet.createByImport")
-                  }}</a-menu-item>
-                </a-menu>
-              </template>
-              <a-button type="primary">
-                <FolderAddOutlined />
-                {{ $t("metanet.create") }}
-              </a-button>
-            </a-dropdown>
-          </div>
-          <div key="2" class="absolute" v-else>
-            <!-- 移动 -->
-            <a-button
-              class="mr-2 ant-btn-cyan"
-              @click="
-                onCopyMoveModalPreAction(
-                  'move',
-                  selectedRows.map((i) => i.id)
-                )
-              "
-            >
-              <DragOutlined />
-              <!-- {{ $t("metanet.buttonMoveTo") }} -->
-              移动
-            </a-button>
-            <!-- 下拉 - 新建 -->
-            <a-dropdown class="mr-2">
-              <template #overlay>
-                <a-menu>
-                  <!-- 复制 -->
-                  <a-menu-item
-                    key="file"
-                    @click="
-                      onCopyMoveModalPreAction(
-                        'copy',
-                        selectedRows.map((i) => i.id)
-                      )
-                    "
-                    >复制</a-menu-item
-                  >
-                  <!-- 删除 -->
-                  <a-menu-item key="folder" @click="onBatchDelete"
-                    >删除</a-menu-item
-                  >
-                </a-menu>
-              </template>
-              <a-button class="ant-btn-cyan">
-                <BarsOutlined />
-                更多
-              </a-button>
-            </a-dropdown>
-          </div>
-        </transition>
-      </div>
 
       <!-- 刷新按钮 -->
       <!-- <a-button class="mr-2" @click="onRefreshTableData">
@@ -145,21 +56,25 @@
       </a-button-group> -->
       <!-- 刷新按钮 -->
       <a-tooltip title="上一级目录">
-        <a href="javascript:;" class="inline-block mr-2" @click="onUpperLevel">
+        <a
+          href="javascript:;"
+          class="inline-block mr-2 px-1"
+          @click="onUpperLevel"
+        >
           <VerticalAlignTopOutlined />
         </a>
       </a-tooltip>
       <a-tooltip :title="$t('metanet.refresh')">
         <a
           href="javascript:;"
-          class="inline-block mr-2"
+          class="inline-block mr-2 px-1"
           @click="onRefreshTableData"
         >
           <SyncOutlined :spin="tableLoading" />
         </a>
       </a-tooltip>
       <div
-        class="flex-1 flex items-center px-3"
+        class="flex-1 flex items-center px-3 mr-2"
         :style="{
           height: '28px',
           'border-radius': '50px',
@@ -221,6 +136,96 @@
             <StarOutlined class="notInClickOutSide" v-else />
           </a>
         </a-tooltip>
+      </div>
+      <div class="relative h-full" :style="{ width: '178px' }">
+        <transition name="no-mode-fade">
+          <!-- different key forceUdpate -->
+          <div key="1" class="absolute" v-if="selectedRows.length === 0">
+            <!-- 下拉 - 上传 -->
+            <a-dropdown class="mr-2">
+              <template #overlay>
+                <a-menu @click="onClickDropDownMenuUpload">
+                  <a-menu-item key="file">{{
+                    $t("metanet.uploadFile")
+                  }}</a-menu-item>
+                  <a-menu-item key="folder">{{
+                    $t("metanet.uploadFolder")
+                  }}</a-menu-item>
+                </a-menu>
+              </template>
+              <a-button type="primary" shape="round">
+                <CloudUploadOutlined />
+                {{ $t("metanet.uploadButton") }}
+              </a-button>
+            </a-dropdown>
+            <!-- 下拉 - 新建 -->
+            <a-dropdown class="">
+              <template #overlay>
+                <a-menu @click="onClickDropDownMenuCreate">
+                  <!-- 新建文件 -->
+                  <a-menu-item key="file">{{
+                    $t("metanet.createFile")
+                  }}</a-menu-item>
+                  <!-- 新建文件夹 -->
+                  <a-menu-item key="folder">{{
+                    $t("metanet.createFolder")
+                  }}</a-menu-item>
+                  <!-- 新建by 导入 -->
+                  <a-menu-item key="import">{{
+                    $t("metanet.createByImport")
+                  }}</a-menu-item>
+                </a-menu>
+              </template>
+              <a-button type="primary" shape="round">
+                <FolderAddOutlined />
+                {{ $t("metanet.create") }}
+              </a-button>
+            </a-dropdown>
+          </div>
+          <div key="2" class="absolute" v-else>
+            <!-- 移动 -->
+            <a-button
+              class="mr-2 ant-btn-cyan"
+              shape="round"
+              @click="
+                onCopyMoveModalPreAction(
+                  'move',
+                  selectedRows.map((i) => i.id)
+                )
+              "
+            >
+              <DragOutlined />
+              <!-- {{ $t("metanet.buttonMoveTo") }} -->
+              移动
+            </a-button>
+            <!-- 下拉 - 新建 -->
+            <a-dropdown class="">
+              <template #overlay>
+                <a-menu>
+                  <!-- 复制 -->
+                  <a-menu-item
+                    key="file"
+                    @click="
+                      onCopyMoveModalPreAction(
+                        'copy',
+                        selectedRows.map((i) => i.id)
+                      )
+                    "
+                    >复制</a-menu-item
+                  >
+                  <!-- 删除 -->
+                  <a-menu-item key="folder" @click="onBatchDelete"
+                    >删除</a-menu-item
+                  >
+                </a-menu>
+              </template>
+              <a-button class="ant-btn-cyan" shape="round">
+                <BarsOutlined />
+                更多
+              </a-button>
+            </a-dropdown>
+          </div>
+        </transition>
       </div>
     </div>
     <!-- 表格 -->
@@ -311,9 +316,12 @@
             <!-- 删除 -->
             <a-tooltip title="删除">
               <a
-                class="shortcutButton ml-1 ant-color-danger"
+                class="shortcutButton ml-1 ant-color-danger text-red-500"
                 href="javascript:;"
                 @click.stop="onRecordDelete(record)"
+                :style="{
+                  color: '#ff7875',
+                }"
                 ><DeleteOutlined
               /></a>
             </a-tooltip>
@@ -330,7 +338,11 @@
           </a-button>
           <a-button type="danger">{{ $t("metanet.delButton") }}</a-button>
         </a-button-group> -->
-        <a-dropdown placement="bottomRight" :trigger="['hover', 'click']">
+        <a-dropdown
+          class="rounded-xl"
+          placement="bottomRight"
+          :trigger="['hover', 'click']"
+        >
           <div class="text-center">
             <!-- <a href="javascript:void(0)" class="ant-color-blue-6">...</a> -->
             <a href="javascript:'">
@@ -338,7 +350,7 @@
             </a>
           </div>
           <template #overlay>
-            <a-menu>
+            <a-menu class="rounded-xl">
               <!-- 详情 -->
               <a-menu-item
                 class="px-4 flex items-center"

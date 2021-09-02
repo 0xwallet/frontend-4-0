@@ -3,15 +3,9 @@
     <!-- 功能区 height 32px-->
     <div class="relative h-8 flex items-center mb-3 pr-1">
       <div class="relative h-full" :style="{ width: '180px' }">
-        <transition name="no-mode-fade">
-          <a-button
-            v-if="selectedRows.length"
-            type="danger"
-            @click="onBatchDelete"
-          >
-            {{ $t("metanet.delete") }}
-          </a-button>
-        </transition>
+        <a-button type="danger" @click="onBatchDelete">
+          {{ $t("metanet.delete") }}
+        </a-button>
       </div>
       <div class="flex-1"></div>
       <div>

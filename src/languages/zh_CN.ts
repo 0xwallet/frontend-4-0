@@ -46,7 +46,7 @@ export default {
     menuLoading: "菜单加载中...",
     dropdownItemLoginOut: "退出系统",
 
-    register: "登录",
+    register: "注册",
   },
   countdown: {
     normalText: "获取验证码",
@@ -60,9 +60,12 @@ export default {
     qrSignInFormTitle: "二维码登录",
     signUpFormTitle: "注册",
     forgetFormTitle: "重置密码",
-
+    resetSuccess:'重置密码成功',
     signInTitle: "为 Web 3.0 而生的比特币钱包解决方案",
-    signInDesc: `0xWallet 钱包使您安全地发行和使用各类通证及数字资产🏦 💳 并且在任意设备上与朋友, 同事及客户智慧协作🎉💰`,
+    welcomeUsage: "欢迎使用",
+    productVer: "比特网盘 - 标准版",
+    productName: "比特网盘",
+    signInDesc: `比特网盘使您安全地发行和使用各类通证及数字版权🏦 💳并且在任意设备上与朋友, 同事及客户智慧协作🎉💰`,
     policy: "我同意xxx隐私政策",
     scanSign: `扫码后点击"确认"，即可完成登录`,
 
@@ -71,12 +74,14 @@ export default {
     rememberMe: "记住我",
     forgetPassword: "忘记密码?",
     otherSignIn: "其他登录方式",
-
+    notAccountyet: "还没有账号?",
+    signUpNow: "马上注册",
     backLoginButton: "返回登录",
     autoLogin: "自动登录",
     emailLabel: "邮箱",
     passwordLabel: "密码",
     passwordLabel2: "确认密码",
+    passwordStrength: "密码强度",
     seconds: "秒",
     registerSuccess: "注册成功",
     verification: "邮件验证码",
@@ -89,8 +94,13 @@ export default {
     loginSuccessTitle: "登录成功",
     loginSuccessDesc: "欢迎回来",
     pleaseSignInFirst: "请先登录",
-
+    loginFailed: "登录失败, 请检查邮箱和密码",
+    signUpAgree: "注册即代表同意",
+    termsOfService: "服务条款",
+    alreadyHaveAccount: "已经有账号了?",
+    signInNow: "马上登录",
     // placeholder
+    plsEnterEmailAndPwd: "请输入邮箱和密码",
     emailPlaceholder: "请输入正确的邮箱",
     accountPlaceholder: "请输入账号",
     passwordPlaceholder: "请输入密码",
@@ -98,6 +108,10 @@ export default {
     mobilePlaceholder: "请输入手机号码",
     nMobilePlaceholder: "请输入nMobile验证码",
     policyPlaceholder: "勾选后才能注册",
+    plsCompleteForm: "请完善表单内容",
+    strong: "强",
+    medium: "中",
+    weak: "弱",
     diffPwd: "两次输入密码不一致",
 
     userName: "账号",
@@ -163,7 +177,7 @@ export default {
   metanet: {
     sharedFile: "分享文件",
     metanet: "网盘",
-    dashboard: "Dashboard",
+    dashboard: "控制台",
     transport: "传输",
     files: "我的文件",
     share: "我的分享",

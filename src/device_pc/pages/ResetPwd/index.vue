@@ -10,18 +10,9 @@
       <!-- width: '450px', -->
       <div class="mb-10 flex items-center justify-center">
         <div
-          class="
-            bg-white
-            inline-block
-            rounded-full
-            w-20
-            h-20
-            flex
-            items-center
-            justify-center
-          "
+          class="inline-block w-20 h-20 flex items-center justify-center"
           :style="{
-            'box-shadow': '0 2px 6px #e6ecf1',
+            filter: 'drop-shadow(0px 0px 8px #231F20)',
           }"
         >
           <div
@@ -45,7 +36,7 @@
             'border-bottom': '1px solid #f9f9f9',
           }"
         >
-          重置密码
+          {{ $t("pageLogin.forgetFormTitle") }}
         </div>
         <div>
           <a-row :gutter="24">
@@ -59,7 +50,10 @@
               :xs="24"
               :sm="24"
             >
-              <div class="font-12 font-bold mb-2">注册邮箱</div>
+              <div class="font-12 font-bold mb-2">
+                {{ $t("pageLogin.registerButton") }} <span class=""></span>
+                {{ $t("pageLogin.emailLabel") }}
+              </div>
               <div>
                 <a-input
                   v-model:value="form.email"
@@ -78,7 +72,9 @@
               :xs="24"
               :sm="24"
             >
-              <div class="font-12 font-bold mb-2">邮箱验证码</div>
+              <div class="font-12 font-bold mb-2">
+                {{ $t("pageLogin.verification") }}
+              </div>
               <div>
                 <a-input v-model:value="form.code" size="large" class="rounded">
                   <template #addonAfter>
@@ -92,7 +88,11 @@
                       type="primary"
                       @click="onSendEmailCode"
                     >
-                      {{ isLockSendEamil ? countdownSendEamil : "发送" }}
+                      {{
+                        isLockSendEamil
+                          ? countdownSendEamil
+                          : $t("pageLogin.send")
+                      }}
                     </a-button>
                   </template>
                 </a-input>
@@ -110,7 +110,9 @@
               :xs="24"
               :sm="24"
             >
-              <div class="font-12 font-bold mb-2">密码</div>
+              <div class="font-12 font-bold mb-2">
+                {{ $t("pageLogin.passwordLabel") }}
+              </div>
               <div class="relative">
                 <a-input-password
                   @change="onChangePassword"
@@ -130,12 +132,12 @@
                         : '#DD0000',
                   }"
                 >
-                  密码强度:{{
+                  {{ $t("pageLogin.passwordStrength") }}:{{
                     passwordStrength === 2
-                      ? "强"
+                      ? $t("pageLogin.strong")
                       : passwordStrength === 1
-                      ? "中"
-                      : "弱"
+                      ? $t("pageLogin.medium")
+                      : $t("pageLogin.weak")
                   }}
                 </div>
               </div>
@@ -150,7 +152,9 @@
               :xs="24"
               :sm="24"
             >
-              <div class="font-12 font-bold mb-2">确认密码</div>
+              <div class="font-12 font-bold mb-2">
+                {{ $t("pageLogin.passwordLabel2") }}
+              </div>
               <div>
                 <a-input-password
                   v-model:value="form.repeatPassword"
@@ -160,7 +164,7 @@
               </div>
             </a-col>
           </a-row>
-          <div class="pb-12">
+          <div class="pb-12 mt-2">
             <a-button
               block
               type="primary"
@@ -172,16 +176,16 @@
               }"
               :loading="isLoadingSubmit"
               @click="onSubmit"
-              >重置</a-button
+              >{{ $t("common.resetText") }}</a-button
             >
           </div>
         </div>
       </div>
       <div>
         <div class="text-center text-gray-500 mb-16">
-          <router-link to="/login" class="ant-color-blue-6"
-            >返回登录</router-link
-          >
+          <router-link to="/login" class="ant-color-blue-6">{{
+            $t("pageLogin.backLoginButton")
+          }}</router-link>
           <span
             class="pb-1 relative"
             :style="{
@@ -192,7 +196,7 @@
         </div>
         <div>
           <div class="mb-2 text-center font-12 text-gray-400">
-            Copyright © 2021 比特网盘
+            Copyright © 2021 {{ $t("pageLogin.productName") }}
           </div>
           <div class="text-center font-12 text-gray-400">
             Powered by
@@ -277,7 +281,7 @@ export default defineComponent({
         const { email } = toRaw(form);
         console.log("email", email);
         if (!email.length || !REG_OBJ.email.test(email)) {
-          message.warning("请输入正确的邮箱地址");
+          message.warning(t("pageLogin.emailPlaceholder"));
           return;
         }
         if (isLockSendEamil.value) {
@@ -313,11 +317,11 @@ export default defineComponent({
           !password.length ||
           !repeatPassword.length
         ) {
-          message.warning("请完善表单内容");
+          message.warning(t("pageLogin.plsCompleteForm"));
           return;
         }
         if (password !== repeatPassword) {
-          message.warning("请输入相同的确认密码");
+          message.warning(t("pageLogin.diffPwd"));
           return;
         }
         isLoadingSubmit.value = true;
@@ -334,7 +338,7 @@ export default defineComponent({
           return;
         }
         notification.success({
-          message: "重置密码成功",
+          message: t("pageLogin.resetSuccess"),
         });
         useDelay().then(() => router.replace({ name: "Login" }));
       };

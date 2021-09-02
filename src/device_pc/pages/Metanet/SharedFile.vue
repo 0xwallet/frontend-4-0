@@ -98,7 +98,8 @@
               </div>
               <!-- 功能区 -->
               <div class="pt-3 px-5 mb-3 flex items-center">
-                <div class="mr-2 flex items-center">
+                <!-- 文件夹类型才显示路径 -->
+                <div v-if="isCurrentShareFolder" class="mr-2 flex items-center">
                   <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
                     <a
                       :class="{
@@ -355,6 +356,8 @@ export default defineComponent({
     const curShareCollectedCount = ref(0);
     /** 当前的分享是否收藏过 */
     const isCurrentShareCollected = ref(false);
+    /** 当前的分享是否是单个文件夹 */
+    const isCurrentShareFolder = ref(false);
     const userPreview = reactive({
       avatar: "",
       bio: "",
@@ -654,6 +657,7 @@ export default defineComponent({
       // 注册当前分享的token
       currentShareToken.value = data.driveFindShare.token;
       currentShareId.value = data.driveFindShare.id;
+      isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -922,6 +926,7 @@ export default defineComponent({
       userPreview,
       curShareCollectedCount,
       isCurrentShareCollected,
+      isCurrentShareFolder,
       expiredText,
       confirmLoading,
       lockPageLoading,

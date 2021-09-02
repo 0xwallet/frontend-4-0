@@ -8,8 +8,22 @@
       @change="onChangeUploadFile"
     />
     <!-- 功能区 height 32px-->
-    <div class="relative h-8 flex items-center mb-3 pr-1">
+    <div class="relative h-8 flex items-center mb-3">
+      <div class="mr-2">
+        <!-- 刷新按钮 -->
+        <a-tooltip :title="$t('metanet.refresh')">
+          <a
+            href="javascript:;"
+            class="inline-block px-1"
+            @click="onRefreshTableData()"
+          >
+            <SyncOutlined :spin="tableLoading" />
+          </a>
+        </a-tooltip>
+      </div>
+      <div class="flex-1"></div>
       <a-button
+        shape="round"
         :disabled="selectedRowKeys.length === 0"
         class="mr-2"
         type="primary"
@@ -19,26 +33,14 @@
         复制分享
       </a-button>
       <a-button
+        shape="round"
         :disabled="selectedRowKeys.length === 0"
-        class="mr-2"
         type="danger"
         @click="onBatchDelete"
       >
         <CloseCircleOutlined />
         取消分享
       </a-button>
-      <div>
-        <!-- 刷新按钮 -->
-        <a-tooltip :title="$t('metanet.refresh')">
-          <a
-            href="javascript:;"
-            class="inline-block"
-            @click="onRefreshTableData()"
-          >
-            <SyncOutlined :spin="tableLoading" />
-          </a>
-        </a-tooltip>
-      </div>
     </div>
     <!-- 表格 -->
     <XTableFiles

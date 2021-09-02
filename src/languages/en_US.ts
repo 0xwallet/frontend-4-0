@@ -45,7 +45,8 @@ export default {
     logoutMessage: "Confirm to exit the system?",
     menuLoading: "Menu loading...",
     dropdownItemLoginOut: "log out",
-    register: "register",
+
+    register: "sign up",
   },
   countdown: {
     normalText: "Get Captcha",
@@ -59,6 +60,7 @@ export default {
     emailLabel: "Email",
     passwordLabel: "Password",
     passwordLabel2: "Confirm Password",
+    passwordStrength: "Password Strength",
     //register
     seconds: "seconds",
     registerButton: "Sign Up",
@@ -76,22 +78,33 @@ export default {
     signInFormTitle: "Sign In",
     signUpFormTitle: "Sign Up",
     forgetFormTitle: "Reset password",
+    resetSuccess: "Reset Password Success",
 
     signInTitle: "The secure bitcoin solution for Web 3.0",
-    signInDesc: `0xWallet gives the secure access & issuance to all your tokens and assets 🏦 💳 Collaborate with friends, companies, and customers from any device 🎉💰`,
+    welcomeUsage: "Welcome to",
+    productVer: "BitDrive - Standard Edition",
+    productName: "BitDrive",
+    signInDesc: `BitDrive gives the secure access & issuance to all your tokens and assets 🏦 💳 Collaborate with friends, companies, and customers from any device 🎉💰`,
     policy: "I agree to the xxx Privacy Policy",
     scanSign: `scanning the code to complete the login`,
 
     rememberMe: "Remember me",
     forgetPassword: "Forget Password?",
     otherSignIn: "Sign in with",
+    notAccountyet: "Don't have an account yet?",
+    signUpNow: "sign up now",
 
     // notify
     loginSuccessTitle: "Login Successful",
     loginSuccessDesc: "Welcome back",
     pleaseSignInFirst: "please sign in first",
-
+    loginFailed: "sign in failed, please check your Email and Password",
+    signUpAgree: "Registration means consent",
+    termsOfService: "Terms of Service",
+    alreadyHaveAccount: "Already have an account?",
+    signInNow: "Sign In now",
     // placeholder
+    plsEnterEmailAndPwd: "Please enter your Email and Password",
     emailPlaceholder: "Please enter your Email",
     accountPlaceholder: "Please Input Username",
     passwordPlaceholder: "Please enter your Password",
@@ -99,6 +112,10 @@ export default {
     mobilePlaceholder: "Please input mobile",
     nMobilePlaceholder: "Please enter your nMobile Login Code",
     policyPlaceholder: "Register after checking",
+    plsCompleteForm: "Please complete the form content",
+    strong: "Strong",
+    medium: "Medium",
+    weak: "Weak",
     diffPwd: "The two passwords are inconsistent",
 
     userName: "Username",

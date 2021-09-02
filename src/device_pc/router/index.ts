@@ -32,7 +32,7 @@ const routes: RouteRecordRaw[] = [
     name: "Login",
     meta: {
       needAuth: false,
-      title: "signIn",
+      title: "common.signIn",
     },
     component: Login,
   },
@@ -42,7 +42,7 @@ const routes: RouteRecordRaw[] = [
     name: "Register",
     meta: {
       needAuth: false,
-      title: "register",
+      title: "common.register",
     },
     component: Register,
   },
@@ -52,7 +52,7 @@ const routes: RouteRecordRaw[] = [
     name: "ResetPwd",
     meta: {
       needAuth: false,
-      title: "ResetPwd",
+      title: "pageLogin.forgetFormTitle",
     },
     component: ResetPwd,
   },
@@ -206,7 +206,7 @@ const router = createRouter({
 
 // 守卫-登录权限
 router.beforeEach((to, from) => {
-  console.log("to.name", to.name);
+  // console.log("to.name", to.name);
   if (to.name !== "Login" && to.meta.needAuth && !useUserStore().isLoggedIn) {
     // TODO 路由跳转提示
     // message.error(i18n.global.t("pageLogin.pleaseSignInFirst"));
@@ -227,6 +227,7 @@ router.beforeEach((to, from) => {
 });
 // 守卫-浏览器标题
 router.beforeEach((to, from) => {
+  // TODO 点击切换语言的时候 标题没有马上变化
   const textPath = `${to.meta.title}`;
   useTitle(`${i18n.global.t(textPath)} - ${PRODUCT_NAME}`);
 });

@@ -113,7 +113,10 @@
             <div class="px-6">
               <van-button
                 block
-                class="h-12 rounded-full"
+                class="h-12"
+                :style="{
+                  'border-radius': '999px',
+                }"
                 size="normal"
                 type="primary"
                 :loading="isLoadingConfirmCode"
@@ -125,7 +128,7 @@
             </div>
           </template>
           <template v-else>
-            <div v-if="isShowDirNavBar" class="px-4 font-semibold">
+            <div v-if="isCurrentShareFolder" class="px-4 font-semibold">
               <div v-if="historyDir.length === 1">
                 <!-- 共有{{ fileData.length }}个文件 -->
                 /
@@ -224,56 +227,61 @@
           </template>
         </div>
         <!-- 工具栏 -->
-        <footer
-          v-if="selectedRows.length"
-          class="
-            absolute
-            py-2
-            px-4
-            flex
-            items-center
-            justify-between
-            bg-white
-            bottom-0
-            left-0
-            right-0
-          "
-        >
-          <div>
-            <!-- background-color: #E1F4FF; color: #06A7FF; -->
-            <!-- 下载 -->
-            <van-button
-              round
-              class="h-12 mr-4 font-semibold font-15"
-              :style="{
-                'background-color': 'rgba(64, 74, 102,.2)',
-                color: '#06A7FF',
-                border: 'none',
-              }"
-              @click="onDownload"
-            >
-              <template #icon>
-                <img
-                  class="w-6 h-6"
-                  src="~@/assets/images/mobile/download.png"
-                  alt=""
-                />
-              </template>
-            </van-button>
-          </div>
-          <!-- 保存 -->
-          <div>
-            <van-button
-              round
-              type="primary"
-              class="h-12 w-32 font-semibold font-15"
-              @click="saveToMetanetModalPreAction"
-              :loading="isLoadingDirData"
-              color="#404A66"
-              >保存到网盘</van-button
-            >
-          </div>
-        </footer>
+        <transition name="no-mode-fade">
+          <footer
+            v-if="selectedRows.length"
+            class="
+              absolute
+              py-2
+              px-4
+              flex
+              items-center
+              justify-between
+              bg-white
+              bottom-0
+              left-0
+              right-0
+            "
+            :style="{
+              'box-shadow': '0 2px 6px #404a66',
+            }"
+          >
+            <div>
+              <!-- background-color: #E1F4FF; color: #06A7FF; -->
+              <!-- 下载 -->
+              <van-button
+                round
+                class="h-12 mr-4 font-semibold font-15"
+                :style="{
+                  'background-color': 'rgba(64, 74, 102,.2)',
+                  color: '#06A7FF',
+                  border: 'none',
+                }"
+                @click="onDownload"
+              >
+                <template #icon>
+                  <img
+                    class="w-6 h-6"
+                    src="~@/assets/images/mobile/download.png"
+                    alt=""
+                  />
+                </template>
+              </van-button>
+            </div>
+            <!-- 保存 -->
+            <div>
+              <van-button
+                round
+                type="primary"
+                class="h-12 w-32 font-semibold font-15"
+                @click="saveToMetanetModalPreAction"
+                :loading="isLoadingDirData"
+                color="#404A66"
+                >保存到网盘</van-button
+              >
+            </div>
+          </footer>
+        </transition>
       </template>
     </div>
     <!-- 保存到目标文件夹弹窗 -->
@@ -333,6 +341,32 @@
         </div>
       </div>
     </van-popup>
+    <!-- 底部预览pdf弹窗 -->
+    <van-popup
+      v-model:show="isShowBottomPopup"
+      position="bottom"
+      :style="{ height: '100%' }"
+    >
+      <div class="h-14 flex items-center justify-between van-hairline--bottom">
+        <div class="font-16 font-semibold pl-4">
+          {{ currentPreviewPdfName }}
+        </div>
+        <div @click="onCloseBottomPopup" class="p-4">
+          <van-icon name="cross" size="22px" />
+        </div>
+      </div>
+      <div v-if="isLoadingPdf" class="absolute inset-0 text-center pt-28">
+        <van-loading size="40" color="#0094ff" vertical>加载中...</van-loading>
+      </div>
+      <div
+        v-else
+        class="overflow-auto"
+        :style="{
+          height: 'calc(100% - 3.5rem)',
+        }"
+        id="pdfCanvas"
+      ></div>
+    </van-popup>
   </div>
 </template>
 
@@ -375,6 +409,8 @@ import { MFileTypeIcon } from "../../components";
 import { api as viewerApi } from "v-viewer";
 import { useUserStore } from "@/store";
 import { FILE_TYPE_MAP } from "@/constants";
+import pdfjsLib from "pdfjs-dist";
+import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
 
 type SelectedItem = {
   id: string;
@@ -413,8 +449,8 @@ export default defineComponent({
     const currentUri = ref("");
     const currentShareToken = ref("");
     const currentShareId = ref("");
-    /** 是否显示文件夹导航栏 */
-    const isShowDirNavBar = ref(true);
+    /** 当前的分享是否是单个文件夹 */
+    const isCurrentShareFolder = ref(false);
     /** 选中的文件 */
     // const selectedRows = ref<SelectedItem[]>([]);
     const selectedRows = computed(() =>
@@ -695,6 +731,28 @@ export default defineComponent({
         onLogOut,
       };
     }
+    /** 是否正在加载pdf */
+    const isLoadingPdf = ref(false);
+    const isShowBottomPopup = ref(false);
+    /** 当前预览的pdf的文件名 */
+    const currentPreviewPdfName = ref("");
+    /** 底部的弹层 */
+    function useBottomPopup() {
+      const onShowBottomPopup = () => {
+        isShowBottomPopup.value = true;
+      };
+      const onCloseBottomPopup = () => {
+        isShowBottomPopup.value = false;
+        currentPreviewPdfName.value = "";
+      };
+      return {
+        isLoadingPdf,
+        isShowBottomPopup,
+        currentPreviewPdfName,
+        onShowBottomPopup,
+        onCloseBottomPopup,
+      };
+    }
     // const onFinishPopup = () => {
     //   console.log("onFinishPopup", popupState);
     // };
@@ -722,6 +780,7 @@ export default defineComponent({
       // 注册当前分享的token
       currentShareToken.value = data.driveFindShare.token;
       currentShareId.value = data.driveFindShare.id;
+      isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -868,7 +927,6 @@ export default defineComponent({
           fullName.slice(-1)[0]
         }?token=${token}`;
         previewImages.value.push(url);
-
         onShowViewer();
       } else if (fileType === "pdf") {
         console.log("pdf-类型");
@@ -879,12 +937,52 @@ export default defineComponent({
         }/${space.toLowerCase()}/${fileId}/${
           fullName.slice(-1)[0]
         }?token=${token}`;
-        // window.open(pdfUrl, "_blank");
-        const pdfRoute = router.resolve({
-          name: "PdfView",
-          query: { url: pdfUrl },
-        });
-        window.open(pdfRoute.href, "_blank");
+        isShowBottomPopup.value = true;
+        currentPreviewPdfName.value = lastOfArray(fullName);
+        isLoadingPdf.value = true;
+        //
+        const PDFjs = (window as any).pdfjsLib as typeof pdfjsLib;
+        PDFjs.GlobalWorkerOptions.workerSrc =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.9.359/build/pdf.worker.min.js";
+        let viewer: HTMLElement | null;
+        let thePdf: PDFDocumentProxy;
+        PDFjs.getDocument(pdfUrl)
+          .promise.then((pdf) => {
+            isLoadingPdf.value = false;
+            useDelay(100).then(() => {
+              viewer = document.getElementById("pdfCanvas");
+              thePdf = pdf;
+              for (let page = 1; page <= pdf.numPages; page++) {
+                const canvas = document.createElement("canvas");
+                canvas.className = "pdf-page-canvas";
+                viewer?.appendChild(canvas);
+                renderPage(page, canvas);
+              }
+            });
+          })
+          .catch((err) => {
+            isLoadingPdf.value = false;
+            // console.log("加载pdf出错,token过期", err);
+          });
+        const renderPage = (pageNumber: number, canvas: any) => {
+          thePdf.getPage(pageNumber).then((page) => {
+            if (!viewer) {
+              // console.log("noViewer");
+              return;
+            }
+            const unscaledViewport = page.getViewport({ scale: 1 });
+            const scale = viewer.clientWidth / unscaledViewport.width;
+            // console.log("calc-scale", scale);
+            const viewport = page.getViewport({ scale: 1 });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            page.render({
+              canvasContext: canvas.getContext("2d"),
+              viewport: viewport,
+            });
+          });
+        };
+        //
       } else {
         // 3.其他类型
         console.log("TODO-其他类型");
@@ -927,7 +1025,7 @@ export default defineComponent({
       userPreview,
       currentShareToken,
       // currentShareId,
-      isShowDirNavBar,
+      isCurrentShareFolder,
       isLoadingConfirmCode,
       isCurrentShareCollected,
       isUserLoggedIn,
@@ -955,6 +1053,7 @@ export default defineComponent({
       cacheFormatDescription,
       onShowViewer,
       ...useRightPopup(),
+      ...useBottomPopup(),
     };
   },
 });

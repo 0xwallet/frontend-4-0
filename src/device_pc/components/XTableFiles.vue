@@ -9,7 +9,7 @@
     :loading="loading"
     :columns="columns"
     :data-source="data"
-    :scroll="{ x: true }"
+    :scroll="{ x: false }"
     :row-selection="rowSelection"
     :pagination="false"
     :rowClassName="rowClassName"

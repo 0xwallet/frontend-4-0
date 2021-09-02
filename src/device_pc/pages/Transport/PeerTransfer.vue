@@ -18,34 +18,35 @@
       <!-- 未选择任何文件前 -->
       <div v-if="tableSend.length === 0">
         <div class="font-20 p-4 font-semibold">发送</div>
+        <!-- pb-12 -->
+        <!-- h-32 -->
         <div
-          class="
-            relative
-            flex
-            items-center
-            justify-center
-            pb-12
-            h-32
-            cursor-pointer
-          "
+          class="px-4 relative flex items-center justify-center cursor-pointer"
           @click="onSelectFiles"
         >
           <!-- 拖拽区域 -->
           <a-tooltip title="可拖拽文件至此">
             <div
               class="absolute inset-0"
+              @dragenter="onDragEnter"
+              @dragleave="onDragLeave"
               @dragover="onDragOver"
               @drop="onDrop"
             ></div>
           </a-tooltip>
-          <PlusOutlined
-            class="p-6 ant-color-blue-6"
+          <div
+            class="w-full text-center mb-6"
             :style="{
               'border-radius': '4px',
               border: '1px dashed #1890ff',
               'font-size': '50px',
             }"
-          />
+            :class="{
+              dashedBorder: isFileOverUploadZone,
+            }"
+          >
+            <PlusOutlined class="p-6 ant-color-blue-6" />
+          </div>
         </div>
       </div>
       <!-- 选有文件后 -->
@@ -103,10 +104,17 @@
                   hover:bg-white
                 "
               >
-                <div class="font-12">
+                <div class="font-12 truncate" :title="item.fileName">
                   {{ item.fileName }}
                 </div>
-                <div class="tableSendItemSize font-12 text-gray-400">
+                <div
+                  class="
+                    tableSendItemSize
+                    font-12
+                    text-gray-400
+                    whitespace-nowrap
+                  "
+                >
                   {{ formatBytes(item.fileSize) }}
                 </div>
                 <div
@@ -643,11 +651,22 @@ export default defineComponent({
           isTotalSendProgressBarTextWhite.value = currentPercentWidth > 168;
         }
       );
+      /** 是否鼠标拖动文件到区域上方,是就显示边框 */
+      const isFileOverUploadZone = ref(false);
+      const onDragEnter = (event: DragEvent) => {
+        event.preventDefault();
+        isFileOverUploadZone.value = true;
+      };
+      const onDragLeave = (event: DragEvent) => {
+        event.preventDefault();
+        isFileOverUploadZone.value = false;
+      };
       const onDragOver = (event: DragEvent) => {
         event.preventDefault();
       };
       const onDrop = async (event: DragEvent) => {
         event.preventDefault();
+        isFileOverUploadZone.value = false;
         const files = event.dataTransfer?.files;
         if (!files) return;
         const fileArr: TransferFile[] = [...files].map((i) => ({
@@ -957,6 +976,9 @@ export default defineComponent({
         totalSendSize,
         hadSendSize,
         isTotalSendProgressBarTextWhite,
+        isFileOverUploadZone,
+        onDragEnter,
+        onDragLeave,
         onDragOver,
         onDrop,
         onCopyReceiveLink,
@@ -1293,5 +1315,8 @@ export default defineComponent({
     height: 30px !important;
     line-height: 30px !important;
   }
+}
+.dashedBorder {
+  border: 2px dashed #1890ff !important;
 }
 </style>

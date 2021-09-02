@@ -35,7 +35,7 @@
         >
           <a-menu-item key="dashboard">
             <PieChartOutlined />
-            <span>Dashboard</span>
+            <span>{{ $t("metanet.dashboard") }}</span>
           </a-menu-item>
           <!-- <a-sub-menu key="sub1">
             <template #title>
@@ -53,7 +53,7 @@
             <template #title>
               <span class="flex items-center">
                 <CloudServerOutlined />
-                <span>网盘</span>
+                <span>{{ $t("metanet.metanet") }}</span>
               </span>
             </template>
             <!-- TODO 跟路由相关联 v-for -->
@@ -91,13 +91,13 @@
                     transform: 'rotate(90deg)',
                   }"
                 />
-                <span>传输</span>
+                <span> {{ $t("metanet.transport") }}</span>
               </span>
             </template>
             <a-menu-item key="uploading">
               <span class="relative">
                 <CloudUploadOutlined />
-                上传
+                {{ $t("metanet.uploadButton") }}
                 <i
                   v-if="uploadingCount > 0"
                   class="
@@ -125,7 +125,7 @@
             <a-menu-item key="uploadHistory">
               <span class="relative">
                 <HistoryOutlined />
-                历史
+                {{ $t("metanet.uploadHistory") }}
                 <i
                   v-if="uploadSuccessCount > 0"
                   class="
@@ -152,7 +152,7 @@
             </a-menu-item>
             <a-menu-item key="peerTransfer">
               <UploadOutlined />
-              空投
+              {{ $t("metanet.peerTransfer") }}
             </a-menu-item>
           </a-sub-menu>
         </a-menu>
@@ -261,16 +261,205 @@
               @click="onChangeCollapsed"
             />
             <!-- 面包屑 sub/item -->
-            <a-breadcrumb class="inline-block">
+            <!-- <a-breadcrumb class="inline-block">
               <a-breadcrumb-item v-for="item in breadArr" :key="item">
                 {{ item }}
               </a-breadcrumb-item>
-            </a-breadcrumb>
+            </a-breadcrumb> -->
             <!-- 撑开中间 -->
-            <div class="flex-1"></div>
-            <div class="flex items-center h-full w-12">
+            <div class="flex-1">
+              <nav
+                id="navBox"
+                class="bg-white px-2 py-1 pt-2 flex flex-wrap items-center"
+              >
+                <!-- 激活状态 hover 状态  关闭按钮(hover放大) -->
+                <div
+                  v-for="item in navList"
+                  :key="item.uniqueId"
+                  @click="onClickNavTab(item)"
+                  class="
+                    relative
+                    border-solid border
+                    rounded-sm
+                    py-px
+                    pl-3
+                    pr-1
+                    cursor-move
+                    mr-2
+                    mb-1
+                    flex
+                    items-center
+                  "
+                  :class="{
+                    navTabBox: item.routeName !== 'Dashboard',
+                    'border-transparent':
+                      activeNavUniqueId === exactUniqueTabId(item.routePath),
+                    activeNavItem:
+                      activeNavUniqueId === exactUniqueTabId(item.routePath),
+                    'border-gray-200':
+                      activeNavUniqueId !== exactUniqueTabId(item.routePath),
+                  }"
+                  :style="{
+                    height: '25px',
+                    'line-height': '20px',
+                  }"
+                >
+                  <!-- 'text-white': -->
+                  <!-- activeNavUniqueId === exactUniqueTabId(item.routePath), -->
+                  <template v-if="!item.routePath.includes('/metanet/file')">
+                    <span class="text-xs pr-2 cursor-pointer">
+                      <PieChartOutlined
+                        v-if="item.routePath.includes('dashboard')"
+                        class="mr-1"
+                      />
+                      <ShareAltOutlined
+                        v-else-if="item.routePath.includes('metanet/share')"
+                        class="mr-1"
+                      />
+                      <GlobalOutlined
+                        v-else-if="item.routePath.includes('metanet/publish')"
+                        class="mr-1"
+                      />
+                      <StarOutlined
+                        v-else-if="item.routePath.includes('metanet/collect')"
+                        class="mr-1"
+                      />
+                      <SyncOutlined
+                        v-else-if="item.routePath.includes('metanet/recycle')"
+                        class="mr-1"
+                      />
+                      <CloudUploadOutlined
+                        v-else-if="
+                          item.routePath.includes('transport/uploading')
+                        "
+                        class="mr-1"
+                      />
+                      <HistoryOutlined
+                        v-else-if="
+                          item.routePath.includes('transport/uploadHistory')
+                        "
+                        class="mr-1"
+                      />
+                      <UploadOutlined
+                        v-else-if="
+                          item.routePath.includes('transport/peerTransfer')
+                        "
+                        class="mr-1"
+                      />
+                      {{ $t(`${item.title}`) }}
+                    </span>
+                    <!-- 当只有一个的时候不能关闭 -->
+                    <!-- 预留个15.15的box -->
+                    <span
+                      class="
+                        navItemCloseBox
+                        inline-block
+                        w-3.5
+                        h-3.5
+                        rounded-full
+                        cursor-pointer
+                        flex
+                        items-center
+                        justify-center
+                      "
+                    >
+                      <CloseOutlined
+                        v-if="navList.length > 1"
+                        @click.stop="onCloseNavItem(item.routePath)"
+                        class="transform scale-75"
+                      />
+                    </span>
+                  </template>
+                  <a-tooltip
+                    v-else
+                    placement="top"
+                    overlayClassName="tabToolTip"
+                  >
+                    <template #title>
+                      <!-- <div class="text-xs flex items-center">
+                    <div class="mr-1">路径:</div>
+                    <div>
+                      {{ getFileWindowTips(item, "path") }}
+                    </div>
+                  </div>
+                  <div class="font-12 flex items-center">
+                    <div class="mr-1">描述:</div>
+                    <div>
+                      <template
+                        v-if="getFileWindowTips(item, 'desc').tagArr.length"
+                      >
+                        <a-tag
+                          :style="{
+                            height: '16px',
+                            'line-height': '16px',
+                          }"
+                          class="inline-block"
+                          color="orange"
+                          v-for="item in getFileWindowTips(item, 'desc').tagArr"
+                          :key="item"
+                          >{{ item }}</a-tag
+                        > </template
+                      >{{ getFileWindowTips(item, "desc").text }}
+                    </div>
+                  </div> -->
+                      <span class="mr-2">
+                        {{ getFileWindowTips(item, "path") }}
+                      </span>
+                      <template
+                        v-if="getFileWindowTips(item, 'desc').tagArr.length"
+                      >
+                        <a-tag
+                          :style="{
+                            height: '16px',
+                            'line-height': '16px',
+                          }"
+                          class="inline-block"
+                          color="orange"
+                          v-for="item in getFileWindowTips(item, 'desc').tagArr"
+                          :key="item"
+                          >{{ item }}</a-tag
+                        ></template
+                      >{{ getFileWindowTips(item, "desc").text }}
+                    </template>
+                    <div class="flex items-center">
+                      <span class="text-xs pr-2 cursor-pointer">
+                        <FolderOpenOutlined class="mr-1" />
+                        {{ $t(`${item.title}`) }}
+                        <!-- {{ getFileWindowTips(item, "path") }} -->
+                      </span>
+                      <!-- 当只有一个的时候不能关闭 -->
+                      <!-- 预留个15.15的box -->
+                      <span
+                        class="
+                          navItemCloseBox
+                          w-3.5
+                          h-3.5
+                          rounded-full
+                          inline-block
+                          flex
+                          items-center
+                          justify-center
+                        "
+                      >
+                        <CloseOutlined
+                          v-if="navList.length > 1"
+                          @click.stop="onCloseNavItem(item.routePath)"
+                          class="transform scale-75"
+                        />
+                      </span>
+                    </div>
+                  </a-tooltip>
+                </div>
+              </nav>
+            </div>
+            <div
+              class="flex items-center h-full px-4"
+              :style="{
+                'font-size': '18px',
+              }"
+            >
               <XLocaleSwither
-                class="cursor-pointer text-base text-gray-600 localeSwitcher"
+                class="cursor-pointer text-gray-600 localeSwitcher"
               />
             </div>
             <!-- <div class="px-2 mr-4 h-full flex items-center cursor-pointer"> -->
@@ -283,14 +472,13 @@
             <span class="pl-2">{{ username }}</span> -->
 
             <a-dropdown
-              :trigger="['click']"
+              :trigger="['hover']"
               placement="bottomRight"
               overlayClassName="avatarDropdown"
             >
               <div
                 class="
-                  w-12
-                  mr-4
+                  px-4
                   h-full
                   flex
                   items-center
@@ -516,181 +704,11 @@
             </a-dropdown>
           </div>
           <!-- tabbar -->
-          <nav
-            id="navBox"
-            class="
-              border-t border-gray-100
-              bg-white
-              px-6
-              py-1
-              pt-2
-              flex flex-wrap
-              items-center
-            "
-          >
-            <!-- 激活状态 hover 状态  关闭按钮(hover放大) -->
-            <div
-              v-for="item in navList"
-              :key="item.uniqueId"
-              @click="onClickNavTab(item)"
-              class="
-                relative
-                border-solid border
-                rounded-sm
-                py-px
-                pl-3
-                pr-1
-                cursor-move
-                mr-2
-                mb-1
-              "
-              :class="{
-                navTabBox: item.routeName !== 'Dashboard',
-                'border-transparent':
-                  activeNavUniqueId === exactUniqueTabId(item.routePath),
-                'bg-gray-500':
-                  activeNavUniqueId === exactUniqueTabId(item.routePath),
-                'text-white':
-                  activeNavUniqueId === exactUniqueTabId(item.routePath),
-                'border-gray-200':
-                  activeNavUniqueId !== exactUniqueTabId(item.routePath),
-              }"
-              :style="{
-                height: '25px',
-                'line-height': '20px',
-              }"
-            >
-              <template v-if="!item.routePath.includes('/metanet/file')">
-                <span class="text-xs pr-2 cursor-pointer">
-                  <PieChartOutlined
-                    v-if="item.routePath.includes('dashboard')"
-                    class="mr-1"
-                  />
-                  <ShareAltOutlined
-                    v-else-if="item.routePath.includes('metanet/share')"
-                    class="mr-1"
-                  />
-                  <GlobalOutlined
-                    v-else-if="item.routePath.includes('metanet/publish')"
-                    class="mr-1"
-                  />
-                  <StarOutlined
-                    v-else-if="item.routePath.includes('metanet/collect')"
-                    class="mr-1"
-                  />
-                  <SyncOutlined
-                    v-else-if="item.routePath.includes('metanet/recycle')"
-                    class="mr-1"
-                  />
-                  <CloudUploadOutlined
-                    v-else-if="item.routePath.includes('transport/uploading')"
-                    class="mr-1"
-                  />
-                  <HistoryOutlined
-                    v-else-if="
-                      item.routePath.includes('transport/uploadHistory')
-                    "
-                    class="mr-1"
-                  />
-                  <UploadOutlined
-                    v-else-if="
-                      item.routePath.includes('transport/peerTransfer')
-                    "
-                    class="mr-1"
-                  />
-                  {{ $t(`${item.title}`) }}
-                </span>
-                <!-- 当只有一个的时候不能关闭 -->
-                <!-- 预留个15.15的box -->
-                <span class="inline-block w-3.5 h-3.5 cursor-pointer">
-                  <CloseOutlined
-                    v-if="navList.length > 1"
-                    @click.stop="onCloseNavItem(item.routePath)"
-                    class="
-                      navItemClose
-                      text-xs
-                      transform
-                      scale-75
-                      hover:scale-100
-                    "
-                  />
-                </span>
-              </template>
-              <a-tooltip v-else placement="top" overlayClassName="tabToolTip">
-                <template #title>
-                  <!-- <div class="text-xs flex items-center">
-                    <div class="mr-1">路径:</div>
-                    <div>
-                      {{ getFileWindowTips(item, "path") }}
-                    </div>
-                  </div>
-                  <div class="font-12 flex items-center">
-                    <div class="mr-1">描述:</div>
-                    <div>
-                      <template
-                        v-if="getFileWindowTips(item, 'desc').tagArr.length"
-                      >
-                        <a-tag
-                          :style="{
-                            height: '16px',
-                            'line-height': '16px',
-                          }"
-                          class="inline-block"
-                          color="orange"
-                          v-for="item in getFileWindowTips(item, 'desc').tagArr"
-                          :key="item"
-                          >{{ item }}</a-tag
-                        > </template
-                      >{{ getFileWindowTips(item, "desc").text }}
-                    </div>
-                  </div> -->
-                  <span class="mr-2">
-                    {{ getFileWindowTips(item, "path") }}
-                  </span>
-                  <template
-                    v-if="getFileWindowTips(item, 'desc').tagArr.length"
-                  >
-                    <a-tag
-                      :style="{
-                        height: '16px',
-                        'line-height': '16px',
-                      }"
-                      class="inline-block"
-                      color="orange"
-                      v-for="item in getFileWindowTips(item, 'desc').tagArr"
-                      :key="item"
-                      >{{ item }}</a-tag
-                    ></template
-                  >{{ getFileWindowTips(item, "desc").text }}
-                </template>
-                <span class="text-xs pr-2 cursor-pointer">
-                  <FolderOpenOutlined class="mr-1" />
-                  {{ $t(`${item.title}`) }}
-                  <!-- {{ getFileWindowTips(item, "path") }} -->
-                </span>
-                <!-- 当只有一个的时候不能关闭 -->
-                <!-- 预留个15.15的box -->
-                <span class="inline-block w-3.5 h-3.5">
-                  <CloseOutlined
-                    v-if="navList.length > 1"
-                    @click.stop="onCloseNavItem(item.routePath)"
-                    class="
-                      navItemClose
-                      text-xs
-                      transform
-                      scale-75
-                      hover:scale-100
-                    "
-                  />
-                </span>
-              </a-tooltip>
-            </div>
-          </nav>
         </a-layout-header>
         <a-layout-content
-          class="bg-white mx-4 my-4"
+          class="bg-white mx-4 my-4 rounded-xl"
           :style="{
-            minHeight: '280px',
+            minHeight: 'calc(100vh - 100px)',
           }"
         >
           <router-view class="p-4 pb-6" v-slot="{ Component }">
@@ -1321,14 +1339,23 @@ export default defineComponent({
     vertical-align: middle;
   }
 }
+.activeNavItem {
+  background-color: #f0f2f5;
+}
+.navItemCloseBox {
+  &:hover {
+    background: #ff7875;
+    color: white;
+  }
+}
 // .navItemClose {
 // display: none;
 // }
-.navTabBox {
-  &:hover .navItemClose {
-    display: inline-block;
-  }
-}
+// .navTabBox {
+//   &:hover .navItemClose {
+//     // display: inline-block;
+//   }
+// }
 // 左菜单收起来的时候
 // .ant-menu-vertical {
 //   [role="menuitem"] {

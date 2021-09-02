@@ -39,7 +39,7 @@ export default defineComponent({
       // const [res, err] = await signInWithLocalStorage();
       const result = await signInWithLocalStorage();
       if (result.err) {
-        console.log("[从本地存储中登录失败] : ", result.err);
+        console.log("[从本地存储中登录失败] : ", result.err.message);
         return;
       }
       // pdf 预览页不需要登录提示
@@ -78,11 +78,11 @@ body,
   height: 100%;
   font-family: "lato";
 }
-body {
+html {
   // font-size: 14px;
-  font-size: 0.875rem;
+  font-size: 16px;
 }
-.font-gray {
+.text-gray {
   color: #949494;
 }
 // body {
@@ -107,6 +107,9 @@ body {
 .font-12 {
   font-size: 0.75rem; //12px
 }
+.ant-blue {
+  color: #1890ff;
+}
 .borderTest {
   // 测试用边框
   border: 1px solid red;
@@ -117,7 +120,7 @@ body {
 // vue 动画
 .no-mode-fade-enter-active,
 .no-mode-fade-leave-active {
-  transition: opacity 0.5s;
+  transition: opacity 0.3s;
 }
 
 .no-mode-fade-enter-from,

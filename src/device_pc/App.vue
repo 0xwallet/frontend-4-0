@@ -5,7 +5,7 @@
       v-if="isEnvDevelopment"
       class="
         fixed
-        top-0
+        bottom-0
         inset-x-0
         m-auto
         px-10
@@ -54,7 +54,7 @@ export default defineComponent({
       // const [res, err] = await signInWithLocalStorage();
       const result = await signInWithLocalStorage();
       if (result.err) {
-        console.log("[从本地存储中登录失败] : ", result.err);
+        console.log("[从本地存储中登录失败] : ", result.err.message);
         return;
       }
       notification.success({
@@ -205,6 +205,13 @@ body,
     color: #fff;
     background-color: @cyan-7; //blue-7
     border-color: @cyan-7;
+  }
+}
+.ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+  .ant-btn {
+    border-radius: 999px;
   }
 }
 // html font-size :16px

@@ -3,15 +3,10 @@
     <!-- 功能区 -->
     <div class="mb-3 flex items-center">
       <!-- 按钮区 -->
-      <div class="mr-2 flex items-center" :style="{ height: '32px' }">
-        <div
-          :style="{
-            width: '82px',
-          }"
-          class="h-full relative inline-block mr-2"
-        >
-          <transition name="no-mode-fade">
+      <div class="flex items-center" :style="{ height: '32px' }">
+        <!-- <transition name="no-mode-fade">
             <a-button
+              shape="round"
               :disabled="selectedRows.length === 0"
               v-if="isShowBatchStartBtn"
               key="start"
@@ -22,6 +17,7 @@
               开始</a-button
             >
             <a-button
+              shape="round"
               :disabled="selectedRows.length === 0"
               v-else
               key="pause"
@@ -31,27 +27,73 @@
               <PauseOutlined />
               暂停</a-button
             >
-          </transition>
-        </div>
-        <a-button :disabled="selectedRows.length === 0" @click="onBatchCancel">
+          </transition> -->
+        <a-tooltip v-if="isShowBatchStartBtn" title="开始选中的任务">
+          <a
+            href="javascript:;"
+            class="inline-block px-1 mr-2"
+            @click="onBatchStart()"
+            :disabled="selectedRows.length === 0"
+          >
+            <RightCircleOutlined />
+          </a>
+        </a-tooltip>
+        <a-tooltip v-else title="暂停选中的任务">
+          <a
+            href="javascript:;"
+            class="inline-block px-1 mr-2"
+            @click="onBatchPause()"
+            :disabled="selectedRows.length === 0"
+          >
+            <PauseOutlined />
+          </a>
+        </a-tooltip>
+        <!-- <a-button
+          shape="round"
+          :disabled="selectedRows.length === 0"
+          @click="onBatchCancel"
+        >
           <CloseCircleOutlined />
           取消</a-button
-        >
+        > -->
+        <a-tooltip title="取消选中的任务">
+          <a
+            href="javascript:;"
+            class="inline-block px-1 mr-2"
+            @click="onBatchCancel()"
+            :disabled="selectedRows.length === 0"
+          >
+            <CloseCircleOutlined />
+          </a>
+        </a-tooltip>
       </div>
       <!-- 进度区 -->
       <div class="flex flex-1">
         <!-- <div class="mr-2 whitespace-nowrap text-gray-400">总进度</div> -->
+        <!-- color: isTotalProgressBarTextWhite ? '#FFF ' : '#3C6889', -->
         <div class="flex-1 relative">
+          <!-- 拖拽上传区域 -->
           <div
-            class="absolute z-50 left-0 right-0 text-center text-white"
+            class="absolute inset-0 z-50 rounded-full"
+            :class="{
+              dashedBorder: isFileOverUploadZone,
+            }"
+            @dragenter="onDragEnter"
+            @dragleave="onDragLeave"
+            @dragover="onDragOver"
+            @drop="onDrop"
+          ></div>
+          <div
+            class="absolute z-40 left-0 right-0 text-center text-white"
             :style="{
-              color: isTotalProgressBarTextWhite ? '#FFF ' : '#3C6889',
+              color: '#3C6889',
               height: '30px',
               'line-height': '30px',
             }"
           >
             <span id="totalProgressBarText">
-              总进度: {{ `${totalPercent}%` }}
+              <!-- 总进度: {{ `${totalPercent}%` }} -->
+              {{ showBarText }}
             </span>
           </div>
           <a-progress
@@ -64,14 +106,6 @@
     </div>
     <!-- 表格区 -->
     <div class="relative">
-      <!-- 拖拽上传区域 -->
-      <!-- pointer-events-none -->
-      <div
-        v-if="tableData.length === 0"
-        class="absolute inset-0 z-10"
-        @dragover="onDragOver"
-        @drop="onDrop"
-      ></div>
       <XTableFiles
         rowKey="uniqueId"
         :columns="columns"
@@ -203,6 +237,8 @@ import {
   createVNode,
   defineComponent,
   nextTick,
+  onActivated,
+  onDeactivated,
   onMounted,
   onUnmounted,
   reactive,
@@ -219,7 +255,7 @@ import {
 } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
 import { XFileTypeIcon, XTableFiles } from "../../components";
-import { formatBytes, getFileSHA256, getFileType } from "@/utils";
+import { formatBytes, getFileSHA256, getFileType, useDelay } from "@/utils";
 import { NKN_SUB_CLIENT_COUNT } from "@/constants";
 import { throttle } from "lodash-es";
 import { Empty, message } from "ant-design-vue";
@@ -330,11 +366,22 @@ export default defineComponent({
     });
     /** 拖拽 */
     function useDropUpload() {
+      /** 是否鼠标拖动文件到区域上方,是就显示边框 */
+      const isFileOverUploadZone = ref(false);
+      const onDragEnter = (event: DragEvent) => {
+        event.preventDefault();
+        isFileOverUploadZone.value = true;
+      };
+      const onDragLeave = (event: DragEvent) => {
+        event.preventDefault();
+        isFileOverUploadZone.value = false;
+      };
       const onDragOver = (event: DragEvent) => {
         event.preventDefault();
       };
       const onDrop = async (event: DragEvent) => {
         event.preventDefault();
+        isFileOverUploadZone.value = false;
         const files = event.dataTransfer?.files;
         if (!files) return;
         const hide = message.loading("查询中...", 0);
@@ -387,6 +434,9 @@ export default defineComponent({
         // console.log("resultUploadSingle", resultUploadSingle);
       };
       return {
+        isFileOverUploadZone,
+        onDragEnter,
+        onDragLeave,
         onDragOver,
         onDrop,
       };
@@ -397,7 +447,8 @@ export default defineComponent({
         emptyText: createVNode("div", {}, [
           createVNode(Empty, {
             image: Empty.PRESENTED_IMAGE_SIMPLE,
-            description: "暂无任务, 拖拽文件至此可直接上传到根目录",
+            // description: "拖拽文件至此可直接上传到根目录",
+            description: "暂无任务",
           }),
         ]),
       };
@@ -527,12 +578,37 @@ export default defineComponent({
         };
         return mapText[status];
       };
+      const showBarText = ref(`总进度: ${totalPercent.value}%`);
+      let startCount = 0;
+      let counterBarText: number;
+      onActivated(() => {
+        console.log("onActivated");
+        if (counterBarText) {
+          clearInterval(counterBarText);
+        }
+        counterBarText = window.setInterval(() => {
+          startCount++;
+          if (startCount % 5 === 0) {
+            showBarText.value = "拖拽文件至此可直接上传到根目录";
+          } else {
+            showBarText.value = `总进度: ${totalPercent.value}%`;
+          }
+        }, 1000);
+      });
+      onDeactivated(() => {
+        console.log("onDeactivated");
+        if (counterBarText) {
+          clearInterval(counterBarText);
+          startCount = 0;
+        }
+      });
       return {
         emptyLocale,
         tableLoading,
         columns,
         tableData,
         totalPercent,
+        showBarText,
         formatBytes,
         calcTimeLeftText,
         isTotalProgressBarTextWhite,
@@ -581,4 +657,7 @@ export default defineComponent({
 // :deep(.ant-progress-inner) {
 // border-radius: 0 !important;
 // }
+.dashedBorder {
+  border: 2px dashed #1890ff;
+}
 </style>

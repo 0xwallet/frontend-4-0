@@ -1,8 +1,8 @@
 <template>
-  <a-dropdown placement="bottomRight" :trigger="['click']">
+  <a-dropdown placement="bottomRight" :trigger="['hover']">
     <!-- 宽高由引用他的组件来决定 -->
     <div class="w-full h-full flex items-center justify-center">
-      <svg
+      <!-- <svg
         viewBox="0 0 24 24"
         focusable="false"
         width="1em"
@@ -15,10 +15,16 @@
           d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z "
           class="css-c4d79v"
         ></path>
-      </svg>
+      </svg> -->
+      <TranslationOutlined />
     </div>
     <template #overlay>
-      <a-menu v-model:selectedKeys="localeObj.localeSelectedKeys">
+      <a-menu
+        :style="{
+          'border-radius': '12px',
+        }"
+        v-model:selectedKeys="localeObj.localeSelectedKeys"
+      >
         <a-menu-item v-for="locale in localeObj.availableLocales" :key="locale">
           <a href="javascript:;" @click="localeObj.onMenuItemClick(locale)">{{
             localeObj.localeMap[locale]
@@ -35,8 +41,12 @@ import { useLocalStorage, useTitle } from "@vueuse/core";
 import { DEFAULT_LANG, PRODUCT_NAME } from "@/constants";
 import { Locale, useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
+import { TranslationOutlined } from "@ant-design/icons-vue";
 
 export default defineComponent({
+  components: {
+    TranslationOutlined,
+  },
   setup() {
     const route = useRoute();
     function useLocaleMenu() {
@@ -51,7 +61,7 @@ export default defineComponent({
         useLocalStorage("locale", DEFAULT_LANG).value = itemLocale;
         localeSelectedKeys.fill(itemLocale);
         // console.log(route);
-        const textPath = `common.${route.meta.title}`;
+        const textPath = `${route.meta.title}`;
         useTitle(`${globalComposer.t(textPath)} - ${PRODUCT_NAME}`);
       };
       // TODO 美化样式

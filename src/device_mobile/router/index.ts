@@ -6,6 +6,8 @@ import { PRODUCT_NAME } from "@/constants";
 import { useUserStore } from "@/store";
 
 import Login from "../pages/Login/index.vue";
+import Register from "../pages/Register/index.vue";
+import ResetPwd from "../pages/ResetPwd/index.vue";
 import Account from "../pages/Account/index.vue";
 import MetanetSharedFile from "../pages/Metanet/SharedFile.vue";
 
@@ -13,6 +15,7 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
+      //登录
       path: "/login",
       name: "Login",
       meta: {
@@ -20,6 +23,26 @@ const router = createRouter({
         title: "common.signIn",
       },
       component: Login,
+    },
+    {
+      //注册
+      path: "/register",
+      name: "Register",
+      meta: {
+        needAuth: false,
+        title: "common.register",
+      },
+      component: Register,
+    },
+    {
+      //忘记密码
+      path: "/resetpassword",
+      name: "ResetPwd",
+      meta: {
+        needAuth: false,
+        title: "pageLogin.forgetFormTitle",
+      },
+      component: ResetPwd,
     },
     {
       path: "/account",
