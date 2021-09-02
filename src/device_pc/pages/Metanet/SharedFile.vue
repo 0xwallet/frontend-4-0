@@ -820,6 +820,7 @@ export default defineComponent({
       const saveToMetanetModalSelectedDir = ref<TDir>({
         dirId: "root",
         dirName: "全部文件",
+        isExpend: true,
         parent: null,
       });
       const saveToMetanetModalSelectedFileList = ref<TFileItem[]>([]);
@@ -857,6 +858,7 @@ export default defineComponent({
                   dirId: i.id,
                   dirName: lastOfArray(i.fullName),
                   parent: item,
+                  isExpend: false,
                 })
               )
             );
@@ -871,9 +873,11 @@ export default defineComponent({
               getAndSetDirChildren({
                 dirId: i.id,
                 dirName: lastOfArray(i.fullName),
+                isExpend: false,
                 parent: {
                   dirId: "root",
                   dirName: "全部文件",
+                  isExpend: true,
                   parent: null,
                 },
               })
@@ -882,6 +886,7 @@ export default defineComponent({
           const rootDir: TDir = {
             dirId: "root",
             dirName: "全部文件",
+            isExpend: true,
             parent: null,
             children: withChildrensDirList,
           };
@@ -898,6 +903,7 @@ export default defineComponent({
         saveToMetanetModalSelectedDir.value = {
           dirId: "root",
           dirName: "全部文件",
+          isExpend: true,
           parent: null,
         };
         // 如果保存的目标文件夹 用户又保存到他自己的相同目录下

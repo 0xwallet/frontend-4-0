@@ -15,7 +15,7 @@
       @change="onChangeMultipleUploadFile"
     />
     <div v-if="isShowSendCard" class="send mb-4">
-      <!-- 未选择任何文件前 -->
+    <!-- 未选择任何文件前 -->
       <div v-if="tableSend.length === 0">
         <div class="font-20 p-4 font-semibold">发送</div>
         <!-- pb-12 -->
@@ -38,7 +38,7 @@
             class="w-full text-center mb-6"
             :style="{
               'border-radius': '4px',
-              border: '1px dashed #1890ff',
+              border: '1px dashed #d9d9d9',
               'font-size': '50px',
             }"
             :class="{
@@ -1317,6 +1317,6 @@ export default defineComponent({
   }
 }
 .dashedBorder {
-  border: 2px dashed #1890ff !important;
+  border: 1px dashed #1890ff !important;
 }
 </style>

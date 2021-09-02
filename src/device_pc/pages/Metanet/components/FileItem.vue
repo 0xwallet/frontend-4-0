@@ -909,6 +909,8 @@ export type TDir = {
   dirId: string;
   dirName: string;
   parent: null | TDir;
+  /** 是否展开 */
+  isExpend: boolean;
   children?: TDir[];
 };
 type TCreateFile = {
@@ -1275,6 +1277,7 @@ export default defineComponent({
         dirId: "root",
         dirName: "全部文件",
         parent: null,
+        isExpend: true,
       });
       /** 选中的要复制/移动的文件的 id list */
       const copyMoveModalSelectedDirList = ref<string[]>([]);
@@ -1312,6 +1315,7 @@ export default defineComponent({
                   dirId: i.id,
                   dirName: lastOfArray(i.fullName),
                   parent: item,
+                  isExpend: false,
                 })
               )
             );
@@ -1326,10 +1330,12 @@ export default defineComponent({
               getAndSetDirChildren({
                 dirId: i.id,
                 dirName: lastOfArray(i.fullName),
+                isExpend: false,
                 parent: {
                   dirId: "root",
                   dirName: "root",
                   parent: null,
+                  isExpend: true,
                 },
               })
             )
@@ -1337,6 +1343,7 @@ export default defineComponent({
           const rootDir: TDir = {
             dirId: "root",
             dirName: t("metanet.allFiles"),
+            isExpend: true,
             parent: null,
             children: withChildrensDirList,
           };
@@ -1446,6 +1453,7 @@ export default defineComponent({
             };
           };
         }) => {
+          console.log("copyMoveModalTableCustomRow", record);
           // console.log(e.currentTarget.dataset.rowKey);
           copyMoveModalCurrentSelectedDir.value = record;
         },
@@ -1464,6 +1472,7 @@ export default defineComponent({
         copyMoveModalCurrentSelectedDir.value = {
           dirId: "root",
           dirName: "全部文件",
+          isExpend: true,
           parent: null,
         };
         copyMoveModalSelectedDirList.value.length = 0;
@@ -1898,6 +1907,7 @@ export default defineComponent({
               const resultMakeDirByPath = await apiMakeDirByPath({
                 fullName: folderName,
                 description: folderDesc,
+                //
                 parentId: curFolderId.value,
               });
               if (resultMakeDirByPath.err) {
@@ -2526,6 +2536,10 @@ export default defineComponent({
                 if (!i) return i;
                 if (!i.fullName.length) return null;
                 const obj = { ...i };
+                // 如果目标文件夹是根目录,注册当前目录的id为root
+                if (params.fullName?.length === 0) {
+                  curFolderId.value = "root";
+                }
                 // 如果是当前目录, 注册fileWindow的路径和描述信息,然后返回null , 下一步把它去除(为了填到表格)
                 if (
                   obj.id === params.dirId ||

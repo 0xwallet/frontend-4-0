@@ -3,6 +3,7 @@
     <!-- 功能区 -->
     <div class="mb-3 flex items-center">
       <a-button
+        shape="round"
         class="mr-2"
         :disabled="uploadSuccessList.length === 0"
         @click="onBatchClear"

@@ -207,12 +207,45 @@ body,
     border-color: @cyan-7;
   }
 }
+@default_radius: 12px;
 .ant-modal-content {
-  border-radius: 12px;
+  border-radius: @default_radius;
   overflow: hidden;
   .ant-btn {
     border-radius: 999px;
   }
+}
+// ant 弹窗里的关闭按钮
+.ant-modal-close {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition: transform 0.3s ease-in-out;
+  // background-color: #f2f2f2;
+  // top: 6px;
+  // right: 6px;
+  top: 12px;
+  right: 16px;
+  // overflow: hidden;
+  background-image: url("~@/assets/svg/modal_close.svg");
+  &:hover {
+    transform: rotate(90deg);
+    opacity: 0.75;
+  }
+  .ant-modal-close-x {
+    display: none;
+  }
+}
+// ant tooltip的圆角
+.ant-tooltip-inner {
+  border-radius: @default_radius;
+}
+// ant notification的圆角
+.ant-notification-notice {
+  border-radius: @default_radius;
 }
 // html font-size :16px
 .font-20 {

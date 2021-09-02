@@ -582,7 +582,7 @@ export default defineComponent({
       let startCount = 0;
       let counterBarText: number;
       onActivated(() => {
-        console.log("onActivated");
+        // console.log("onActivated");
         if (counterBarText) {
           clearInterval(counterBarText);
         }
@@ -596,7 +596,7 @@ export default defineComponent({
         }, 1000);
       });
       onDeactivated(() => {
-        console.log("onDeactivated");
+        // console.log("onDeactivated");
         if (counterBarText) {
           clearInterval(counterBarText);
           startCount = 0;

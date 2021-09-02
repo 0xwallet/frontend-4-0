@@ -20,15 +20,19 @@
     </div>
     <template #overlay>
       <a-menu
+        class="py-2"
         :style="{
           'border-radius': '12px',
         }"
         v-model:selectedKeys="localeObj.localeSelectedKeys"
       >
         <a-menu-item v-for="locale in localeObj.availableLocales" :key="locale">
-          <a href="javascript:;" @click="localeObj.onMenuItemClick(locale)">{{
-            localeObj.localeMap[locale]
-          }}</a>
+          <a
+            class="px-4"
+            href="javascript:;"
+            @click="localeObj.onMenuItemClick(locale)"
+            >{{ localeObj.localeMap[locale] }}</a
+          >
         </a-menu-item>
       </a-menu>
     </template>
@@ -84,3 +88,12 @@ export default defineComponent({
   },
 });
 </script>
+
+<style lang="less" scoped>
+// .ant-dropdown-menu-item-selected {
+  // a {
+    // background: blue !important;
+    // color: white !important;
+  // }
+// }
+</style>

@@ -23,11 +23,14 @@
       :dataSource="dataSource"
       :customRow="customRow"
       :loading="loading"
+      @expandedChange="onExpandedChange"
     >
       <!-- <template #name="{ record }"> -->
       <template #name="{ record }">
         <div class="inline-block">
           <!-- 空白就是blank 文件夹就是folder -->
+          <FolderFilled />
+          <FolderOpenFilled />
           <XFileTypeIcon class="w-4 h-4" type="folder" />
           <a href="javascript:;" class="ml-1">{{ record.dirName }}</a>
         </div>
@@ -39,6 +42,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { XFileTypeIcon } from "./";
+import { FolderFilled, FolderOpenFilled } from "@ant-design/icons-vue";
 
 export default defineComponent({
   props: {
@@ -77,13 +81,18 @@ export default defineComponent({
   emits: ["update:visible", "ok"],
   components: {
     XFileTypeIcon,
+    FolderFilled,
+    FolderOpenFilled,
   },
   setup(props, { emit }) {
     const onOk = () => emit("ok");
     const updateVisible = (v: boolean) => {
       emit("update:visible", v);
     };
-    return { updateVisible, onOk };
+    const onExpandedChange = () => {
+      console.log("onExpandedChange", arguments);
+    };
+    return { updateVisible, onOk, onExpandedChange };
   },
 });
 </script>
