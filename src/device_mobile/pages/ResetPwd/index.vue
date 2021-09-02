@@ -40,6 +40,7 @@
           </template>
           <template #button>
             <van-button
+              round
               class="rounded-full"
               size="small"
               :style="{
@@ -48,7 +49,7 @@
                 top: '-1px',
               }"
               type="primary"
-              :disabled="isLockSendEamil"
+              :disabled="!formReset.email || isLockSendEamil"
               @click="onSendEmailCode"
             >
               {{ isLockSendEamil ? countdownSendEamil : "发送验证码" }}
