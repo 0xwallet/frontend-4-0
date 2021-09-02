@@ -29,8 +29,8 @@
       <template #name="{ record }">
         <div class="inline-block">
           <!-- 空白就是blank 文件夹就是folder -->
-          <FolderFilled />
-          <FolderOpenFilled />
+          <!-- <FolderFilled /> -->
+          <!-- <FolderOpenFilled /> -->
           <XFileTypeIcon class="w-4 h-4" type="folder" />
           <a href="javascript:;" class="ml-1">{{ record.dirName }}</a>
         </div>
