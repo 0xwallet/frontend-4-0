@@ -989,6 +989,7 @@ export type QueryShareFileItem = {
   token: string;
   updatedAt: string;
   uri: string;
+  status: null | 'expired'|'wrong_code';
   userFile: TFileItem | null;
 };
 
@@ -1165,14 +1166,14 @@ export const apiPublishDelete = async (
 };
 
 type ParamsQueryCollectList = {
-  type?: "SHARE" | "PUBLISH" | "ALL";
+  type: "SHARE" | "PUBLISH" | "ALL";
 };
 export type QueryCollectItem = {
   id: string;
   info: {
     description: string | null;
   };
-  string: string;
+  insertedAt: string;
   updatedAt: string;
   item: QueryShareFileItem | QueryPublishItem;
 };

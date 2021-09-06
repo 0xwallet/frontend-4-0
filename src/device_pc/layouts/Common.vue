@@ -1346,6 +1346,7 @@ export default defineComponent({
   &:hover {
     background: #ff7875;
     color: white;
+    // #f2f2f2
   }
 }
 // .navItemClose {

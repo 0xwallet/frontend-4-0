@@ -9,19 +9,36 @@
     />
     <!-- 功能区 height 32px-->
     <div class="relative h-8 flex items-center mb-3">
-      <div class="mr-2">
-        <!-- 刷新按钮 -->
-        <a-tooltip :title="$t('metanet.refresh')">
-          <a
-            href="javascript:;"
-            class="inline-block px-1"
-            @click="onRefreshTableData()"
-          >
-            <SyncOutlined :spin="tableLoading" />
-          </a>
-        </a-tooltip>
+      <!-- 刷新按钮 -->
+      <a-tooltip title="添加">
+        <a
+          href="javascript:;"
+          class="inline-block px-1 mr-2"
+          @click="onAddShare()"
+        >
+          <FileAddOutlined />
+        </a>
+      </a-tooltip>
+      <!-- 刷新按钮 -->
+      <a-tooltip :title="$t('metanet.refresh')">
+        <a
+          href="javascript:;"
+          class="inline-block px-1 mr-2"
+          @click="onRefreshTableData()"
+        >
+          <SyncOutlined :spin="tableLoading" />
+        </a>
+      </a-tooltip>
+      <div
+        class="flex-1 mr-2 px-3 flex items-center"
+        :style="{
+          height: '28px',
+          'border-radius': '50px',
+          'background-color': '#f7f7f8',
+        }"
+      >
+        {{ shareWeight }}
       </div>
-      <div class="flex-1"></div>
       <a-button
         shape="round"
         :disabled="selectedRowKeys.length === 0"
@@ -29,7 +46,7 @@
         type="primary"
         @click="onBatchCopy"
       >
-        <CopyOutlined />
+        <!-- <CopyOutlined /> -->
         复制分享
       </a-button>
       <a-button
@@ -38,7 +55,7 @@
         type="danger"
         @click="onBatchDelete"
       >
-        <CloseCircleOutlined />
+        <!-- <CloseCircleOutlined /> -->
         取消分享
       </a-button>
     </div>
@@ -101,6 +118,9 @@
                 class="shortcutButton ml-1 ant-color-danger"
                 href="javascript:;"
                 @click="onRecordCancel(record)"
+                :style="{
+                  color: '#ff7875',
+                }"
                 ><CloseCircleOutlined
               /></a>
             </a-tooltip>
@@ -227,6 +247,7 @@
 
 <script lang="ts">
 import {
+  computed,
   createVNode,
   defineComponent,
   onActivated,
@@ -236,6 +257,7 @@ import {
   watch,
 } from "vue";
 import {
+  FileAddOutlined,
   SyncOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
@@ -266,6 +288,7 @@ import {
   getFileType,
   getShareInfoByUriAndCode,
   lastOfArray,
+  makeShareUrlByUri,
 } from "@/utils";
 import { cloneDeep } from "lodash-es";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
@@ -284,11 +307,24 @@ type TShareCreate = {
   code?: string;
 };
 
+/** 转换质量单位 */
+function transformWeight(s: number): string {
+  // 质量: 888/1000[ mg | g | kg | t ] , 其中 mg, g, kg, t为4种不同单位, 分别对应毫克,克,千克, 吨.
+  // 质量 = 当前所有分享的收藏量之和, 总收藏量每超过一千个单位量会提升一级. 最小单位等级为毫克,最大单位等级为吨.
+  if (s === 0) return "0 mg";
+  const k = 1000;
+  const dm = 2;
+  const sizes = ["mg", "g", "kg", "t"];
+  const i = Math.floor(Math.log(s) / Math.log(k));
+  return parseFloat((s / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+}
+
 export default defineComponent({
   name: "MetanetShare",
   components: {
     XFileTypeIcon,
     EditOutlined,
+    FileAddOutlined,
     SyncOutlined,
     InfoCircleOutlined,
     RotateRightOutlined,
@@ -393,6 +429,18 @@ export default defineComponent({
     const selectedRows = ref<TTableShareFileItem[]>([]);
     const selectedRowKeys = ref<string[]>([]);
     const tableData = ref<TTableShareFileItem[]>([]);
+    /** 显示在进度条的质量 */
+    const shareWeight = computed(() => {
+      const totalShareCount = tableData.value.reduce(
+        (a, b) => (a += b.collectedCount),
+        0
+      );
+      return `质量 : ${transformWeight(totalShareCount)}`;
+    });
+    const onAddShare = () => {
+      message.info("TODO");
+      console.log("onAddShare");
+    };
     /** 刷新表格数据 */
     const onRefreshTableData = async (keepSelected = false) => {
       // console.log("keeo", keepSelected);
@@ -584,7 +632,7 @@ export default defineComponent({
         }),
         location: getFileLocation(record.userFile.fullName),
         size: formatBytes(+record.userFile.info.size),
-        shareLink: record.uri,
+        shareLink: makeShareUrlByUri(record.uri),
         shareHash: record.userFile.hash,
         insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
         updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
@@ -825,6 +873,8 @@ export default defineComponent({
       columns,
       tableData,
       onClickTableItemName,
+      shareWeight,
+      onAddShare,
       onRefreshTableData,
       onBatchCopy,
       onBatchDelete,

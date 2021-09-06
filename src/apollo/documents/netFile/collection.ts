@@ -14,6 +14,7 @@ export const driveListCollections = gql`
           id
           code
           uri
+          status
           userFile {
             fullName
             hash
