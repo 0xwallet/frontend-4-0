@@ -15,7 +15,7 @@
       @change="onChangeMultipleUploadFile"
     />
     <div v-if="isShowSendCard" class="send mb-4">
-    <!-- 未选择任何文件前 -->
+      <!-- 未选择任何文件前 -->
       <div v-if="tableSend.length === 0">
         <div class="font-20 p-4 font-semibold">发送</div>
         <!-- pb-12 -->
@@ -1075,19 +1075,38 @@ export default defineComponent({
         receiveInputLoading.value = true;
         if (type === "link") await initClientStatus;
         if (!nknClient) return;
-        // 必须要listen 才能onSession
-        nknClient.listen();
-        console.log("client-listen");
+        // console.log("client-listen");
         // 发送回去消息,告诉接收方准备好了
         if (type === "link" && remoteAddr) {
           await nknClient.send(remoteAddr, SHAKE_HAND, { noReply: true });
         }
+        let isChannelOk = false;
+        let channelCount = 0;
+        let channelTimer: number;
+        const checkIsChannelOk = () => {
+          return new Promise<boolean>((resolve, reject) => {
+            channelTimer = window.setInterval(() => {
+              if (isChannelOk) {
+                resolve(true);
+                clearInterval(channelTimer);
+              } else {
+                if (channelCount >= 5) {
+                  clearInterval(channelTimer);
+                  resolve(false);
+                } else {
+                  channelCount++;
+                }
+              }
+            }, 1000);
+          });
+        };
         const handleFileTotalMsg = (msgObj: TMessageType) => {
           if (msgObj.payload.includes(RECEIVE_PREFIX)) {
             const { count, size } = totalInfoGuard._decode(msgObj.payload);
             totalReceiveSize.value = size;
             totalReceiveCount.value = count;
             console.log(`收到文件总量信息:总共${count}个文件,${size}`);
+            isChannelOk = true;
             if (nknClient) {
               remove(
                 nknClient.eventListeners.message,
@@ -1096,7 +1115,20 @@ export default defineComponent({
             }
           }
         };
+        // 如果5s 内未收到,说明channel错了
         nknClient.onMessage(handleFileTotalMsg);
+        let checkChannel = await checkIsChannelOk();
+        if (!checkChannel) {
+          message.warning("接收码错误");
+          receiveInputLoading.value = false;
+          remove(
+            nknClient.eventListeners.message,
+            (v) => v === handleFileTotalMsg
+          );
+          return;
+        }
+        // 必须要listen 才能onSession
+        nknClient.listen();
         await useDelay(500);
         // const session = await nknClient.dial(remoteAddr);
         // console.log("session---------", session);
