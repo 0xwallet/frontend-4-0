@@ -970,12 +970,19 @@ export default defineComponent({
               // console.log("noViewer");
               return;
             }
-            const unscaledViewport = page.getViewport({ scale: 1 });
-            const scale = viewer.clientWidth / unscaledViewport.width;
+            // const unscaledViewport = page.getViewport({ scale: 1 });
+            // const scale = viewer.clientWidth / unscaledViewport.width;
             // console.log("calc-scale", scale);
-            const viewport = page.getViewport({ scale: 1 });
+            // https://stackoverflow.com/questions/35400722/pdf-image-quality-is-bad-using-pdf-js
+            // 清晰度解决,先放大,再缩小
+            const scale = 5;
+            const viewport = page.getViewport({ scale });
             canvas.height = viewport.height;
             canvas.width = viewport.width;
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            // viewer.style.width = Math.floor(viewport.width / scale) + "pt";
+            // viewer.style.height = Math.floor(viewport.height / scale) + "pt";
             page.render({
               canvasContext: canvas.getContext("2d"),
               viewport: viewport,
