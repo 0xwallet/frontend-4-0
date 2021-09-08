@@ -411,7 +411,6 @@ import { useUserStore } from "@/store";
 import { FILE_TYPE_MAP } from "@/constants";
 import pdfjsLib from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
-import pLimit from "p-limit";
 
 type SelectedItem = {
   id: string;
@@ -938,36 +937,45 @@ export default defineComponent({
         }/${space.toLowerCase()}/${fileId}/${
           fullName.slice(-1)[0]
         }?token=${token}`;
+        // console.log("pdfUrl", pdfUrl);
         isShowBottomPopup.value = true;
         currentPreviewPdfName.value = lastOfArray(fullName);
         isLoadingPdf.value = true;
         //
+        // console.log("window", window);
         const PDFjs = (window as any).pdfjsLib as typeof pdfjsLib;
+        // console.log("pdfjs", PDFjs);
         PDFjs.GlobalWorkerOptions.workerSrc =
-          "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.9.359/build/pdf.worker.min.js";
+          // "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.10.377/build/pdf.worker.min.js";
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.1.266/build/pdf.worker.min.js";
         let viewer: HTMLElement | null;
         let thePdf: PDFDocumentProxy;
         PDFjs.getDocument(pdfUrl)
           .promise.then((pdf) => {
             isLoadingPdf.value = false;
-            useDelay(100).then(() => {
+            useDelay(10).then(async () => {
               viewer = document.getElementById("pdfCanvas");
               thePdf = pdf;
               // 限制同时两个,提高响应速度
-              const renderPromiseLimit = pLimit(1);
+              const renderQueue = [];
               console.time("全部pdf页面渲染时间");
               for (let page = 1; page <= pdf.numPages; page++) {
                 const canvas = document.createElement("canvas");
                 canvas.className = "pdf-page-canvas";
                 viewer?.appendChild(canvas);
                 // renderPromiseLimit(() => renderPage(page, canvas));
-                renderPage(page, canvas);
+                renderQueue.push(() => renderPage(page, canvas));
+              }
+              let i = 0;
+              while (i < renderQueue.length) {
+                await renderQueue[i]();
+                i++;
               }
             });
           })
           .catch((err) => {
             isLoadingPdf.value = false;
-            // console.log("加载pdf出错,token过期", err);
+            console.log("加载pdf出错", err);
           });
         const renderPage = async (pageNumber: number, canvas: any) => {
           const page = await thePdf.getPage(pageNumber);
