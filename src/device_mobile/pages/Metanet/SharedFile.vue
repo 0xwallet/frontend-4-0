@@ -411,6 +411,7 @@ import { useUserStore } from "@/store";
 import { FILE_TYPE_MAP } from "@/constants";
 import pdfjsLib from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
+import pLimit from "p-limit";
 
 type SelectedItem = {
   id: string;
@@ -952,10 +953,14 @@ export default defineComponent({
             useDelay(100).then(() => {
               viewer = document.getElementById("pdfCanvas");
               thePdf = pdf;
+              // 限制同时两个,提高响应速度
+              const renderPromiseLimit = pLimit(1);
+              console.time("全部pdf页面渲染时间");
               for (let page = 1; page <= pdf.numPages; page++) {
                 const canvas = document.createElement("canvas");
                 canvas.className = "pdf-page-canvas";
                 viewer?.appendChild(canvas);
+                // renderPromiseLimit(() => renderPage(page, canvas));
                 renderPage(page, canvas);
               }
             });
@@ -964,29 +969,35 @@ export default defineComponent({
             isLoadingPdf.value = false;
             // console.log("加载pdf出错,token过期", err);
           });
-        const renderPage = (pageNumber: number, canvas: any) => {
-          thePdf.getPage(pageNumber).then((page) => {
-            if (!viewer) {
-              // console.log("noViewer");
-              return;
+        const renderPage = async (pageNumber: number, canvas: any) => {
+          const page = await thePdf.getPage(pageNumber);
+          if (!viewer) {
+            // console.log("noViewer");
+            return;
+          }
+          // const unscaledViewport = page.getViewport({ scale: 1 });
+          // const scale = viewer.clientWidth / unscaledViewport.width;
+          // console.log("calc-scale", scale);
+          // https://stackoverflow.com/questions/35400722/pdf-image-quality-is-bad-using-pdf-js
+          // 清晰度解决,先放大,再缩小
+          const scale = 2;
+          const viewport = page.getViewport({ scale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+          // viewer.style.width = Math.floor(viewport.width / scale) + "pt";
+          // viewer.style.height = Math.floor(viewport.height / scale) + "pt";
+          const renderTask = page.render({
+            canvasContext: canvas.getContext("2d"),
+            viewport: viewport,
+          });
+          // console.time(`${pageNumber}`);
+          return renderTask.promise.then(() => {
+            // console.timeEnd(`${pageNumber}`);
+            if (pageNumber === thePdf.numPages) {
+              console.timeEnd("全部pdf页面渲染时间");
             }
-            // const unscaledViewport = page.getViewport({ scale: 1 });
-            // const scale = viewer.clientWidth / unscaledViewport.width;
-            // console.log("calc-scale", scale);
-            // https://stackoverflow.com/questions/35400722/pdf-image-quality-is-bad-using-pdf-js
-            // 清晰度解决,先放大,再缩小
-            const scale = 5;
-            const viewport = page.getViewport({ scale });
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            canvas.style.width = "100%";
-            canvas.style.height = "100%";
-            // viewer.style.width = Math.floor(viewport.width / scale) + "pt";
-            // viewer.style.height = Math.floor(viewport.height / scale) + "pt";
-            page.render({
-              canvasContext: canvas.getContext("2d"),
-              viewport: viewport,
-            });
           });
         };
         //

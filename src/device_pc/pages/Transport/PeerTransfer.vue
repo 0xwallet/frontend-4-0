@@ -1080,33 +1080,12 @@ export default defineComponent({
         if (type === "link" && remoteAddr) {
           await nknClient.send(remoteAddr, SHAKE_HAND, { noReply: true });
         }
-        let isChannelOk = false;
-        let channelCount = 0;
-        let channelTimer: number;
-        const checkIsChannelOk = () => {
-          return new Promise<boolean>((resolve, reject) => {
-            channelTimer = window.setInterval(() => {
-              if (isChannelOk) {
-                resolve(true);
-                clearInterval(channelTimer);
-              } else {
-                if (channelCount >= 5) {
-                  clearInterval(channelTimer);
-                  resolve(false);
-                } else {
-                  channelCount++;
-                }
-              }
-            }, 1000);
-          });
-        };
         const handleFileTotalMsg = (msgObj: TMessageType) => {
           if (msgObj.payload.includes(RECEIVE_PREFIX)) {
             const { count, size } = totalInfoGuard._decode(msgObj.payload);
             totalReceiveSize.value = size;
             totalReceiveCount.value = count;
             console.log(`收到文件总量信息:总共${count}个文件,${size}`);
-            isChannelOk = true;
             if (nknClient) {
               remove(
                 nknClient.eventListeners.message,
@@ -1115,18 +1094,7 @@ export default defineComponent({
             }
           }
         };
-        // 如果5s 内未收到,说明channel错了
         nknClient.onMessage(handleFileTotalMsg);
-        let checkChannel = await checkIsChannelOk();
-        if (!checkChannel) {
-          message.warning("接收码错误");
-          receiveInputLoading.value = false;
-          remove(
-            nknClient.eventListeners.message,
-            (v) => v === handleFileTotalMsg
-          );
-          return;
-        }
         // 必须要listen 才能onSession
         nknClient.listen();
         await useDelay(500);
