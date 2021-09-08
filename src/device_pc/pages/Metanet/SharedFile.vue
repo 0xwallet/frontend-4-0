@@ -118,7 +118,7 @@
                 </div>
                 <div class="flex-1"></div>
                 <div>
-                  <a-button class="mr-2" @click="onCollectShare">
+                  <a-button shape="round" class="mr-2" @click="onCollectShare">
                     <HeartFilled
                       v-if="isCurrentShareCollected"
                       :style="{ color: '#faad14' }"
@@ -129,6 +129,7 @@
                     }}</span>
                   </a-button>
                   <a-button
+                    shape="round"
                     :disabled="selectedRowKeys.length === 0"
                     @click="
                       saveToMetanetModalPreAction(
@@ -141,6 +142,7 @@
                     保存到网盘
                   </a-button>
                   <a-button
+                    shape="round"
                     :disabled="selectedRowKeys.length === 0"
                     class="mr-2"
                     @click="onBatchDownload"
@@ -149,6 +151,7 @@
                     下载
                   </a-button>
                   <a-button
+                    shape="round"
                     :disabled="selectedRowKeys.length === 0"
                     @click="onBatchScore"
                   >

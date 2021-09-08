@@ -32,7 +32,7 @@
         </div>
         <div
           :style="{
-            'font-size': '24px',
+            'font-size': currentLocale === 'zh_CN' ? '24px' : '20px',
           }"
           class="mb-2"
         >
@@ -287,7 +287,7 @@ export default defineComponent({
     XLocaleSwither,
   },
   setup() {
-    const { t } = useI18n();
+    const { t, locale: currentLocale } = useI18n();
     const userStore = useUserStore();
     const router = useRouter();
     /** logo和名称tips */
@@ -387,6 +387,7 @@ export default defineComponent({
       };
     }
     return {
+      currentLocale,
       ...useLogoSvgAndName(),
       ...useQuotes(),
       ...useLoginForm(),
@@ -428,7 +429,7 @@ export default defineComponent({
 }
 #leftSide {
   // width: 440px;
-  width: 560px; // 英语标题不换行, 这里加多100
+  width: 440px; // 英语标题不换行, 这里加多100
 }
 #rightSide {
   flex: 1;

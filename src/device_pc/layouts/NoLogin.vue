@@ -10,14 +10,14 @@
         <img class="w-7 h-7" src="~@/assets/images/logo_icon.png" alt="" />
       </div>
       <div>
-        <a-button class="mr-2" type="primary" @click="onClickHeaderSignIn"
+        <a-button shape="round" class="mr-2" type="primary" @click="onClickHeaderSignIn"
           >注册</a-button
         >
-        <a-button @click="onClickHeaderLogin">登录</a-button>
+        <a-button shape="round" @click="onClickHeaderLogin">登录</a-button>
       </div>
     </div>
     <div class="px-20">
-      <div class="bg-white">
+      <div class="bg-white rounded-xl">
         <router-view></router-view>
       </div>
     </div>

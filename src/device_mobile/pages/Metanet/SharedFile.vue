@@ -956,7 +956,6 @@ export default defineComponent({
             useDelay(10).then(async () => {
               viewer = document.getElementById("pdfCanvas");
               thePdf = pdf;
-              // 限制同时两个,提高响应速度
               const renderQueue = [];
               console.time("全部pdf页面渲染时间");
               for (let page = 1; page <= pdf.numPages; page++) {
@@ -966,11 +965,12 @@ export default defineComponent({
                 // renderPromiseLimit(() => renderPage(page, canvas));
                 renderQueue.push(() => renderPage(page, canvas));
               }
-              let i = 0;
-              while (i < renderQueue.length) {
-                await renderQueue[i]();
-                i++;
-              }
+              // let i = 0;
+              // while (i < renderQueue.length) {
+              //   await renderQueue[i]();
+              //   i++;
+              // }
+              renderQueue.reduce((a, b) => a.then(b), Promise.resolve());
             });
           })
           .catch((err) => {
@@ -978,11 +978,11 @@ export default defineComponent({
             console.log("加载pdf出错", err);
           });
         const renderPage = async (pageNumber: number, canvas: any) => {
-          const page = await thePdf.getPage(pageNumber);
           if (!viewer) {
             // console.log("noViewer");
             return;
           }
+          const page = await thePdf.getPage(pageNumber);
           // const unscaledViewport = page.getViewport({ scale: 1 });
           // const scale = viewer.clientWidth / unscaledViewport.width;
           // console.log("calc-scale", scale);

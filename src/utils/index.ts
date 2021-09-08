@@ -1,5 +1,5 @@
 import { classMultiClient, TSession } from "nkn";
-import { LEN_OF_HEADER_U8_LENGTH } from "@/constants";
+import { LEN_OF_HEADER_U8_LENGTH, PRODUCT_NAME } from "@/constants";
 /** 延迟函数,默认1000毫秒(1秒) */
 export const useDelay = (t = 1000): Promise<void> => {
   return new Promise<void>((r) => setTimeout(r, t));
@@ -100,7 +100,7 @@ export const getShareInfoByUriAndCode = ({
   const headText = withHead ? "链接: " : "";
   const isCodeEmpty = code.length === 0 || code === "无";
   const codeText = isCodeEmpty ? "" : ` 访问码: ${code}`;
-  const tailText = withTail ? `\n--来自0xWallet ${username}的分享` : "";
+  const tailText = withTail ? `\n--来自${PRODUCT_NAME} ${username}的分享` : "";
   const text = `${headText}${url}${withCode ? codeText : ""}${tailText}`;
   return text;
 };

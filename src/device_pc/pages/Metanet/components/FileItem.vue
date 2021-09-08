@@ -885,7 +885,7 @@ import {
   lastOfArray,
   makeShareUrlByUri,
 } from "@/utils";
-import { FILE_TYPE_MAP } from "@/constants";
+import { FILE_TYPE_MAP, PRODUCT_NAME } from "@/constants";
 import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useClipboard, onClickOutside } from "@vueuse/core";
@@ -1647,7 +1647,7 @@ export default defineComponent({
         const { url, code } = currentSuccessShare;
         const { username } = useUserStore();
         const codeText = code ? `访问码: ${code}` : "";
-        const text = `链接: ${url} ${codeText} \n--来自0xWallet ${username}的分享`;
+        const text = `链接: ${url} ${codeText} \n--来自${PRODUCT_NAME} ${username}的分享`;
         useClipboard({ read: false })
           .copy(text)
           .then(() => message.success(t("metanet.copySuccess")));
