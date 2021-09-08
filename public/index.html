@@ -26,7 +26,7 @@
       <div
         style="
           position: fixed;
-          background-color: #F0F2F5;
+          background-color: #f0f2f5;
           top: 0;
           bottom: 0;
           left: 0;
@@ -84,6 +84,20 @@
       src="https://cdn.jsdelivr.net/npm/moment@2.29.1/locale/en-gb.js"
     ></script>
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.9.359/build/pdf.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/vconsole@3.9.1/dist/vconsole.min.js"
+    ></script>
+    <script>
+      // VConsole will be exported to `window.VConsole` by default.
+      window.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          var vConsole = new window.VConsole();
+        },
+        { once: true }
+      );
+    </script>
     <!-- built files will be auto injected -->
   </body>
 </html>
