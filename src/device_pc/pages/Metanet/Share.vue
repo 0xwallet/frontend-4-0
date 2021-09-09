@@ -537,6 +537,7 @@ export default defineComponent({
     /** 表格里名字的点击 */
     const onClickTableItemName = async (record: TTableShareFileItem) => {
       // console.log("clicktablename", record);
+      // 1.如果是文件夹
       if (record.userFile.isDir) {
         // const folderArr = await getLastItemIdByNameArr(
         //   record.userFile.fullName
@@ -548,6 +549,20 @@ export default defineComponent({
           query: {
             id: windowId,
             path: "~/" + record.userFile.fullName.join("/"),
+          },
+        });
+      } else {
+        //2.是文件的点击
+        const windowId = baseStore.getNewOpenWindowId();
+        const predirNameList = record.userFile.fullName.slice(0, -1);
+        router.push({
+          name: "MetanetFile",
+          query: {
+            id: windowId,
+            path: predirNameList.length ? "~/" + predirNameList.join("/") : "~",
+          },
+          params: {
+            name: lastOfArray(record.userFile.fullName),
           },
         });
       }

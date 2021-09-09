@@ -1,113 +1,129 @@
 <template>
-  <div class="w-full h-full bg-white">
-    <MHeader :title="$t('common.signIn')" class="van-hairline--bottom" />
-    <van-form class="pt-4 mb-6 bg-white" @submit="onSubmit">
-      <div class="px-2 mb-6 font-16">
-        <van-field
-          size="large"
-          :style="{
-            'font-size': '16px',
-            background: 'transparent',
-            'padding-bottom': '20px',
-          }"
-          v-model="formLogin.email"
-          name="邮箱"
-          placeholder="邮箱"
-        >
-          <!-- :rules="[{ required: true, message: '请填写邮箱' }]" -->
-          <template #left-icon>
-            <van-icon class="mr-2 font-16" name="envelop-o" />
-          </template>
-        </van-field>
-        <van-field
-          size="large"
-          :style="{
-            'font-size': '16px',
-            background: 'transparent',
-            'padding-bottom': '20px',
-          }"
-          left-icon="smile-o"
-          v-model="formLogin.password"
-          :type="isPasswordVisible ? 'text' : 'password'"
-          name="密码"
-          placeholder="密码"
-        >
-          <!-- :rules="[{ required: true, message: '请填写密码' }]" -->
-          <template #left-icon>
-            <van-icon
-              @click="onSwitchIsPasswordVisible"
-              v-show="isPasswordVisible"
-              class="mr-2"
-              name="eye-o"
-            />
-            <van-icon
-              @click="onSwitchIsPasswordVisible"
-              v-show="!isPasswordVisible"
-              class="mr-2 font-16"
-              name="closed-eye"
-            />
-          </template>
-        </van-field>
-        <!-- vant 的边框bug ,这里价格透明的去显示出van-field 原来的边框 -->
+  <div class="bg-white h-full">
+    <div class="mb-10 px-6 pt-6">
+      <!-- logo -->
+      <div
+        class="mb-6 w-20 h-20 flex items-center justify-center"
+        :style="{
+          filter: 'drop-shadow(0px 0px 8px #231F20)',
+        }"
+      >
         <div
-          class="mx-8"
+          v-html="svgStr"
           :style="{
-            'border-bottom': '1px solid transparent',
+            transform: 'scale(3)',
           }"
         ></div>
       </div>
-      <div class="px-6 mb-6">
-        <van-checkbox v-model="isRememberMe" class="font-14">
-          <span class="text-gray"> 记住我 </span>
-        </van-checkbox>
-      </div>
-      <div class="px-6">
-        <van-button
-          class="font-16 h-12"
-          round
-          block
-          type="primary"
-          native-type="submit"
-          :loading="isLoadingSubmit"
-          :disabled="isFormUnfinished"
-        >
-          登录
-        </van-button>
-      </div>
-    </van-form>
-    <div class="flex items-center justify-between px-6 mb-10">
-      <router-link to="/resetpassword" class="font-14 ant-blue">
-        忘记密码?
-      </router-link>
-      <router-link to="/register" class="font-14 ant-blue">
-        马上注册
-      </router-link>
-    </div>
-    <div
-      class="relative mx-6"
-      :style="{
-        'border-top': '1px solid rgba(0,0,0,.1)',
-      }"
-    >
       <div
-        class="absolute bg-white font-12 px-6"
         :style="{
-          color: 'rgba(0,0,0,.2)',
-          top: '-10px',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          'font-size': currentLocale === 'zh_CN' ? '24px' : '18px',
+        }"
+        class="mb-2"
+      >
+        {{ $t("pageLogin.welcomeUsage") }}
+        <span class="font-bold">{{ $t("pageLogin.productVer") }}</span>
+        <!-- 为 <span class="font-bold">Web 3.0</span> 而生的
+          <span class="font-bold">比特币钱包</span>
+          解决方案 -->
+      </div>
+      <div
+        class="text-gray-400 mb-4 font-14"
+        :style="{
+          'line-height': '2',
         }"
       >
-        其他登录方式
+        {{ $t("pageLogin.signInDesc") }}
       </div>
-      <div class="flex items-center justify-center pt-6">
-        <div class="flex flex-col items-center">
-          <img
-            src="~@/assets/images/nkn_gray.png"
-            class="w-8 h-8 mb-1"
-            alt=""
-          />
-          <span class="font-12 text-gray">nMobile</span>
+      <div class="mb-2 font-12 font-bold">
+        {{ $t("pageLogin.emailLabel") }}
+      </div>
+      <div class="mb-4">
+        <van-field v-model="formLogin.email" />
+      </div>
+      <div class="mb-2 font-12 font-bold">
+        {{ $t("pageLogin.passwordLabel") }}
+      </div>
+      <div class="mb-4">
+        <van-field type="password" v-model="formLogin.password" />
+      </div>
+      <div class="mb-4">
+        <van-checkbox
+          shape="square"
+          icon-size="16px"
+          v-model="isRememberMe"
+          class="font-14"
+          :style="{
+            'border-radius': '2px',
+          }"
+        >
+          <span> {{ $t("pageLogin.rememberMe") }} </span>
+        </van-checkbox>
+      </div>
+      <div class="flex items-center mb-10">
+        <router-link to="/resetpassword" class="w-20 font-14 ant-blue">
+          {{ $t("pageLogin.forgetPassword") }}
+        </router-link>
+        <div
+          class="flex-1 flex items-center justify-center text-gray-400"
+          :style="{
+            'font-size': '24px',
+          }"
+        >
+          <a href="javascript:;" class="px-2">
+            <img src="~@/assets/images/nkn_gray.png" class="w-6 h-6" alt="" />
+          </a>
+          <a href="javascript:;" class="px-2">
+            <!-- <DeploymentUnitOutlined /> -->
+            <img src="~@/assets/images/nkn_gray.png" class="w-6 h-6" alt="" />
+          </a>
+          <a href="javascript:;" class="px-2">
+            <img src="~@/assets/images/nkn_gray.png" class="w-6 h-6" alt="" />
+          </a>
+        </div>
+        <van-button
+          type="primary"
+          :loading="isLoadingSubmit"
+          @click="onSubmit"
+          class="w-20 font-12 font-bold px-6"
+          :style="{
+            'border-radius': '4px',
+            'box-shadow': '0 2px 6px #1890FF',
+          }"
+          >{{ $t("pageLogin.loginButton") }}</van-button
+        >
+      </div>
+      <div class="font-14 text-center text-gray-500 mb-12 relative">
+        {{ $t("pageLogin.notAccountyet") }}
+        <router-link to="/register" class="ant-blue">{{
+          $t("pageLogin.signUpNow")
+        }}</router-link>
+        <span
+          class="pb-1 relative"
+          :style="{
+            bottom: '2px',
+          }"
+          >👉</span
+        >
+        <div
+          class="absolute"
+          :style="{
+            top: '1px',
+            right: '2px',
+          }"
+        >
+          <MLocaleSwither class="cursor-pointer font-20 text-gray-500" />
+        </div>
+      </div>
+      <div>
+        <div class="mb-2 text-center font-12 text-gray-400">
+          Copyright © 2021 {{ $t("pageLogin.productName") }}
+        </div>
+        <div class="text-center font-12 text-gray-400">
+          Powered by
+          <a href="https://www.owaf.org" target="_blank" class="ant-blue"
+            >OWAF</a
+          >
         </div>
       </div>
     </div>
@@ -117,16 +133,25 @@
 <script lang="ts">
 import { apiEmailLogin } from "@/apollo/api";
 import { useUserStore } from "@/store";
+import { useSvgWhiteLogo } from "@/utils";
 import { Toast } from "vant";
 import { computed, defineComponent, reactive, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { MHeader } from "../../components";
+import { MLocaleSwither } from "../../components";
 
 export default defineComponent({
   components: {
-    MHeader,
+    MLocaleSwither,
   },
   setup() {
+    const { t, locale: currentLocale } = useI18n();
+    /** logo和名称tips */
+    function useLogoSvgAndName() {
+      return {
+        svgStr: useSvgWhiteLogo(),
+      };
+    }
     const route = useRoute();
     const router = useRouter();
     const formLogin = reactive({
@@ -162,12 +187,16 @@ export default defineComponent({
       const redirectFullPath = route.query.redirect as string;
       if (redirectFullPath) {
         router.push(redirectFullPath);
+      } else {
+        router.push("/account");
       }
     };
     const isPasswordVisible = ref(false);
     const onSwitchIsPasswordVisible = () =>
       (isPasswordVisible.value = !isPasswordVisible.value);
     return {
+      currentLocale,
+      ...useLogoSvgAndName(),
       formLogin,
       isFormUnfinished,
       isRememberMe,
@@ -180,9 +209,14 @@ export default defineComponent({
 });
 </script>
 
-<style scoped>
-/* header { */
-/* box-shadow: 0 2px 18px 0 rgba(0, 0, 0, 0.07); */
-/* border-bottom: 1px solid rgba(0, 0, 0, 0.07); */
-/* } */
+<style lang="less" scoped>
+.van-cell {
+  background-color: transparent;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 6px 12px;
+}
+:deep(.van-checkbox__icon .van-icon) {
+  border-radius: 2px;
+}
 </style>

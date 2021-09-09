@@ -345,7 +345,8 @@ export default defineComponent({
           email,
         });
         if (resultSignInFullPath.err) return;
-        router.replace("/");
+        // 登录成功后导航去第一个文件tab
+        router.push("/metanet/file?id=1&path=~");
       };
       return {
         form,

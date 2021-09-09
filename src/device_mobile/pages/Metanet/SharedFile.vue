@@ -32,7 +32,31 @@
           />
           <span>{{ expiredText }}</span>
         </div>
-        <div @click="onShowRightPopup">
+        <div @click="onUserIconClick">
+          <!-- 头像 -->
+          <div
+            v-if="isUserLoggedIn"
+            class="
+              rounded-full
+              w-5
+              h-5
+              flex
+              items-center
+              justify-center
+              text-white
+              font-12
+            "
+            :style="{
+              border: '.5px solid white',
+              background:
+                'linear-gradient(45deg, rgb(0, 172, 193), rgb(0, 213, 226))',
+            }"
+          >
+            {{ myInfo.userName[0].toUpperCase() }}
+          </div>
+          <van-icon v-else color="#fff" size="20px" name="user-circle-o" />
+        </div>
+        <!-- <div @click="onShowRightPopup">
           <van-icon
             :style="{
               transform: 'rotate(90deg)',
@@ -41,7 +65,7 @@
             color="white"
             name="more-o"
           />
-        </div>
+        </div> -->
       </header>
       <template v-if="!isValid">
         <div>
@@ -306,7 +330,7 @@
       />
     </van-popup>
     <!-- 右边工具栏 -->
-    <van-popup
+    <!-- <van-popup
       v-model:show="isShowRightPopup"
       position="right"
       :style="{ height: '100%' }"
@@ -340,7 +364,7 @@
           登出
         </div>
       </div>
-    </van-popup>
+    </van-popup> -->
     <!-- 底部预览pdf弹窗 -->
     <van-popup
       v-model:show="isShowBottomPopup"
@@ -499,6 +523,18 @@ export default defineComponent({
         return true;
       }
       return false;
+    };
+    const myInfo = computed(() => {
+      const userName = userStore.username;
+      return { userName };
+    });
+    /** header 右边头像的点击 */
+    const onUserIconClick = () => {
+      if (checkLoginStatusAndRedirect()) {
+        return;
+      }
+      // 已经登录就跳转到account
+      router.push("/account");
     };
     /** 收藏 */
     const onCollect = async () => {
@@ -703,34 +739,34 @@ export default defineComponent({
         });
       }
     };
-
+    /**  */
     /** 右边的弹层 */
-    function useRightPopup() {
-      const isShowRightPopup = ref(false);
-      const onShowRightPopup = () => {
-        isShowRightPopup.value = true;
-      };
-      const onCloseRightPopup = () => {
-        isShowRightPopup.value = false;
-      };
-      const onLogIn = () => {
-        router.push({
-          name: "Login",
-          query: { redirect: route.fullPath },
-        });
-      };
-      const onLogOut = () => {
-        localStorage.clear();
-        window.location.reload();
-      };
-      return {
-        isShowRightPopup,
-        onShowRightPopup,
-        onCloseRightPopup,
-        onLogIn,
-        onLogOut,
-      };
-    }
+    // function useRightPopup() {
+    //   const isShowRightPopup = ref(false);
+    //   const onShowRightPopup = () => {
+    //     isShowRightPopup.value = true;
+    //   };
+    //   const onCloseRightPopup = () => {
+    //     isShowRightPopup.value = false;
+    //   };
+    //   const onLogIn = () => {
+    //     router.push({
+    //       name: "Login",
+    //       query: { redirect: route.fullPath },
+    //     });
+    //   };
+    //   const onLogOut = () => {
+    //     localStorage.clear();
+    //     window.location.reload();
+    //   };
+    //   return {
+    //     isShowRightPopup,
+    //     onShowRightPopup,
+    //     onCloseRightPopup,
+    //     onLogIn,
+    //     onLogOut,
+    //   };
+    // }
     /** 是否正在加载pdf */
     const isLoadingPdf = ref(false);
     const isShowBottomPopup = ref(false);
@@ -1055,6 +1091,8 @@ export default defineComponent({
       isLoadingConfirmCode,
       isCurrentShareCollected,
       isUserLoggedIn,
+      myInfo,
+      onUserIconClick,
       onCollect,
       onDownload,
       saveToMetanetModalPreAction,
@@ -1078,7 +1116,7 @@ export default defineComponent({
       lastOfArray,
       cacheFormatDescription,
       onShowViewer,
-      ...useRightPopup(),
+      // ...useRightPopup(),
       ...useBottomPopup(),
     };
   },

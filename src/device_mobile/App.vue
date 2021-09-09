@@ -1,11 +1,10 @@
 <template>
-  <div
-    :style="{
-      background: '#F7F8FA',
-    }"
-    class="w-full h-full"
-  >
-    <router-view />
+  <div class="relative w-full h-full bg-gray-100">
+    <router-view v-slot="{ Component }">
+      <transition name="no-mode-fade" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
@@ -120,7 +119,7 @@ html {
 // vue 动画
 .no-mode-fade-enter-active,
 .no-mode-fade-leave-active {
-  transition: opacity 0.3s;
+  transition: opacity 0.2s;
 }
 
 .no-mode-fade-enter-from,

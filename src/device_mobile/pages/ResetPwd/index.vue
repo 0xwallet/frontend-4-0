@@ -1,158 +1,122 @@
 <template>
-  <div class="w-full h-full bg-white">
-    <MHeader
-      :title="$t('pageLogin.forgetFormTitle')"
-      class="van-hairline--bottom"
-    />
-    <van-form class="pt-4 mb-6 bg-white" @submit="onSubmit">
-      <div class="px-2 mb-6 font-16">
-        <van-field
-          size="large"
-          :style="{
-            'font-size': '16px',
-            background: 'transparent',
-            'padding-bottom': '20px',
-          }"
-          v-model="formReset.email"
-          name="邮箱"
-          placeholder="邮箱"
-        >
-          <!-- :rules="[{ required: true, message: '请填写邮箱' }]" -->
-          <template #left-icon>
-            <van-icon class="mr-2 font-16" name="envelop-o" />
-          </template>
-        </van-field>
-        <van-field
-          size="large"
-          :style="{
-            'font-size': '16px',
-            background: 'transparent',
-            'padding-bottom': '20px',
-          }"
-          v-model="formReset.code"
-          name="验证码"
-          placeholder="验证码"
-        >
-          <template #left-icon>
-            <div class="h-full flex items-center justify-center">
-              <van-icon class="mr-2 font-16" name="font-o" />
-            </div>
-          </template>
-          <template #button>
-            <van-button
-              round
-              class="rounded-full"
-              size="small"
-              :style="{
-                position: 'absolute',
-                right: '0px',
-                top: '-1px',
-              }"
-              type="primary"
-              :disabled="!formReset.email || isLockSendEamil"
-              @click="onSendEmailCode"
-            >
-              {{ isLockSendEamil ? countdownSendEamil : "发送验证码" }}
-            </van-button>
-          </template>
-        </van-field>
-        <van-field
-          size="large"
-          :style="{
-            'font-size': '16px',
-            background: 'transparent',
-            'padding-bottom': '20px',
-          }"
-          left-icon="smile-o"
-          v-model="formReset.password"
-          :type="isPasswordVisible ? 'text' : 'password'"
-          name="新密码"
-          placeholder="新的密码(六位数以上)"
-        >
-          <!-- :rules="[{ required: true, message: '请填写密码' }]" -->
-          <template #left-icon>
-            <van-icon
-              @click="onSwitchIsPasswordVisible"
-              v-show="isPasswordVisible"
-              class="mr-2"
-              name="eye-o"
-            />
-            <van-icon
-              @click="onSwitchIsPasswordVisible"
-              v-show="!isPasswordVisible"
-              class="mr-2 font-16"
-              name="closed-eye"
-            />
-          </template>
-        </van-field>
-        <van-field
-          size="large"
-          :style="{
-            'font-size': '16px',
-            background: 'transparent',
-            'padding-bottom': '20px',
-          }"
-          left-icon="smile-o"
-          v-model="formReset.repeatPassword"
-          :type="isRepeatPasswordVisible ? 'text' : 'password'"
-          name="确认新密码"
-          placeholder="确认新密码"
-        >
-          <!-- :rules="[{ required: true, message: '请填写密码' }]" -->
-          <template #left-icon>
-            <van-icon
-              @click="onSwitchIsRepeatPasswordVisible"
-              v-show="isRepeatPasswordVisible"
-              class="mr-2"
-              name="eye-o"
-            />
-            <van-icon
-              @click="onSwitchIsRepeatPasswordVisible"
-              v-show="!isRepeatPasswordVisible"
-              class="mr-2 font-16"
-              name="closed-eye"
-            />
-          </template>
-        </van-field>
-        <div
-          :style="{
-            height: '1px',
-          }"
-        ></div>
-      </div>
-      <div class="px-6">
-        <van-button
-          class="font-16 h-12"
-          round
-          block
-          type="primary"
-          native-type="submit"
-          :loading="isLoadingSubmit"
-          :disabled="isFormUnfinished"
-        >
-          {{ $t("common.resetText") }}
-        </van-button>
-      </div>
-    </van-form>
-    <div class="text-center text-gray font-14 mb-16">
-      <router-link to="/login" class="ant-blue">{{
-        $t("pageLogin.backLoginButton")
-      }}</router-link>
-      <span
-        class="pb-1 relative"
+  <div class="pt-6 bg-gray-100 h-full">
+    <!-- logo -->
+    <div
+      class="mb-6 h-20 flex items-center justify-center"
+      :style="{
+        filter: 'drop-shadow(0px 0px 8px #231F20)',
+      }"
+    >
+      <div
+        v-html="svgStr"
         :style="{
-          bottom: '2px',
+          transform: 'scale(3)',
         }"
-        >👉</span
+      ></div>
+    </div>
+    <!-- form -->
+    <main class="px-3">
+      <div
+        class="bg-white px-3 rounded"
+        :style="{
+          'border-top': '2px solid #1890FF',
+          'box-shadow': '0 4px 8px rgba(0, 0, 0, 0.03)',
+        }"
       >
+        <div
+          class="font-16 ant-blue font-semibold py-4 mb-2"
+          :style="{
+            'border-bottom': '1px solid #f9f9f9',
+          }"
+        >
+          {{ $t("pageLogin.forgetFormTitle") }}
+        </div>
+        <!-- 表单区 start -->
+        <div class="mb-2 font-12 font-bold">
+          {{ $t("pageLogin.emailLabel") }}
+        </div>
+        <div class="mb-4">
+          <van-field v-model="formReset.email" />
+        </div>
+        <div class="mb-2 font-12 font-bold">
+          {{ $t("pageLogin.verification") }}
+        </div>
+        <div class="mb-4">
+          <van-field v-model="formReset.email">
+            <template #button>
+              <!-- <van-button size="small" type="primary">发送</van-button> -->
+              <div
+                class="sendBtn font-12 font-semibold text-white"
+                @click="onSendEmailCode"
+              >
+                {{
+                  isLockSendEamil ? countdownSendEamil : $t("pageLogin.send")
+                }}
+              </div>
+            </template>
+          </van-field>
+        </div>
+        <div class="mb-2 font-12 font-bold">
+          {{ $t("pageLogin.passwordLabel") }}
+        </div>
+        <div class="mb-4">
+          <van-field type="password" v-model="formReset.password" />
+        </div>
+        <div class="mb-2 font-12 font-bold">
+          {{ $t("pageLogin.passwordLabel2") }}
+        </div>
+        <div class="mb-6">
+          <van-field type="password" v-model="formReset.repeatPassword" />
+        </div>
+        <!-- 表单区 enc -->
+        <div class="pb-6">
+          <van-button
+            block
+            class="font-12 font-semibold"
+            :style="{
+              'border-radius': '4px',
+              'box-shadow': '0 2px 6px #1890FF',
+            }"
+            type="primary"
+            @click="onSubmit"
+          >
+            {{ $t("common.resetText") }}</van-button
+          >
+        </div>
+      </div>
+    </main>
+    <div class="mt-6 bg-gray-100">
+      <div class="font-14 text-center text-gray-500 mb-12">
+        <router-link to="/login" class="ant-blue">{{
+          $t("pageLogin.backLoginButton")
+        }}</router-link>
+        <span
+          class="pb-1 relative"
+          :style="{
+            bottom: '2px',
+          }"
+          >👉</span
+        >
+      </div>
+      <div>
+        <div class="mb-2 text-center font-12 text-gray-400">
+          Copyright © 2021 {{ $t("pageLogin.productName") }}
+        </div>
+        <div class="text-center font-12 text-gray-400">
+          Powered by
+          <a href="https://www.owaf.org" target="_blank" class="ant-blue"
+            >OWAF</a
+          >
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { apiResetPwd, apiSendSignUpEmailCaptcha, apiSignUp } from "@/apollo/api";
+import { apiResetPwd, apiSendSignUpEmailCaptcha } from "@/apollo/api";
 import { REG_OBJ } from "@/constants";
-import { useDelay } from "@/utils";
+import { useDelay, useSvgWhiteLogo } from "@/utils";
 import { Toast } from "vant";
 import {
   computed,
@@ -164,13 +128,15 @@ import {
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { MHeader } from "../../components";
 
 export default defineComponent({
-  components: {
-    MHeader,
-  },
   setup() {
+    /** logo和名称tips */
+    function useLogoSvgAndName() {
+      return {
+        svgStr: useSvgWhiteLogo(),
+      };
+    }
     const { t } = useI18n();
     const router = useRouter();
     const formReset = reactive({
@@ -272,6 +238,7 @@ export default defineComponent({
       useDelay().then(() => router.replace({ name: "Login" }));
     };
     return {
+      ...useLogoSvgAndName(),
       formReset,
       isLoadingSubmit,
       isFormUnfinished,
@@ -288,5 +255,29 @@ export default defineComponent({
 });
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+.van-cell {
+  background-color: transparent;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 6px 12px;
+  overflow: unset; // 为了让sendBtn的阴影显示出来
+}
+:deep(.van-checkbox__icon .van-icon) {
+  border-radius: 2px;
+}
+
+.sendBtn {
+  position: absolute;
+  top: -7px;
+  bottom: -7px;
+  right: -12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  background: #1890ff;
+  border-radius: 0px 4px 4px 0;
+  box-shadow: 0 0px 4px #1890ff;
+}
 </style>

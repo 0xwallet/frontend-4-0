@@ -32,6 +32,7 @@ import {
   Popup,
   Cascader,
   Empty,
+  ActionSheet,
   Loading,
 } from "vant";
 mobileApp
@@ -47,6 +48,7 @@ mobileApp
   .use(Popup)
   .use(Cascader)
   .use(Empty)
+  .use(ActionSheet)
   .use(Loading);
 
 mobileApp.use(createPinia()).use(router).mount("#app");

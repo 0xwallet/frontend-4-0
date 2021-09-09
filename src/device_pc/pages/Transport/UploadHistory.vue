@@ -256,6 +256,10 @@ export default defineComponent({
               ? "~/" + fullName.slice(0, -1).join("/")
               : "~",
           },
+          params: {
+            // TODO 万一有重名文件?
+            name: lastOfArray(record.fullName),
+          },
         });
       }
     };

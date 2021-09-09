@@ -249,7 +249,12 @@
       </a-layout-sider>
       <a-layout prefixCls="ant-layout">
         <a-layout-header class="">
-          <div class="bg-white flex items-center px-0 h-12">
+          <div
+            class="bg-white flex items-center px-0"
+            :style="{
+              'min-height': '48px',
+            }"
+          >
             <menu-unfold-outlined
               v-if="collapsed"
               class="trigger"
@@ -280,6 +285,7 @@
                   class="
                     relative
                     border-solid border
+                    whitespace-nowrap
                     rounded-sm
                     py-px
                     pl-3
@@ -1000,10 +1006,13 @@ export default defineComponent({
             title: t("common.logoutTip"),
             content: t("common.logoutMessage"),
             onOk: () => {
-              userStore.signOutAndClear();
-              setTimeout(() => {
-                window.location.reload();
-              }, 0);
+              return new Promise<void>((resolve) => {
+                userStore.signOutAndClear();
+                setTimeout(() => {
+                  resolve();
+                  router.push("/login");
+                }, 300);
+              });
             },
           });
         } else {
@@ -1181,7 +1190,7 @@ export default defineComponent({
         return userStore.isLoadingMultiClient;
       });
       const nknStatusCount = ref(0);
-      const stop = watch(
+      watch(
         () => isLoadingNknMulticlient.value,
         (newVal) => {
           if (newVal === false) {
@@ -1190,7 +1199,6 @@ export default defineComponent({
                 nknStatusCount.value = multiClient.readyClientIDs().length;
               }
             });
-            stop();
           }
         },
         { immediate: true }

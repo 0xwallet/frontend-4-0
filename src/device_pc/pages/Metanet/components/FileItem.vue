@@ -2587,11 +2587,27 @@ export default defineComponent({
               // 排序文件夹,上级目录... 到表格最前面
               .sort(sortByDirType);
             // console.log("tabledData", tableData);
+            // 如果路由里有参数
+            if (paramsFileName.value) {
+              const found = tableData.value.find(
+                (item) =>
+                  item && lastOfArray(item.fullName) === paramsFileName.value
+              );
+              if (found) {
+                selectedRows.value.push(found);
+                selectedRowKeys.value.push(found.id);
+                // currentClickItem.id = found.id;
+                // currentClickItem.name = lastOfArray(found.fullName);
+              }
+              paramsFileName.value = "";
+            }
             tableLoading.value = false;
             resolve(resultQueryFile.data.driveListFiles);
           });
         });
       };
+      /** 路由params里的name */
+      const paramsFileName = ref("");
       onActivated(() => {
         // 只会执行一次?
         // console.log("onActivated");
@@ -2614,6 +2630,8 @@ export default defineComponent({
             query: { id: routeWindowId, path: "~" },
           });
         };
+        paramsFileName.value = (route.params.name as string) || "";
+        // console.log("paramsFileName", paramsFileName.value);
         if (routeDirPath) {
           // 删除原来~ 后面的路径
           historyDir.value.splice(1);
