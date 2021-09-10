@@ -57,7 +57,7 @@ export const apiEmailLogin = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -75,7 +75,7 @@ export const apiNknOnline = async (): TApiRes<ResponseNknOnline> => {
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -97,7 +97,7 @@ export const apiSendSignInEmailCaptcha = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -121,7 +121,7 @@ export const apiSendSignUpEmailCaptcha = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -147,7 +147,7 @@ export const apiSignUp = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -172,7 +172,7 @@ export const apiResetPwd = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -202,7 +202,7 @@ export const apiQueryMe = async (): TApiRes<ResponseQureyMe> => {
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -221,7 +221,7 @@ export const apiQueryMeAvatar = async (): TApiRes<ResponseMeAvatar> => {
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -240,7 +240,7 @@ export const apiQueryMeSpace = async (): TApiRes<ResponseQueryMeSpace> => {
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -286,7 +286,7 @@ export const apiQueryFileByDir = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -308,7 +308,7 @@ export const apiQueryDirSize = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -335,7 +335,7 @@ export const apiEditFileDescption = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -693,7 +693,7 @@ export const apiSecondUpload = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -716,7 +716,7 @@ export const apiBatchDelete = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -741,7 +741,7 @@ export const apiSingleDelete = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -758,7 +758,7 @@ export const apiGetPreviewToken =
       });
       return { data };
     } catch (err) {
-      return { err };
+      return { err: err as Error };
     }
   };
 
@@ -791,7 +791,7 @@ export const apiPriviewSharedFile = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -817,7 +817,7 @@ export const apiQuerySharedFile = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -842,7 +842,7 @@ export const apiMoveFileToDir = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -865,7 +865,7 @@ export const apiCopyFileToDir = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -891,7 +891,7 @@ export const apiMakeDirByRoot = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -918,7 +918,7 @@ export const apiMakeDirByPath = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -944,7 +944,7 @@ export const apiRename = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -975,7 +975,7 @@ export const apiShareCreate = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -989,7 +989,7 @@ export type QueryShareFileItem = {
   token: string;
   updatedAt: string;
   uri: string;
-  status: null | 'expired'|'wrong_code';
+  status: null | "expired" | "wrong_code";
   userFile: TFileItem | null;
 };
 
@@ -1006,7 +1006,7 @@ export const apiQueryShareFileList =
       });
       return { data };
     } catch (err) {
-      return { err };
+      return { err: err as Error };
     }
   };
 
@@ -1030,7 +1030,7 @@ export const apiDeleteShare = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1056,7 +1056,7 @@ export const apiEditShare = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1088,7 +1088,7 @@ export const apiQueryPublishList =
       });
       return { data };
     } catch (err) {
-      return { err };
+      return { err: err as Error };
     }
   };
 
@@ -1112,7 +1112,7 @@ export const apiPublishCreate = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1137,7 +1137,7 @@ export const apiPublishUpdate = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1161,7 +1161,7 @@ export const apiPublishDelete = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1192,7 +1192,7 @@ export const apiQueryCollectList = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1218,7 +1218,7 @@ export const apiCollectCreateByShare = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1243,7 +1243,7 @@ export const apiCollectCreateByPublish = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };
 
@@ -1267,6 +1267,6 @@ export const apiCollectDelete = async (
     });
     return { data };
   } catch (err) {
-    return { err };
+    return { err: err as Error };
   }
 };

@@ -85,16 +85,15 @@
               'font-size': '24px',
             }"
           >
-            <i class="bg-gray-300 block w-1 h-1 rounded-full"></i>
             <a href="javascript:;">
               <a-tooltip title="WebAuthn">
-                <SafetyOutlined />
+                <img
+                  src="~@/assets/images/nkn_gray.png"
+                  class="w-6 h-6"
+                  alt=""
+                />
               </a-tooltip>
             </a>
-            <i
-              class="h-5 bg-gray-300 text-center"
-              :style="{ width: '2px', 'border-radius': '4px' }"
-            ></i>
             <a href="javascript:;">
               <a-tooltip title="nMobile">
                 <!-- <DeploymentUnitOutlined /> -->
@@ -105,16 +104,15 @@
                 />
               </a-tooltip>
             </a>
-            <i
-              class="h-5 bg-gray-300 text-center"
-              :style="{ width: '2px', 'border-radius': '4px' }"
-            ></i>
             <a href="javascript:;">
               <a-tooltip title="other">
-                <WalletOutlined />
+                <img
+                  src="~@/assets/images/nkn_gray.png"
+                  class="w-6 h-6"
+                  alt=""
+                />
               </a-tooltip>
             </a>
-            <i class="bg-gray-300 block w-1 h-1 rounded-full"></i>
           </div>
           <div class="w-20">
             <a-button
