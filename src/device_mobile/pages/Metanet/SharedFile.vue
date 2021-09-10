@@ -194,17 +194,26 @@
                   v-for="record in fileData"
                   :key="record.id"
                 >
-                  <div class="mr-2">
+                  <div class="mr-2" @click="onItemClick(record)">
                     <MFileTypeIcon
                       class="w-9 h-9"
                       :type="record.userFile.fileType"
                     />
                   </div>
-                  <div class="flex-1" @click="onItemClick(record)">
-                    <div class="font-medium">
+                  <div class="flex-1">
+                    <div class="font-medium" @click="onItemClick(record)">
                       {{ lastOfArray(record.userFile.fullName) }}
                     </div>
-                    <div class="font-12 text-gray-400">
+                    <div
+                      class="font-12 text-gray-400"
+                      @click="onShowRecordFullDesc(record)"
+                    >
+                      <van-icon
+                        color="#404A66"
+                        size="14px"
+                        class="mr-1"
+                        name="info-o"
+                      />
                       <template v-if="!record.userFile.info.description"
                         >-</template
                       >
@@ -222,6 +231,7 @@
                             ).tagArr"
                             :key="tag"
                             color="orange"
+                            class="mr-1"
                             >{{ tag }}</van-tag
                           >
                         </template>
@@ -328,6 +338,24 @@
         @close="onClosePopup"
         @change="onChangePopup"
       />
+    </van-popup>
+    <!-- 点击的文件的全部描述信息 -->
+    <van-popup
+      class="rounded p-4 font-14"
+      v-model:show="isShowRecordFullDesc"
+      @close="onCloseRecordFullDescPopup"
+    >
+      <template v-if="recordFullDesc.tagArr.length">
+        <van-tag
+          size="medium"
+          class="mb-1 mr-1"
+          color="orange"
+          v-for="tag in recordFullDesc.tagArr"
+          :key="tag"
+          >{{ tag }}</van-tag
+        >
+      </template>
+      {{ recordFullDesc.text }}
     </van-popup>
     <!-- 右边工具栏 -->
     <!-- <van-popup
@@ -1050,6 +1078,36 @@ export default defineComponent({
         console.log("TODO-其他类型");
       }
     };
+    /** record详细描述信息的弹窗 */
+    function useRecordDescPopup() {
+      const recordFullDesc = reactive<DescObj>({
+        tagArr: [],
+        text: "",
+      });
+      const isShowRecordFullDesc = ref(false);
+      const onCloseRecordFullDescPopup = () => {
+        useDelay(300).then(() => {
+          recordFullDesc.tagArr = [];
+          recordFullDesc.text = "";
+        });
+      };
+      /** 全部描述信息  */
+      const onShowRecordFullDesc = (record: ListItem) => {
+        recordFullDesc.tagArr = cacheFormatDescription(
+          record.userFile?.info.description ?? ""
+        ).tagArr;
+        recordFullDesc.text = cacheFormatDescription(
+          record.userFile?.info.description ?? ""
+        ).text;
+        isShowRecordFullDesc.value = true;
+      };
+      return {
+        recordFullDesc,
+        isShowRecordFullDesc,
+        onCloseRecordFullDescPopup,
+        onShowRecordFullDesc,
+      };
+    }
     const onShowViewer = () => {
       const $viewer = viewerApi({
         options: {
@@ -1115,6 +1173,7 @@ export default defineComponent({
       formatBytes,
       lastOfArray,
       cacheFormatDescription,
+      ...useRecordDescPopup(),
       onShowViewer,
       // ...useRightPopup(),
       ...useBottomPopup(),

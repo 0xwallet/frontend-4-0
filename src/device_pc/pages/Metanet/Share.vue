@@ -199,6 +199,7 @@
                 v-for="item in record.desc.tagArr"
                 color="orange"
                 :key="item"
+                class="mb-1"
                 >{{ item }}</a-tag
               >
             </template>
@@ -242,6 +243,26 @@
         </a-form-item>
       </a-form>
     </a-modal>
+    <!-- 弹窗 - 修改描述 -->
+    <a-modal
+      :destroyOnClose="true"
+      v-model:visible="isShowEditDescriptionModal"
+      :title="`编辑描述-${editDescriptionModalRef.name}`"
+      :confirmLoading="editDescriptionModalConfirmLoading"
+      @ok="onEditDescriptionModalConfirm"
+    >
+      <!-- <a-form> </a-form> -->
+      <a-form :label-col="{ span: 0 }" :wrapper-col="{ span: 24 }">
+        <a-form-item>
+          <a-textarea
+            :autoSize="{ minRows: 3, maxRows: 6 }"
+            placeholder="可用两个#来表示标签, 例如#标签1#"
+            :maxlength="200"
+            v-model:value="editDescriptionModalRef.desc"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -272,6 +293,7 @@ import { useI18n } from "vue-i18n";
 import dayjs from "dayjs";
 import {
   apiDeleteShare,
+  apiEditFileDescption,
   apiEditShare,
   apiQueryFileByDir,
   apiQueryShareFileList,
@@ -635,10 +657,14 @@ export default defineComponent({
     };
     /** 表格里单项详情 */
     const onRecordDetail = (record: TTableShareFileItem) => {
-      console.log("onRecordDetail", record);
+      // console.log("onRecordDetail", record);
       const formatedDescObj = cacheFormatDescription(
         record.userFile.info.description || ""
       );
+      // 点击详情的时候设置编辑描述的弹窗里的内容 -star
+      editDescriptionModalRef.name = lastOfArray(record.userFile.fullName);
+      editDescriptionModalRef.fileId = record.userFile.id;
+      editDescriptionModalRef.desc = record.userFile.info.description || "";
       // 链接	Hash	类型	位置	修改时间	创建时间	描述(直接显示)
       currenDetailInfo.value = {
         type: getFileType({
@@ -655,6 +681,61 @@ export default defineComponent({
       };
       isShowDetailModal.value = true;
     };
+    /** 是否显示编辑描述的弹窗 */
+    const isShowEditDescriptionModal = ref(false);
+    const editDescriptionModalConfirmLoading = ref(false);
+    const editDescriptionModalRef = reactive({
+      name: "",
+      fileId: "",
+      desc: "",
+    });
+    const onShowDescriptionModal = () => {
+      isShowEditDescriptionModal.value = true;
+    };
+    const onResetEditDescriptionModal = () => {
+      editDescriptionModalRef.name = "";
+      editDescriptionModalRef.fileId = "";
+      editDescriptionModalRef.desc = "";
+    };
+    /** 弹窗 修改描述 */
+    function useEditDescriptionModal() {
+      /** 点击详情里的编辑描述 */
+
+      const onEditDescriptionModalConfirm = async () => {
+        const { fileId, desc } = editDescriptionModalRef;
+        if (!fileId) return;
+        editDescriptionModalConfirmLoading.value = true;
+        const res = await apiEditFileDescption({
+          userFileId: editDescriptionModalRef.fileId,
+          description: desc,
+        });
+        editDescriptionModalConfirmLoading.value = false;
+        if (res.err) {
+          message.warning(res.err.message);
+          return;
+        }
+        isShowEditDescriptionModal.value = false;
+        // 编辑成功后立马修改弹窗里的信息
+        currenDetailInfo.value.desc = cacheFormatDescription(
+          res.data.driveEditDescription.info.description || ""
+        );
+        // 还要刷新列表, 因为详情是从列表拿的
+        // 如果不刷新的话,再次点开弹窗依然是修改前的状态
+        onRefreshTableData();
+        message.success("编辑成功!");
+        // 重置挪到了关闭详情弹窗的时候,因为可能在已经打开详情窗口的情况下再次编辑
+        // onResetEditDescriptionModal();
+      };
+
+      return {
+        isShowEditDescriptionModal,
+        onShowDescriptionModal,
+        editDescriptionModalConfirmLoading,
+        editDescriptionModalRef,
+        onEditDescriptionModalConfirm,
+        onResetEditDescriptionModal,
+      };
+    }
     /** 复制链接和分享码 */
     const onRecordCopyShare = (record: TTableShareFileItem) => {
       const shareInfo = getShareInfoByUriAndCode({
@@ -788,6 +869,8 @@ export default defineComponent({
       (val) => {
         if (val === false) {
           currenDetailInfo.value = {};
+          // 清空编辑描述里的内容
+          onResetEditDescriptionModal();
         }
       }
     );
@@ -894,6 +977,7 @@ export default defineComponent({
       onBatchCopy,
       onBatchDelete,
       onRecordDetail,
+      ...useEditDescriptionModal(),
       onRecordCopyShare,
       onRecordReplaceShareFile,
       onChangeUploadFile,

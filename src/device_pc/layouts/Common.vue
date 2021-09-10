@@ -57,9 +57,14 @@
               </span>
             </template>
             <!-- TODO 跟路由相关联 v-for -->
-            <a-menu-item key="file">
-              <FolderOpenOutlined />
-              {{ $t("metanet.file") }}
+            <a-menu-item key="file" class="relative">
+              <div class="flex items-center">
+                <FolderOpenOutlined />
+                {{ $t("metanet.file") }}
+                <i v-if="navFileTabCount > 0" class="navItemDot">{{
+                  navFileTabCount
+                }}</i>
+              </div>
             </a-menu-item>
             <a-menu-item key="share">
               <ShareAltOutlined />
@@ -95,60 +100,22 @@
               </span>
             </template>
             <a-menu-item key="uploading">
-              <span class="relative">
+              <div class="flex items-center">
                 <CloudUploadOutlined />
                 {{ $t("metanet.uploadButton") }}
-                <i
-                  v-if="uploadingCount > 0"
-                  class="
-                    absolute
-                    flex
-                    items-center
-                    justify-center
-                    w-5
-                    h-5
-                    bg-red-600
-                    rounded-full
-                    text-white
-                  "
-                  :style="{
-                    right: '-26px',
-                    top: '-2px',
-                    'font-size': '12px',
-                    'font-style': 'normal',
-                    transform: 'scale(.8)',
-                  }"
-                  >{{ uploadingCount }}</i
-                >
-              </span>
+                <i v-if="uploadingCount > 0" class="navItemDot">{{
+                  uploadingCount
+                }}</i>
+              </div>
             </a-menu-item>
             <a-menu-item key="uploadHistory">
-              <span class="relative">
+              <div class="flex items-center">
                 <HistoryOutlined />
                 {{ $t("metanet.uploadHistory") }}
-                <i
-                  v-if="uploadSuccessCount > 0"
-                  class="
-                    absolute
-                    flex
-                    items-center
-                    justify-center
-                    w-5
-                    h-5
-                    bg-red-600
-                    rounded-full
-                    text-white
-                  "
-                  :style="{
-                    right: '-26px',
-                    top: '-2px',
-                    'font-size': '12px',
-                    'font-style': 'normal',
-                    transform: 'scale(.8)',
-                  }"
-                  >{{ uploadSuccessCount }}</i
-                >
-              </span>
+                <i v-if="uploadSuccessCount > 0" class="navItemDot">{{
+                  uploadSuccessCount
+                }}</i>
+              </div>
             </a-menu-item>
             <a-menu-item key="peerTransfer">
               <UploadOutlined />
@@ -1043,6 +1010,11 @@ export default defineComponent({
     //   // },
     // ]);
     const navList = useLocalStorage<TNavItem[]>("navList", []);
+    /** navlist 中文件tab的数量 */
+    const navFileTabCount = computed(() => {
+      return navList.value.filter((i) => i.routePath.includes("metanet/file"))
+        .length;
+    });
     // 同时加载本地的fileWindow数据
     baseStore.loadStorageFileWindow();
     /** nav tab栏 */
@@ -1175,6 +1147,7 @@ export default defineComponent({
       return {
         activeNavUniqueId,
         navList,
+        navFileTabCount,
         onClickNavTab,
         onCloseNavItem,
         getFileWindowTips,
@@ -1356,6 +1329,21 @@ export default defineComponent({
     color: white;
     // #f2f2f2
   }
+}
+// 菜单旁边的小红点
+.navItemDot {
+  margin-left: 8px;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  background-color: #dc2626;
+  color: white;
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: normal;
+  transform: scale(0.78);
 }
 // .navItemClose {
 // display: none;

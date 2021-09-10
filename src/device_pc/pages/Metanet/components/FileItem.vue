@@ -789,6 +789,7 @@
                 v-for="item in record.desc.tagArr"
                 color="orange"
                 :key="item"
+                class="mb-1"
                 >{{ item }}</a-tag
               >
             </template>
