@@ -445,7 +445,9 @@ export default defineComponent({
           user.id
         }/${space.toLowerCase()}/${fileId}/${
           fullName.slice(-1)[0]
-        }?token=${token}`;
+        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
+          "YYYYMMDDHHmmss"
+        )}`;
         previewImages.push(url);
         const $viewer = viewerApi({
           options: {
@@ -480,7 +482,9 @@ export default defineComponent({
           user.id
         }/${space.toLowerCase()}/${fileId}/${
           fullName.slice(-1)[0]
-        }?token=${token}`;
+        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
+          "YYYYMMDDHHmmss"
+        )}`;
         window.open(pdfUrl, "_blank");
       } else {
         console.log("other-type");
@@ -570,23 +574,27 @@ export default defineComponent({
     // TODO 文件夹 支持上一级目录
     /** shortcut-下载 */
     const onRecordDownload = (record: ListItem) => {
-      if (checkLoginStatusAndOpenModal()) {
-        return;
-      }
+      // if (checkLoginStatusAndOpenModal()) {
+      //   return;
+      // }
       // console.log("onRecordDownload", record);
       // TODO 判断有没登录
       if (!record.userFile) return;
       const { user, space, id: fileId, fullName } = record.userFile;
-      apiGetPreviewToken().then((resultPreviewToken) => {
-        if (resultPreviewToken.err) return;
-        const token = resultPreviewToken.data.drivePreviewToken;
-        const url = `https://drive-s.owaf.io/download/${
-          user.id
-        }/${space.toLowerCase()}/${fileId}/${
-          fullName.slice(-1)[0]
-        }?token=${token}`;
-        downloadFileByUrl(url, fullName.slice(-1)[0]);
-      });
+      const downloadToken = record.token;
+      // apiGetPreviewToken().then((resultPreviewToken) => {
+      if (!record.userFile) return;
+      // if (resultPreviewToken.err) return;
+      // const token = resultPreviewToken.data.drivePreviewToken;
+      const url = `https://drive-s.owaf.io/download/${
+        user.id
+      }/${space.toLowerCase()}/${fileId}/${
+        fullName.slice(-1)[0]
+      }?token=${downloadToken}&t=${dayjs(record.userFile.updatedAt).format(
+        "YYYYMMDDHHmmss"
+      )}`;
+      downloadFileByUrl(url, fullName.slice(-1)[0]);
+      // });
     };
     /** shortcut -评价 */
     const onRecordScore = (record: ListItem) => {
@@ -597,9 +605,9 @@ export default defineComponent({
     };
     /** 批量下载 */
     const onBatchDownload = () => {
-      if (checkLoginStatusAndOpenModal()) {
-        return;
-      }
+      // if (checkLoginStatusAndOpenModal()) {
+      //   return;
+      // }
       selectedRows.value.forEach((i) => {
         if (i.userFile && !i.userFile.isDir) {
           onRecordDownload(i);

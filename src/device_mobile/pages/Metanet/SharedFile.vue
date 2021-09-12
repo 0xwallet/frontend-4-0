@@ -587,25 +587,29 @@ export default defineComponent({
 
     /** 下载 */
     const onDownload = () => {
-      if (checkLoginStatusAndRedirect()) {
-        return;
-      }
+      // if (checkLoginStatusAndRedirect()) {
+      //   return;
+      // }
       // console.log("onDownload");
       selectedRows.value.forEach((record) => {
         if (!record.userFile) return;
         const { user, fullName, space, id: fileId } = record.userFile;
-        apiGetPreviewToken().then((resultPreviewToken) => {
-          if (resultPreviewToken.err) return;
-          useDelay(100).then(() => {
-            const token = resultPreviewToken.data.drivePreviewToken;
-            const url = `https://drive-s.owaf.io/download/${
-              user.id
-            }/${space.toLowerCase()}/${fileId}/${
-              fullName.slice(-1)[0]
-            }?token=${token}`;
-            downloadFileByUrl(url, fullName.slice(-1)[0]);
-          });
+        const downloadToken = record.token;
+        // apiGetPreviewToken().then((resultPreviewToken) => {
+        // if (resultPreviewToken.err) return;
+        useDelay(100).then(() => {
+          if (!record.userFile) return;
+          // const token = resultPreviewToken.data.drivePreviewToken;
+          const url = `https://drive-s.owaf.io/download/${
+            user.id
+          }/${space.toLowerCase()}/${fileId}/${
+            fullName.slice(-1)[0]
+          }?token=${downloadToken}&t=${dayjs(record.userFile.updatedAt).format(
+            "YYYYMMDDHHmmss"
+          )}`;
+          downloadFileByUrl(url, fullName.slice(-1)[0]);
         });
+        // });
       });
     };
     /** 保存到网盘 */
@@ -989,7 +993,9 @@ export default defineComponent({
           user.id
         }/${space.toLowerCase()}/${fileId}/${
           fullName.slice(-1)[0]
-        }?token=${token}`;
+        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
+          "YYYYMMDDHHmmss"
+        )}`;
         previewImages.value.push(url);
         onShowViewer();
       } else if (fileType === "pdf") {
@@ -1000,7 +1006,9 @@ export default defineComponent({
           user.id
         }/${space.toLowerCase()}/${fileId}/${
           fullName.slice(-1)[0]
-        }?token=${token}`;
+        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
+          "YYYYMMDDHHmmss"
+        )}`;
         // console.log("pdfUrl", pdfUrl);
         isShowBottomPopup.value = true;
         currentPreviewPdfName.value = lastOfArray(fullName);

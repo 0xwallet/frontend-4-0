@@ -113,7 +113,8 @@ export default defineStore({
     setMultiClient() {
       const getIsMultiClientReady = () => {
         if (!this.multiClient) return false;
-        return this.multiClient.readyClientIDs().length >= 2;
+        // return this.multiClient.readyClientIDs().length >= 2;
+        return this.multiClient.readyClientIDs().length >= 1;
       };
       return new Promise((resolve, reject) => {
         if (!this.wallet) reject("wallet 未初始化");

@@ -2271,14 +2271,8 @@ export default defineComponent({
         });
       };
       /** 表格里每一行的名字的点击事件 */
-      const onClickTableItemName = async ({
-        fileType: e,
-        id,
-        fullName,
-        isShared,
-        user,
-        space,
-      }: TFileItem) => {
+      const onClickTableItemName = async (record: TFileItem) => {
+        const { fileType: e, id, fullName, isShared, user, space } = record;
         if (!e) return;
         // console.log("点击的当前record", e, id);
         // 原来的处理有 : 文件夹 / 图片 / md txt json文本 / pdf
@@ -2320,7 +2314,9 @@ export default defineComponent({
             user.id
           }/${space.toLowerCase()}/${id}/${
             fullName.slice(-1)[0]
-          }?token=${token}`;
+          }?token=${token}&t=${dayjs(record.updatedAt).format(
+            "YYYYMMDDHHmmss"
+          )}`;
           previewImages.push(url);
           const $viewer = viewerApi({
             options: {
@@ -2686,7 +2682,8 @@ export default defineComponent({
         // getAndSetTableDataFn({ dirId: curFolderId.value });
         getAndSetTableDataFn({ fullName: requestDirNameList.value });
       };
-      const onDownload = ({ user, space, id: fileId, fullName }: TFileItem) => {
+      const onDownload = (record: TFileItem) => {
+        const { user, space, id: fileId, fullName } = record;
         // TODO
         // Content-Disposition: attachment
         const hideLoadingMsg = message.loading("连接服务器中...", 0);
@@ -2698,7 +2695,9 @@ export default defineComponent({
               user.id
             }/${space.toLowerCase()}/${fileId}/${
               fullName.slice(-1)[0]
-            }?token=${token}`;
+            }?token=${token}&t=${dayjs(record.updatedAt).format(
+              "YYYYMMDDHHmmss"
+            )}`;
             downloadFileByUrl(url, fullName.slice(-1)[0]);
           })
           .finally(hideLoadingMsg);
