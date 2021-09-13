@@ -248,6 +248,12 @@ body,
   border-radius: @default_radius;
 }
 // html font-size :16px
+.font-24 {
+  font-size: 1.5rem;
+}
+.font-22 {
+  font-size: 1.375rem;
+}
 .font-20 {
   font-size: 1.25rem;
 }

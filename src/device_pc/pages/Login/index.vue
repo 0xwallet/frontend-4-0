@@ -270,7 +270,7 @@ import { message, notification } from "ant-design-vue";
 import { apiEmailLogin } from "@/apollo/api";
 import { useI18n } from "vue-i18n";
 import { useUserStore } from "@/store";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useClipboard } from "@vueuse/core";
 import { XLocaleSwither } from "../../components";
 
@@ -288,6 +288,7 @@ export default defineComponent({
     const { t, locale: currentLocale } = useI18n();
     const userStore = useUserStore();
     const router = useRouter();
+    const route = useRoute();
     /** logo和名称tips */
     function useLogoSvgAndName() {
       return {
@@ -343,8 +344,14 @@ export default defineComponent({
           email,
         });
         if (resultSignInFullPath.err) return;
-        // 登录成功后导航去第一个文件tab
-        router.push("/metanet/file?id=1&path=~");
+        const redirectFullPath = route.query.redirect as string;
+        if (redirectFullPath) {
+          // exp:http://localhost:4000/#/metanet/sharedFile?uri=XtZZYG8tIxkVFOzu8xU0dw
+          router.push(redirectFullPath);
+        } else {
+          // 登录成功后导航去第一个文件tab
+          router.push("/metanet/file?id=1&path=~");
+        }
       };
       return {
         form,

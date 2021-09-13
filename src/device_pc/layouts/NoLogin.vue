@@ -9,11 +9,12 @@
       <div>
         <img class="w-7 h-7" src="~@/assets/images/logo_icon.png" alt="" />
       </div>
-      <div>
-        <a-button shape="round" class="mr-2" type="primary" @click="onClickHeaderSignIn"
+      <div class="cursor-pointer" @click="onClickHeaderLogin">
+        <!-- <a-button shape="round" class="mr-2" type="primary" @click="onClickHeaderSignIn"
           >注册</a-button
         >
-        <a-button shape="round" @click="onClickHeaderLogin">登录</a-button>
+        <a-button shape="round" @click="onClickHeaderLogin">登录</a-button> -->
+        <img class="w-6 h-6" src="~@/assets/images/user.png" alt="" />
       </div>
     </div>
     <div class="px-20">
@@ -46,7 +47,13 @@ export default defineComponent({
       // });
     };
     const onClickHeaderLogin = () => {
-      baseStore.changeIsShowLoginModal(true);
+      // baseStore.changeIsShowLoginModal(true);
+      router.push({
+        name: "Login",
+        query: {
+          redirect: route.fullPath,
+        },
+      });
     };
     return { onClickHeaderSignIn, onClickHeaderLogin };
   },

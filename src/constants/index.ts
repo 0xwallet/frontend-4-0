@@ -36,3 +36,22 @@ export const REG_OBJ = {
     // eslint-disable-next-line
     /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
 };
+
+const colorList = [
+  "#479FF8",
+  "#54AE32",
+  "#F09A37",
+  "#f50",
+  "#2db7f5",
+  "#87d068",
+  "#108ee9",
+  "#55acee",
+];
+/** 标签固定颜色序列 */
+export const TAG_COLOR_LIST = new Proxy(colorList, {
+  get(target, key: string) {
+    // 超过colorList的长度就循环从index0 开始
+    const arrayIdx = +key % colorList.length;
+    return Reflect.get(target, arrayIdx);
+  },
+});

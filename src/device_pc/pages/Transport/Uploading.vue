@@ -75,6 +75,9 @@
           <!-- 拖拽上传区域 -->
           <div
             class="absolute inset-0 z-50 rounded-full"
+            :style="{
+              left: '30px',
+            }"
             :class="{
               dashedBorder: isFileOverUploadZone,
             }"
@@ -83,6 +86,24 @@
             @dragover="onDragOver"
             @drop="onDrop"
           ></div>
+          <div
+            class="absolute cursor-pointer px-1"
+            :style="{
+              'z-index': 999,
+              left: '4px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+            }"
+            @click="onDefaultPathModalPreAction"
+          >
+            <a-tooltip title="选择拖拽上传默认路径">
+              <PlusSquareOutlined class="mr-2" />
+              <!-- 上传进度>0 的时候隐藏路径 -->
+              <template v-if="totalPercent === 0">
+                {{ selectedDefaultPathShowName }}
+              </template>
+            </a-tooltip>
+          </div>
           <div
             class="absolute z-40 left-0 right-0 text-center text-white"
             :style="{
@@ -222,6 +243,18 @@
         </template>
       </XTableFiles>
     </div>
+    <XModalDir
+      rowKey="dirId"
+      v-model:visible="isShowDefaultPathModal"
+      title="选择拖拽上传默认路径"
+      :footer="null"
+      @ok="onDefaultPathModalConfirm"
+      :rowClassName="defaultPathModalTableRowClassName"
+      :columns="defaultPathModalTableColumns"
+      :dataSource="defaultPathModalTableData"
+      :customRow="defaultPathModalTableCustomRow"
+      :loading="defaultPathModalTableLoading"
+    />
   </div>
 </template>
 
@@ -252,15 +285,23 @@ import {
   ReloadOutlined,
   RightCircleOutlined,
   CloseCircleOutlined,
+  PlusSquareOutlined,
 } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
-import { XFileTypeIcon, XTableFiles } from "../../components";
-import { formatBytes, getFileSHA256, getFileType, useDelay } from "@/utils";
+import { XFileTypeIcon, XTableFiles, XModalDir } from "../../components";
+import {
+  formatBytes,
+  getFileSHA256,
+  getFileType,
+  lastOfArray,
+  useDelay,
+} from "@/utils";
 import { NKN_SUB_CLIENT_COUNT } from "@/constants";
 import { throttle } from "lodash-es";
 import { Empty, message } from "ant-design-vue";
-import { apiQueryMeSpace } from "@/apollo/api";
+import { apiQueryFileByDir, apiQueryMeSpace, TFileItem } from "@/apollo/api";
 import { useRouter } from "vue-router";
+import { TDir } from "../Metanet/components/FileItem.vue";
 
 type TabKey = "uploading" | "uploadFinished" | "sendFile";
 
@@ -300,6 +341,7 @@ export default defineComponent({
   name: "TransportUpLoading",
   components: {
     XTableFiles,
+    XModalDir,
     XFileTypeIcon,
     RightSquareOutlined,
     PauseOutlined,
@@ -307,6 +349,7 @@ export default defineComponent({
     ReloadOutlined,
     RightCircleOutlined,
     CloseCircleOutlined,
+    PlusSquareOutlined,
   },
   setup() {
     const { t } = useI18n();
@@ -368,6 +411,146 @@ export default defineComponent({
     function useDropUpload() {
       /** 是否鼠标拖动文件到区域上方,是就显示边框 */
       const isFileOverUploadZone = ref(false);
+      const isShowDefaultPathModal = ref(false);
+      const defaultPathModalTableColumns = [
+        {
+          title: "Name",
+          // dataIndex: "name",
+          slots: { customRender: "name" },
+          key: "name",
+        },
+      ];
+      const defaultPathModalTableLoading = ref(false);
+      const defaultPathModalTableData = reactive<TDir[]>([]);
+      /** 选中要复制/移动的目标文件夹 默认选中'全部文件' */
+      // const defaultPathModalCurrentSelectedDir = ref("root");
+      const defaultPathModalCurrentSelectedDir = ref<TDir>({
+        dirId: "root",
+        dirName: "全部文件",
+        parent: null,
+        isExpend: true,
+      });
+      const selectedDefaultPathShowName = computed(() => {
+        const e = defaultPathModalCurrentSelectedDir.value;
+        if (e.dirId === "root") {
+          return "~/";
+        } else {
+          const arr = [e.dirName];
+          let parent = e.parent;
+          while (parent) {
+            arr.unshift(parent.dirName === "root" ? "~" : parent.dirName);
+            parent = parent.parent;
+          }
+          return arr.join("/");
+        }
+      });
+      const getSetDefaultPathModalTableData = () => {
+        defaultPathModalTableLoading.value = true;
+        // 2021-07-05 先递归处理所有的目录, 后续要按需加载
+        apiQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
+          if (resultQueryFile.err) {
+            // console.log("err", err);
+            defaultPathModalTableLoading.value = false;
+            return;
+          }
+          /** 根据目录id, 父目录id 去递归获取children */
+          const getAndSetDirChildren = async (item: TDir) => {
+            const parentId = item.parent?.dirId;
+            // const [resItem, errItem] = await apiQueryFileByDir({
+            const resultQueryFileItem = await apiQueryFileByDir({
+              dirId: item.dirId,
+            });
+            // console.log("目录res", item.dirId, item.dirName, resItem);
+            if (resultQueryFileItem.err) return item;
+            // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
+            const afterFilterList =
+              resultQueryFileItem.data.driveListFiles.filter(
+                (i): i is TFileItem =>
+                  i !== null &&
+                  i.isDir &&
+                  !["root", item.dirId, parentId].includes(i.id)
+              );
+            // console.log("afterFilterList", afterFilterList);
+            if (!afterFilterList.length) return item;
+            item.children = await Promise.all(
+              afterFilterList.map((i) =>
+                getAndSetDirChildren({
+                  dirId: i.id,
+                  dirName: lastOfArray(i.fullName),
+                  parent: item,
+                  isExpend: false,
+                })
+              )
+            );
+            return item;
+          };
+          // res.data.driveListFiles 提取文件夹的出来
+          const resIsDirList = resultQueryFile.data.driveListFiles.filter(
+            (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
+          );
+          const withChildrensDirList = await Promise.all(
+            resIsDirList.map((i) =>
+              getAndSetDirChildren({
+                dirId: i.id,
+                dirName: lastOfArray(i.fullName),
+                isExpend: false,
+                parent: {
+                  dirId: "root",
+                  dirName: "root",
+                  parent: null,
+                  isExpend: true,
+                },
+              })
+            )
+          );
+          const rootDir: TDir = {
+            dirId: "root",
+            dirName: t("metanet.allFiles"),
+            isExpend: true,
+            parent: null,
+            children: withChildrensDirList,
+          };
+          defaultPathModalTableData.push(rootDir);
+          // console.log(
+          //   "获取api后的defaultPathModalTableData",
+          //   defaultPathModalTableData
+          // );
+          defaultPathModalTableLoading.value = false;
+        });
+      };
+      /** 设置自定义行onClick 事件 */
+      const defaultPathModalTableCustomRow = (record: TDir, index: number) => ({
+        onClick: (e: {
+          currentTarget: {
+            dataset: {
+              rowKey: string;
+            };
+          };
+        }) => {
+          console.log("defaultPathModalTableCustomRow", record);
+          // console.log(e.currentTarget.dataset.rowKey);
+          defaultPathModalCurrentSelectedDir.value = record;
+        },
+      });
+      const defaultPathModalTableRowClassName = (
+        record: TDir,
+        index: number
+      ) => {
+        return record.dirId === defaultPathModalCurrentSelectedDir.value.dirId
+          ? "copyMoveModalRow copyMoveModalRowActive"
+          : "copyMoveModalRow";
+      };
+      /** 设置默认选中 */
+      const onDefaultPathModalPreAction = () => {
+        isShowDefaultPathModal.value = true;
+        // 每次打开弹窗都获取最新的文件夹数据
+        defaultPathModalTableData.length = 0;
+        getSetDefaultPathModalTableData();
+      };
+
+      const onDefaultPathModalConfirm = () => {
+        console.log("confirm选择默认路径");
+      };
       const onDragEnter = (event: DragEvent) => {
         event.preventDefault();
         isFileOverUploadZone.value = true;
@@ -417,6 +600,14 @@ export default defineComponent({
       };
       /** 上传单个文件 */
       const onUploadSingleFile = async (file: File, roundId: number) => {
+        // 用当前选中的默认拖拽上传路径去生成个 name数组
+        const e = defaultPathModalCurrentSelectedDir.value;
+        const preNameArr = [e.dirName];
+        let parent = e.parent;
+        while (parent) {
+          preNameArr.unshift(parent.dirName);
+          parent = parent.parent;
+        }
         const fileName = file.name;
         const fileHash = await getFileSHA256(file);
         await transportStore.uploadFile({
@@ -427,7 +618,8 @@ export default defineComponent({
             isDir: false,
             fileName,
           }),
-          fullName: [fileName],
+          // slice 掉root 不需要传
+          fullName: [...preNameArr.slice(1), fileName],
           description: "",
           action: "drive",
         });
@@ -435,6 +627,16 @@ export default defineComponent({
       };
       return {
         isFileOverUploadZone,
+        isShowDefaultPathModal,
+        defaultPathModalTableColumns,
+        defaultPathModalTableLoading,
+        defaultPathModalTableData,
+        defaultPathModalCurrentSelectedDir,
+        selectedDefaultPathShowName,
+        defaultPathModalTableCustomRow,
+        defaultPathModalTableRowClassName,
+        onDefaultPathModalPreAction,
+        onDefaultPathModalConfirm,
         onDragEnter,
         onDragLeave,
         onDragOver,

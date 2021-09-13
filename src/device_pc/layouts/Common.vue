@@ -977,7 +977,12 @@ export default defineComponent({
                 userStore.signOutAndClear();
                 setTimeout(() => {
                   resolve();
-                  router.push("/login");
+                  router.push({
+                    name: "Login",
+                    query: {
+                      redirect: route.fullPath,
+                    },
+                  });
                 }, 300);
               });
             },
@@ -1242,10 +1247,26 @@ export default defineComponent({
 /* table 里的快捷键 */
 .ant-table-row:hover .tableShortcut {
   display: inline-block;
+  background-color: #e6f7ff;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .ant-table-row-hover .tableShortcut {
   display: inline-block;
+  background-color: #e6f7ff;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.ant-table-row-selected:hover .tableShortcut {
+  background-color: #dcf4ff;
+}
+
 /* 表格加了排序后,hover表头不变色 -start */
 .ant-table-thead
   > tr

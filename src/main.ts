@@ -1,6 +1,6 @@
 import { isMobile } from "./utils";
-
-if (isMobile()) {
+(window as any).__isMobile__ = isMobile()
+if ((window as any).__isMobile__) {
   console.log("isMobile");
   import(
     /* webpackChunkName: "mobile" */

@@ -95,11 +95,37 @@
                   {{ userPreview.username }} 给你分享了文件
                 </div>
                 <div class="font-12 text-gray-400 pt-1">{{ expiredText }}</div>
+                <div class="flex-1"></div>
+                <div
+                  class="font-22 text-gray-500 px-1 mr-2"
+                  @click="onCollectShare"
+                >
+                  <a-tooltip title="收藏">
+                    <StarFilled
+                      v-if="isCurrentShareCollected"
+                      :style="{ color: '#faad14' }"
+                    />
+                    <StarOutlined v-else class="opacity-80" />
+                  </a-tooltip>
+                </div>
+                <div class="font-22 text-gray-500 px-2">
+                  <a-tooltip title="转发">
+                    <img
+                      :style="{
+                        width: '22px',
+                        height: '22px',
+                      }"
+                      class="cursor-pointer"
+                      src="~@/assets/images/shared_share.png"
+                      @click="onPlatformShare"
+                    />
+                  </a-tooltip>
+                </div>
               </div>
               <!-- 功能区 -->
-              <div class="pt-3 px-5 mb-3 flex items-center">
+              <div class="pt-3 px-3 mb-3 flex items-center">
                 <!-- 文件夹类型才显示路径 -->
-                <div v-if="isCurrentShareFolder" class="mr-2 flex items-center">
+                <!-- <div v-if="isCurrentShareFolder" class="mr-2 flex items-center">
                   <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
                     <a
                       :class="{
@@ -115,10 +141,53 @@
                       >></span
                     >
                   </template>
+                </div> -->
+                <div
+                  class="flex-1 flex items-center px-3 mr-2"
+                  :style="{
+                    height: '28px',
+                    'border-radius': '50px',
+                    'background-color': '#f7f7f8',
+                  }"
+                >
+                  <a-tooltip title="信息">
+                    <a
+                      class="mr-2"
+                      href="javascript:;"
+                      @click="onShowShareDetail"
+                    >
+                      <InfoCircleOutlined />
+                    </a>
+                  </a-tooltip>
+                  <div
+                    v-if="isCurrentShareFolder"
+                    class="mr-2 flex-1 flex items-center"
+                  >
+                    <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
+                      <a
+                        :class="{
+                          'text-gray-400': idx === historyDir.length - 1,
+                        }"
+                        @click="onUpperLevel(idx)"
+                      >
+                        {{ dir.dirName }}
+                      </a>
+                      <span
+                        v-if="idx !== historyDir.length - 1"
+                        class="px-2 text-gray-400"
+                        >></span
+                      >
+                    </template>
+                  </div>
+                  <div v-else class="flex-1"></div>
+                  <a-tooltip title="评论">
+                    <a href="javascript:;" @click="onCommentShare">
+                      <EditOutlined />
+                    </a>
+                  </a-tooltip>
                 </div>
-                <div class="flex-1"></div>
                 <div>
-                  <a-button shape="round" class="mr-2" @click="onCollectShare">
+                  <!-- <a-button shape="round" class="mr-2" @click="onCollectShare">
                     <HeartFilled
                       v-if="isCurrentShareCollected"
                       :style="{ color: '#faad14' }"
@@ -127,7 +196,7 @@
                     <span class="text-gray-400">{{
                       curShareCollectedCount
                     }}</span>
-                  </a-button>
+                  </a-button> -->
                   <a-button
                     shape="round"
                     :disabled="selectedRowKeys.length === 0"
@@ -153,11 +222,18 @@
                   <a-button
                     shape="round"
                     :disabled="selectedRowKeys.length === 0"
+                    @click="onZipDownload"
+                  >
+                    压缩下载
+                  </a-button>
+                  <!-- <a-button
+                    shape="round"
+                    :disabled="selectedRowKeys.length === 0"
                     @click="onBatchScore"
                   >
                     <HighlightOutlined />
                     评价
-                  </a-button>
+                  </a-button> -->
                 </div>
               </div>
               <!-- 表格区 -->
@@ -170,7 +246,7 @@
                 v-model:selectedRowKeys="selectedRowKeys"
               >
                 <template #name="{ record }">
-                  <div class="relative">
+                  <div class="relative flex items-center">
                     <!-- 空白就是blank 文件夹就是folder -->
                     <XFileTypeIcon
                       class="w-6 h-6"
@@ -178,12 +254,28 @@
                     />
                     <a
                       href="javascript:;"
-                      class="ml-2"
+                      class="mx-2"
                       :title="$lastOfArray(record.userFile.fullName)"
                       @click="onItemClick(record)"
                     >
                       {{ $lastOfArray(record.userFile.fullName) }}
                     </a>
+                    <div
+                      v-if="
+                        cacheFormatDescription(record.userFile.info.description)
+                          .tagArr.length
+                      "
+                    >
+                      <a-tag
+                        v-for="(tag, idx) in cacheFormatDescription(
+                          record.userFile.info.description
+                        ).tagArr"
+                        :key="tag"
+                        :color="TAG_COLOR_LIST[idx]"
+                        class="mr-1"
+                        >{{ tag }}</a-tag
+                      >
+                    </div>
                     <!-- hover 才显示的shortCut栏 -->
                     <!-- 非上级目录 -->
                     <div
@@ -227,6 +319,21 @@
                     :hash="record.userFile.hash"
                   />
                 </template>
+                <template #feedBack="{ record }">
+                  <div class="flex" v-if="record.collectedCount !== undefined">
+                    <div class="flex items-center mr-2">
+                      <!-- v-if="isCurrentShareCollected" -->
+                      <HeartFilled :style="{ color: '#E54148' }" class="mr-1" />
+                      <!-- <HeartOutlined v-else class="mr-1" /> -->
+                      {{ record.collectedCount }}
+                    </div>
+                    <div class="flex items-center">
+                      <CommentOutlined class="mr-1" />
+                      <!-- <HeartFilled /> -->
+                      {{ record.commentCount || "--" }}
+                    </div>
+                  </div>
+                </template>
               </XTableFiles>
               <!-- 弹窗 保存到网盘 -->
               <XModalDir
@@ -241,6 +348,28 @@
                 :loading="saveToMetanetModalTableLoading"
               />
             </div>
+            <ModalDetail
+              v-model:visible="isShowDetailModal"
+              :detail="currenDetailInfo"
+            >
+              <template #desc="{ record }">
+                <a-row class="mb-1" justify="space-between">
+                  <a-col class="ant-color-gray" :span="6">描述 </a-col>
+                  <a-col :span="17">
+                    <template v-if="record.desc.tagArr.length">
+                      <a-tag
+                        v-for="item in record.desc.tagArr"
+                        color="orange"
+                        :key="item"
+                        class="mb-1"
+                        >{{ item }}</a-tag
+                      >
+                    </template>
+                    {{ record.desc.text }}
+                  </a-col>
+                </a-row>
+              </template>
+            </ModalDetail>
           </template>
         </template>
         <!-- 文件无效 -->
@@ -304,6 +433,8 @@ import {
   formatBytes,
   getFileType,
   lastOfArray,
+  cacheFormatDescription,
+  makeShareUrlByUri,
 } from "@/utils";
 import {
   ExportOutlined,
@@ -313,11 +444,17 @@ import {
   HighlightOutlined,
   LoadingOutlined,
   WarningFilled,
+  CommentOutlined,
+  StarOutlined,
+  StarFilled,
+  InfoCircleOutlined,
+  EditOutlined,
 } from "@ant-design/icons-vue";
 import { TDir } from "./components/FileItem.vue";
 import { useBaseStore, useUserStore } from "@/store";
-import { FILE_TYPE_MAP } from "@/constants";
+import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
 import { api as viewerApi } from "v-viewer";
+import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
 
 type ListItem = {
   userFile: QueryShareFileItem["userFile"];
@@ -344,6 +481,13 @@ export default defineComponent({
     HighlightOutlined,
     LoadingOutlined,
     WarningFilled,
+    CommentOutlined,
+    StarOutlined,
+    StarFilled,
+    InfoCircleOutlined,
+    EditOutlined,
+    //
+    ModalDetail,
   },
   setup() {
     // 根据uri
@@ -370,7 +514,13 @@ export default defineComponent({
     /** 检查登录转态并返回是否登录,未登录就打开登录弹窗 */
     const checkLoginStatusAndOpenModal = (): boolean => {
       if (!userStore.isLoggedIn || !userStore.token) {
-        baseStore.changeIsShowLoginModal(true);
+        // baseStore.changeIsShowLoginModal(true);
+        router.push({
+          name: "Login",
+          query: {
+            redirect: route.fullPath,
+          },
+        });
         return true;
       }
       return false;
@@ -566,11 +716,25 @@ export default defineComponent({
         width: 180,
       },
       {
-        title: "收藏",
-        dataIndex: "collectedCount",
-        width: 80,
+        title: "回馈",
+        dataIndex: "feedBack",
+        slots: { customRender: "feedBack" },
+        width: 100,
       },
     ];
+    /** 显示该分享 */
+    const onShowShareDetail = () => {
+      console.log("whiy");
+      isShowDetailModal.value = true;
+    };
+    /** 评论该分享 */
+    const onCommentShare = () => {
+      message.info("TODO");
+    };
+    /** 详情-分享 */
+    const currenDetailInfo = ref<TDetailInfo>({});
+    /** 是否显示详情卡片 */
+    const isShowDetailModal = ref(false);
     // TODO 文件夹 支持上一级目录
     /** shortcut-下载 */
     const onRecordDownload = (record: ListItem) => {
@@ -614,6 +778,10 @@ export default defineComponent({
         }
       });
     };
+    /** 压缩下载 */
+    const onZipDownload = () => {
+      message.info("TODO");
+    };
     /** 批量收藏 */
     const onCollectShare = async () => {
       if (checkLoginStatusAndOpenModal()) {
@@ -636,6 +804,10 @@ export default defineComponent({
         curShareCollectedCount.value += 1;
         message.success("收藏成功");
       }
+    };
+    /** 分享到其他平台 */
+    const onPlatformShare = () => {
+      message.info("TODO");
     };
     /** 批量评价 */
     const onBatchScore = () => {
@@ -669,6 +841,24 @@ export default defineComponent({
       currentShareToken.value = data.driveFindShare.token;
       currentShareId.value = data.driveFindShare.id;
       isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
+      currenDetailInfo.value = {
+        type: getFileType({
+          isDir: data.driveFindShare.userFile.isDir,
+          fileName: lastOfArray(data.driveFindShare.userFile.fullName),
+        }),
+        size: formatBytes(+data.driveFindShare.userFile.info.size),
+        shareLink: makeShareUrlByUri(data.driveFindShare.uri),
+        shareHash: data.driveFindShare.userFile.hash,
+        insertedAt: dayjs(data.driveFindShare.insertedAt).format(
+          "YYYY年MM月DD日hh:mm"
+        ),
+        updatedAt: dayjs(data.driveFindShare.updatedAt).format(
+          "YYYY年MM月DD日hh:mm"
+        ),
+        desc: cacheFormatDescription(
+          data.driveFindShare.userFile.info.description || ""
+        ),
+      };
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -955,12 +1145,20 @@ export default defineComponent({
       selectedRowKeys,
       selectedRows,
       fileData,
+      onShowShareDetail,
+      onCommentShare,
+      currenDetailInfo,
+      isShowDetailModal,
       onRecordDownload,
       onRecordScore,
       onBatchDownload,
+      onZipDownload,
       onCollectShare,
+      onPlatformShare,
       onBatchScore,
       ...useSaveToMetanetModal(),
+      cacheFormatDescription,
+      TAG_COLOR_LIST,
     };
   },
 });

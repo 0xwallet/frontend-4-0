@@ -6,6 +6,7 @@
     :visible="visible"
     @update:visible="updateVisible"
     @ok="onOk"
+    :footer="footer"
     :bodyStyle="{ padding: '18px 12px', border: '1px solid #f2f2f2' }"
   >
     <!-- padding: '18px 12px', -->
@@ -76,6 +77,11 @@ export default defineComponent({
     customRow: {
       type: Function,
       required: true,
+    },
+    footer: {
+      type: [String, Object],
+      // 源码中 undefined 才会显示默认的按钮
+      default: () => undefined,
     },
   },
   emits: ["update:visible", "ok"],
