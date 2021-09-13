@@ -255,3 +255,29 @@ export const addHead = (tag: string, obj: { [key: string]: string }) => {
   });
   document.getElementsByTagName("head")[0].appendChild(meta);
 };
+
+type CheckWrapper = { isOk: boolean };
+/** 超时检测, totalTime总超时时间, interVal检测间隔, 外部可控, 超时reject */
+export const promiseChecker = (
+  totalTime = 3000,
+  interVal = 1000
+): [Promise<void>, CheckWrapper] => {
+  const wrapper = { isOk: false };
+  const start = performance.now();
+  const p = new Promise<void>((resolve, reject) => {
+    const id = setInterval(() => {
+      if (wrapper.isOk) {
+        clearInterval(id);
+        resolve();
+      } else {
+        if (performance.now() - start >= totalTime) {
+          clearInterval(id);
+          reject();
+        } else {
+          // 时间未到,继续run
+        }
+      }
+    }, interVal);
+  });
+  return [p, wrapper];
+};

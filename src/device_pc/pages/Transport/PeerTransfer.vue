@@ -463,6 +463,7 @@ import {
   mergeUint8Array,
   readHeaderInSession,
   writeHeaderInSession,
+  promiseChecker,
 } from "@/utils";
 import { remove } from "lodash-es";
 import { useBaseStore, useTransportStore, useUserStore } from "@/store";
@@ -543,6 +544,7 @@ const getReadyAnonymousMultiClient = () => {
 };
 /** nkn client握手消息 */
 const SHAKE_HAND = "shake_hand";
+const CONFIRM_SHAKE_HAND = "confirm_shake-hand";
 const RECEIVE_PREFIX = "totalReceive";
 /** 总大小信息格式 */
 const totalInfoGuard = {
@@ -951,15 +953,20 @@ export default defineComponent({
             `airdrop:${sendReceiveCode.value}`
           );
           sendChannel.join();
-          const ref1 = sendChannel.on(SHAKE_HAND, (data: ChannelMsgType) => {
-            console.log("channel-shakehand", data);
-            handleShakeHandMessage({
-              payload: SHAKE_HAND,
-              src: data.addr,
-            });
-            sendChannel.off(SHAKE_HAND, ref1);
-            sendChannel.leave();
-          });
+          const ref1 = sendChannel.on(
+            SHAKE_HAND,
+            async (data: ChannelMsgType) => {
+              console.log("channel-shakehand", data);
+              sendChannel.push(CONFIRM_SHAKE_HAND, { msg: "code is ok" });
+              await useDelay(1000);
+              handleShakeHandMessage({
+                payload: SHAKE_HAND,
+                src: data.addr,
+              });
+              sendChannel.off(SHAKE_HAND, ref1);
+              sendChannel.leave();
+            }
+          );
         }
       };
       return {
@@ -1022,8 +1029,27 @@ export default defineComponent({
         receiveChannel.join();
         const addrMsg: ChannelMsgType = { addr: nknClient.addr };
         receiveChannel.push(SHAKE_HAND, addrMsg);
-        useDelay(10_000).then(() => receiveChannel.leave());
-        handleReceiveFile("code");
+        // 对方发送消息过来就确认接收码没问题, 否则是错误的接收码
+        const [isCodeOkPromise, wrapper] = promiseChecker();
+        const ref2 = receiveChannel.on(
+          CONFIRM_SHAKE_HAND,
+          (data: ChannelMsgType) => {
+            // console.log(data, "receiveCode is valid");
+            handleReceiveFile("code");
+            wrapper.isOk = true;
+            receiveChannel.off(CONFIRM_SHAKE_HAND, ref2);
+            receiveChannel.leave();
+          }
+        );
+        isCodeOkPromise
+          .then(() => {
+            console.log("code is ok, receiving");
+          })
+          .catch(() => {
+            console.log("code is wrong, cancel listen receive");
+            receiveInputLoading.value = false;
+            message.warning("接收码错误");
+          });
       };
       /** 接收总大小 */
       const totalReceiveSize = ref(0);
