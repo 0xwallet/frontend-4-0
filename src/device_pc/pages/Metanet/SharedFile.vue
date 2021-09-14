@@ -94,7 +94,22 @@
                 <div class="font-semibold font-16 mr-2">
                   {{ userPreview.username }} 给你分享了文件
                 </div>
-                <div class="font-12 text-gray-400 pt-1">{{ expiredText }}</div>
+                <div class="font-12 text-gray-400 pt-1 flex items-center">
+                  <!-- <img
+                    class="w-4 h-4 mr-1"
+                    src="~@/assets/images/calendar.png"
+                    alt=""
+                  /> -->
+                  📅
+                  <span class="mx-1">{{ insertedAtText }}</span>
+                  <!-- <img
+                    class="w-4 h-4 mr-1"
+                    src="~@/assets/images/hourglass.png"
+                    alt=""
+                  /> -->
+                  ⏳
+                  {{ expiredText }}
+                </div>
                 <div class="flex-1"></div>
                 <div
                   class="font-22 text-gray-500 px-1 mr-2"
@@ -105,20 +120,12 @@
                       v-if="isCurrentShareCollected"
                       :style="{ color: '#faad14' }"
                     />
-                    <StarOutlined v-else class="opacity-80" />
+                    <StarOutlined v-else />
                   </a-tooltip>
                 </div>
                 <div class="font-22 text-gray-500 px-2">
                   <a-tooltip title="转发">
-                    <img
-                      :style="{
-                        width: '22px',
-                        height: '22px',
-                      }"
-                      class="cursor-pointer"
-                      src="~@/assets/images/shared_share.png"
-                      @click="onPlatformShare"
-                    />
+                    <XSvgIcon class="cursor-pointer" icon="share" :size="22" />
                   </a-tooltip>
                 </div>
               </div>
@@ -154,7 +161,10 @@
                     <a
                       class="mr-2"
                       href="javascript:;"
-                      @click="onShowShareDetail"
+                      @click="onShowDetailInfoModal"
+                      :class="{
+                        'text-gray-400': !currentDetailInfo.type,
+                      }"
                     >
                       <InfoCircleOutlined />
                     </a>
@@ -177,6 +187,11 @@
                         class="px-2 text-gray-400"
                         >></span
                       >
+                    </template>
+                    <!-- 点击了文件名(非文件夹),地址栏显示 -->
+                    <template v-if="currentDetailInfo.type">
+                      <span class="px-2 text-gray-400">></span>
+                      {{ currentDetailInfo.name }}
                     </template>
                   </div>
                   <div v-else class="flex-1"></div>
@@ -224,7 +239,8 @@
                     :disabled="selectedRowKeys.length === 0"
                     @click="onZipDownload"
                   >
-                    压缩下载
+                    <XSvgIcon icon="zip" :size="14" />
+                    <span> 压缩下载 </span>
                   </a-button>
                   <!-- <a-button
                     shape="round"
@@ -238,6 +254,7 @@
               </div>
               <!-- 表格区 -->
               <XTableFiles
+                ref="fileTableRef"
                 class="px-3"
                 rowKey="id"
                 :columns="columns"
@@ -249,14 +266,15 @@
                   <div class="relative flex items-center">
                     <!-- 空白就是blank 文件夹就是folder -->
                     <XFileTypeIcon
-                      class="w-6 h-6"
+                      class="w-6 h-6 cursor-pointer"
                       :type="record.userFile.fileType"
+                      @click="onItemIconClick(record)"
                     />
                     <a
                       href="javascript:;"
                       class="mx-2"
                       :title="$lastOfArray(record.userFile.fullName)"
-                      @click="onItemClick(record)"
+                      @click="onItemNameClick(record)"
                     >
                       {{ $lastOfArray(record.userFile.fullName) }}
                     </a>
@@ -350,7 +368,7 @@
             </div>
             <ModalDetail
               v-model:visible="isShowDetailModal"
-              :detail="currenDetailInfo"
+              :detail="currentDetailInfo"
             >
               <template #desc="{ record }">
                 <a-row class="mb-1" justify="space-between">
@@ -412,6 +430,7 @@ import {
   apiGetPreviewToken,
   apiPriviewSharedFile,
   apiQueryCollectList,
+  apiQueryDirSize,
   apiQueryFileByDir,
   apiQuerySharedFile,
   apiSecondUpload,
@@ -424,6 +443,7 @@ import { message } from "ant-design-vue";
 import {
   XFileTypeIcon,
   XTableFiles,
+  XSvgIcon,
   XTdHash,
   XModalDir,
 } from "../../components";
@@ -455,6 +475,7 @@ import { useBaseStore, useUserStore } from "@/store";
 import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
 import { api as viewerApi } from "v-viewer";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
+import { onClickOutside } from "@vueuse/core";
 
 type ListItem = {
   userFile: QueryShareFileItem["userFile"];
@@ -472,6 +493,7 @@ export default defineComponent({
   components: {
     XFileTypeIcon,
     XTableFiles,
+    XSvgIcon,
     XTdHash,
     XModalDir,
     ExportOutlined,
@@ -499,6 +521,8 @@ export default defineComponent({
     const currentUri = ref("");
     const currentShareToken = ref("");
     const currentShareId = ref("");
+    /** 创建时间 */
+    const insertedAtText = ref("");
     /** 当前这个分享的收藏数 */
     const curShareCollectedCount = ref(0);
     /** 当前的分享是否收藏过 */
@@ -569,9 +593,9 @@ export default defineComponent({
       }
     };
     const previewImages = reactive<string[]>([]);
-    /** 点击预览图片 */
-    const onItemClick = async (record: ListItem) => {
-      // console.log("onItemClick", record);
+    /** 点击文件图标 */
+    const onItemIconClick = async (record: ListItem) => {
+      // console.log("onItemIconClick", record);
       if (!record.userFile) return;
       const fileType = getFileType({
         isDir: record.userFile.isDir,
@@ -640,6 +664,56 @@ export default defineComponent({
         console.log("other-type");
       }
     };
+    /** 点击文件名, 地址栏显示, 设置详情数据 */
+    const onItemNameClick = async (record: ListItem) => {
+      // console.log("onItemNameClick");
+      const e = record.userFile;
+      if (!e) {
+        return;
+      }
+      // 如果是文件夹, 就进入文件夹, 更新地址栏和详情数据
+      if (e.isDir) {
+        historyDir.value.push({
+          dirId: e.id,
+          dirName: lastOfArray(e.fullName),
+        });
+        getSetDriveList(e.id);
+        currentDetailInfo.value = {};
+        return;
+      }
+      // 如果是文件夹 请求文件夹大小接口
+      const showSize = e.isDir
+        ? (await apiQueryDirSize({ dirId: e.id })).data?.driveDirSize ?? 0
+        : e.info.size;
+      currentDetailInfo.value = {
+        name: lastOfArray(e.fullName),
+        type: getFileType({
+          isDir: e.isDir,
+          fileName: lastOfArray(e.fullName),
+        }),
+        size: formatBytes(+showSize),
+        insertedAt: dayjs(e.insertedAt).format("YYYY年MM月DD日hh:mm"),
+        updatedAt: dayjs(e.updatedAt).format("YYYY年MM月DD日hh:mm"),
+        desc: cacheFormatDescription(e.info.description || ""),
+      };
+    };
+    const fileTableRef = ref(null);
+    /** 点击除了表格的其他地方, 重置当前点击项(还原地址栏),除了地址栏的收藏icon */
+    onClickOutside(fileTableRef, (e) => {
+      // console.log("e", e.target);
+      const target = e.target as HTMLElement;
+      if (
+        (target.nodeName === "path" && target.outerHTML.includes("64C264.6")) ||
+        (target.nodeName === "svg" && target.innerHTML.includes("64C264.6")) ||
+        (target.nodeName === "a" && target.innerHTML.includes("64C264.6"))
+      ) {
+        // 如果是点击地址栏中的详情按钮, 保持detailInfo
+        return;
+      }
+      if (isShowDetailModal.value === false) {
+        currentDetailInfo.value = {};
+      }
+    });
     /** 请求目录里面的数据 */
     const getSetDriveList = (dirId: string) => {
       const token = currentShareToken.value;
@@ -708,10 +782,12 @@ export default defineComponent({
         width: 150,
       },
       {
-        title: t("metanet.createAt"),
-        dataIndex: "insertedAt",
-        customRender: ({ text }: { text: string }) => {
-          return text ? dayjs(text).format("YYYY-MM-DD hh:mm") : "";
+        title: t("metanet.updatedAt"),
+        dataIndex: "updatedAt",
+        customRender: ({ record }: { record: QueryShareFileItem }) => {
+          return record.userFile
+            ? dayjs(record.userFile?.updatedAt).format("YYYY-MM-DD hh:mm")
+            : "";
         },
         width: 180,
       },
@@ -723,8 +799,11 @@ export default defineComponent({
       },
     ];
     /** 显示该分享 */
-    const onShowShareDetail = () => {
-      console.log("whiy");
+    const onShowDetailInfoModal = () => {
+      if (!currentDetailInfo.value.type) {
+        // message.warning("请先点击某个文件再查看详情");
+        return;
+      }
       isShowDetailModal.value = true;
     };
     /** 评论该分享 */
@@ -732,9 +811,17 @@ export default defineComponent({
       message.info("TODO");
     };
     /** 详情-分享 */
-    const currenDetailInfo = ref<TDetailInfo>({});
+    const currentDetailInfo = ref<TDetailInfo>({});
     /** 是否显示详情卡片 */
     const isShowDetailModal = ref(false);
+    watch(
+      () => isShowDetailModal.value,
+      (newVal) => {
+        if (newVal === false) {
+          currentDetailInfo.value = {};
+        }
+      }
+    );
     // TODO 文件夹 支持上一级目录
     /** shortcut-下载 */
     const onRecordDownload = (record: ListItem) => {
@@ -841,24 +928,24 @@ export default defineComponent({
       currentShareToken.value = data.driveFindShare.token;
       currentShareId.value = data.driveFindShare.id;
       isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
-      currenDetailInfo.value = {
-        type: getFileType({
-          isDir: data.driveFindShare.userFile.isDir,
-          fileName: lastOfArray(data.driveFindShare.userFile.fullName),
-        }),
-        size: formatBytes(+data.driveFindShare.userFile.info.size),
-        shareLink: makeShareUrlByUri(data.driveFindShare.uri),
-        shareHash: data.driveFindShare.userFile.hash,
-        insertedAt: dayjs(data.driveFindShare.insertedAt).format(
-          "YYYY年MM月DD日hh:mm"
-        ),
-        updatedAt: dayjs(data.driveFindShare.updatedAt).format(
-          "YYYY年MM月DD日hh:mm"
-        ),
-        desc: cacheFormatDescription(
-          data.driveFindShare.userFile.info.description || ""
-        ),
-      };
+      // currentDetailInfo.value = {
+      //   type: getFileType({
+      //     isDir: data.driveFindShare.userFile.isDir,
+      //     fileName: lastOfArray(data.driveFindShare.userFile.fullName),
+      //   }),
+      //   size: formatBytes(+data.driveFindShare.userFile.info.size),
+      //   shareLink: makeShareUrlByUri(data.driveFindShare.uri),
+      //   shareHash: data.driveFindShare.userFile.hash,
+      //   insertedAt: dayjs(data.driveFindShare.insertedAt).format(
+      //     "YYYY年MM月DD日hh:mm"
+      //   ),
+      //   updatedAt: dayjs(data.driveFindShare.updatedAt).format(
+      //     "YYYY年MM月DD日hh:mm"
+      //   ),
+      //   desc: cacheFormatDescription(
+      //     data.driveFindShare.userFile.info.description || ""
+      //   ),
+      // };
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -920,6 +1007,9 @@ export default defineComponent({
             dayjs(),
             "days"
           )}天后过期`;
+          insertedAtText.value = dayjs(
+            data.drivePreviewShare.insertedAt
+          ).format("YY-MM-DD");
           // 如果不需要访问码, 立即请求文件
           if (isCodeResolved.value === true) {
             getSetFileData().finally(() => {
@@ -1131,6 +1221,7 @@ export default defineComponent({
       inputCode,
       isValid,
       userPreview,
+      insertedAtText,
       curShareCollectedCount,
       isCurrentShareCollected,
       isCurrentShareFolder,
@@ -1139,15 +1230,17 @@ export default defineComponent({
       lockPageLoading,
       historyDir,
       onUpperLevel,
-      onItemClick,
+      onItemIconClick,
+      onItemNameClick,
+      fileTableRef,
       onConfirmCode,
       columns,
       selectedRowKeys,
       selectedRows,
       fileData,
-      onShowShareDetail,
+      onShowDetailInfoModal,
       onCommentShare,
-      currenDetailInfo,
+      currentDetailInfo,
       isShowDetailModal,
       onRecordDownload,
       onRecordScore,

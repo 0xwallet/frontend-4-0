@@ -79,7 +79,11 @@ body,
 }
 html {
   // font-size: 14px;
+  // 这里16 方便rem的计算方式跟pc版一样
   font-size: 16px;
+}
+body {
+  font-size: 14px;
 }
 .text-gray {
   color: #949494;

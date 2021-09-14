@@ -741,25 +741,25 @@
     </a-modal> -->
 
     <!-- 详情卡片 -->
-    <ModalDetail v-model:visible="isShowDetailModal" :detail="currenDetailInfo">
+    <ModalDetail v-model:visible="isShowDetailModal" :detail="currentDetailInfo">
       <!-- <template #name="{ value }">
         <div>i am the name--{{ value }}</div>
       </template> -->
-      <template v-if="currenDetailInfo.slotDiskUsageInfo" #slotDiskUsagePercent>
+      <template v-if="currentDetailInfo.slotDiskUsageInfo" #slotDiskUsagePercent>
         <a-tooltip
           :title="`总空间 ${
-            currenDetailInfo.slotDiskUsageInfo.split(' / ')[1]
-          }, 已使用 ${currenDetailInfo.slotDiskUsageInfo.split(' / ')[0]}`"
+            currentDetailInfo.slotDiskUsageInfo.split(' / ')[1]
+          }, 已使用 ${currentDetailInfo.slotDiskUsageInfo.split(' / ')[0]}`"
         >
           <a-row class="mb-1" justify="space-between">
             <a-col :span="6" class="ant-color-gray">空间使用</a-col>
             <a-col :span="17">
-              <a-progress :percent="+currenDetailInfo.slotDiskUsagePercent" />
+              <a-progress :percent="+currentDetailInfo.slotDiskUsagePercent" />
             </a-col>
           </a-row>
         </a-tooltip>
       </template>
-      <template v-if="currenDetailInfo.slotDiskUsageInfo" #slotBuyMoreDisk>
+      <template v-if="currentDetailInfo.slotDiskUsageInfo" #slotBuyMoreDisk>
         <a-row class="mb-1" justify="space-between">
           <a-col :span="6" class="ant-color-gray"></a-col>
           <a-col :span="17" class="pt-4">
@@ -2042,7 +2042,7 @@ export default defineComponent({
         }
         isShowEditDescriptionModal.value = false;
         // 编辑成功后立马修改弹窗里的信息
-        currenDetailInfo.value.desc = cacheFormatDescription(
+        currentDetailInfo.value.desc = cacheFormatDescription(
           res.data.driveEditDescription.info.description || ""
         );
         // 还要刷新列表, 因为详情是从列表拿的
@@ -2121,7 +2121,7 @@ export default defineComponent({
             0
           : record.info.size;
         // 点击详情的时候设置编辑描述的弹窗里的内容 -end]
-        currenDetailInfo.value = {
+        currentDetailInfo.value = {
           name: lastOfArray(record.fullName),
           location: historyDir.value.map((i) => i.name).join("/"),
           // curFolderId.value === "root"
@@ -2723,7 +2723,7 @@ export default defineComponent({
     }
 
     /** 当前详情数据 */
-    const currenDetailInfo = ref<TDetailInfo>({});
+    const currentDetailInfo = ref<TDetailInfo>({});
     const isShowDetailModal = ref(false);
     watch(
       () => isShowDetailModal.value,
@@ -2747,10 +2747,10 @@ export default defineComponent({
           slotDiskUsageInfo: "",
           slotBuyMoreDisk: "",
         });
-        currenDetailInfo.value = diskDetail;
+        currentDetailInfo.value = diskDetail;
         apiQueryMeSpace().then((resultQuerySpace) => {
           if (resultQuerySpace.err) return;
-          // currenDetailInfo.value.
+          // currentDetailInfo.value.
           const { usedSpace, totalSpace, availableSpace } =
             resultQuerySpace.data.me.driveSetting;
           diskDetail.slotDiskUsageInfo = `${formatBytes(
@@ -2772,12 +2772,12 @@ export default defineComponent({
         () => isShowDetailModal.value,
         (val) => {
           if (val === false) {
-            currenDetailInfo.value = {};
+            currentDetailInfo.value = {};
           }
         }
       );
       return {
-        currenDetailInfo,
+        currentDetailInfo,
         onShowDescriptionModal,
         isShowDetailModal,
         onShowDiskDetail,

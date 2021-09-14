@@ -19,17 +19,19 @@
         <div
           class="flex-1 text-center flex items-center justify-center font-14"
         >
-          <img
+          <!-- <img
             class="w-4 h-4 mr-1"
             src="~@/assets/images/calendar.png"
             alt=""
-          />
+          /> -->
+          📅
           <span class="mr-1">{{ insertedAtText }}</span>
-          <img
+          <!-- <img
             class="w-4 h-4 mr-1"
             src="~@/assets/images/hourglass.png"
             alt=""
-          />
+          /> -->
+          ⏳
           <span>{{ expiredText }}</span>
         </div>
         <div @click="onUserIconClick">
@@ -83,6 +85,51 @@
             'border-radius': '15px',
           }"
         >
+          <div
+            class="
+              absolute
+              inline-block
+              w-7
+              h-7
+              flex
+              items-center
+              justify-center
+              font-18
+            "
+            @click="onCollect"
+            :style="{
+              top: '-36px',
+              left: 0,
+            }"
+          >
+            <van-icon
+              v-if="isCurrentShareCollected"
+              name="star"
+              color="orange"
+            />
+            <van-icon color="#fff" v-else name="star-o" />
+          </div>
+          <div
+            class="
+              absolute
+              inline-block
+              px-1
+              w-7
+              h-7
+              flex
+              items-center
+              justify-center
+            "
+            @click="onCollect"
+            :style="{
+              top: '-36px',
+              right: 0,
+              color: 'white',
+            }"
+          >
+            <MSvgIcon icon="share" :size="18" />
+          </div>
+
           <!-- 头像 -->
           <div
             class="
@@ -110,17 +157,8 @@
           <div class="text-center font-semibold font-20 mx-3 mb-2">
             {{ userPreview.username }}
           </div>
-          <div class="van-hairline--bottom text-gray-400 text-center mb-3 pb-4">
-            <div class="inline-block px-10" @click="onCollect">
-              <van-icon
-                v-if="isCurrentShareCollected"
-                name="star"
-                color="orange"
-              />
-              <van-icon v-else name="star-o" />
-              {{ curShareCollectedCount }}
-            </div>
-          </div>
+          <div class="van-hairline--bottom text-gray-400 text-center"></div>
+          <div class="pb-2"></div>
           <template v-if="!isCodeResolved">
             <div class="px-6 mb-4">
               <van-field
@@ -152,36 +190,95 @@
             </div>
           </template>
           <template v-else>
-            <div v-if="isCurrentShareFolder" class="px-4 font-semibold">
-              <div v-if="historyDir.length === 1">
+            <div
+              ref="fileTableRef"
+              v-if="isCurrentShareFolder"
+              class="px-4 font-semibold"
+            >
+              <div v-if="historyDir.length === 1" class="flex items-center">
+                <div>
+                  <van-icon
+                    color="#404A66"
+                    size="16px"
+                    class="mr-2"
+                    name="info-o"
+                    @click="onShowDetailInfo"
+                  />
+                </div>
                 <!-- 共有{{ fileData.length }}个文件 -->
-                /
+                <div class="flex-1">/</div>
+                <div v-if="isUserLoggedIn">
+                  <van-icon color="#404A66" size="16px" name="edit" />
+                </div>
               </div>
               <!-- <div v-else>全部文件/3200/所发生的</div> -->
               <div v-else class="flex items-center">
-                <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
-                  <div
-                    :class="{
-                      'text-gray-400': idx === historyDir.length - 1,
-                    }"
-                    @click="onUpperLevel(idx)"
-                  >
-                    {{ dir.dirName }}
-                  </div>
-                  <span
-                    v-if="idx !== historyDir.length - 1"
-                    class="px-2 text-gray-400"
-                    >></span
-                  >
-                </template>
+                <div>
+                  <van-icon
+                    size="16px"
+                    class="mr-2"
+                    name="info-o"
+                    @click="onShowDetailInfo"
+                    color="#404A66"
+                  />
+                  <!-- :color="currentDetailInfo.name ? '#404A66' : '#9CA3AF'" -->
+                  <!-- 9CA3AF is text-gray-400 -->
+                  <!-- color="#404A66" -->
+                </div>
+                <div class="flex-1 flex items-center truncate">
+                  <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
+                    <div
+                      :class="{
+                        'text-gray-400': idx === historyDir.length - 1,
+                      }"
+                      @click="onUpperLevel(idx)"
+                    >
+                      {{ dir.dirName }}
+                    </div>
+                    <span
+                      v-if="idx !== historyDir.length - 1"
+                      class="px-2 text-gray-400"
+                      >></span
+                    >
+                  </template>
+                  <template v-if="currentDetailInfo.name">
+                    <span class="px-2 text-gray-400">></span>
+                    <span class="truncate">
+                      {{ currentDetailInfo.name }}
+                    </span>
+                  </template>
+                </div>
+                <div v-if="isUserLoggedIn">
+                  <van-icon color="#404A66" size="16px" name="edit" />
+                </div>
               </div>
+            </div>
+            <!-- 如果不是文件夹, 信息图标 , 登录后加评论图标 -->
+            <div v-else class="flex items-center justify-center">
+              <!-- TODO detailInfo -->
+              <van-icon
+                color="#404A66"
+                size="16px"
+                class="mr-1 w-6 h-6 flex items-center justify-center"
+                name="info-o"
+                @click="onShowDetailInfo"
+              />
+              <!-- 登录后显示评论按钮 -->
+              <van-icon
+                v-if="isUserLoggedIn"
+                color="#404A66"
+                size="16px"
+                class="mr-1 w-6 h-6 flex items-center justify-center"
+                name="edit"
+              />
             </div>
             <!-- 文件列表 -->
             <div
+              class="mt-1"
               :style="{
                 overflow: 'hidden',
                 'overflow-y': 'scroll',
-                height: 'calc(100% - 110px)',
+                height: 'calc(100% - 80px)',
               }"
             >
               <template v-if="fileData.length === 0">
@@ -194,26 +291,33 @@
                   v-for="record in fileData"
                   :key="record.id"
                 >
-                  <div class="mr-2" @click="onItemClick(record)">
+                  <div class="mr-2 relative" @click="onItemIconClick(record)">
                     <MFileTypeIcon
                       class="w-9 h-9"
                       :type="record.userFile.fileType"
                     />
+                    <div
+                      v-if="isCanFilePreview(record)"
+                      class="
+                        absolute
+                        text-white
+                        bottom-0
+                        font-12
+                        bg-gray-400
+                        opacity-60
+                        left-0
+                        right-0
+                        text-center
+                      "
+                    >
+                      预览
+                    </div>
                   </div>
-                  <div class="flex-1">
-                    <div class="font-medium" @click="onItemClick(record)">
+                  <div class="flex-1" @click="onItemNameClick(record)">
+                    <div class="font-medium">
                       {{ lastOfArray(record.userFile.fullName) }}
                     </div>
-                    <div
-                      class="font-12 text-gray-400"
-                      @click="onShowRecordFullDesc(record)"
-                    >
-                      <van-icon
-                        color="#404A66"
-                        size="14px"
-                        class="mr-1"
-                        name="info-o"
-                      />
+                    <div class="font-12 text-gray-400">
                       <template v-if="!record.userFile.info.description"
                         >-</template
                       >
@@ -226,15 +330,16 @@
                           "
                         >
                           <van-tag
-                            v-for="tag in cacheFormatDescription(
+                            v-for="(tag, idx) in cacheFormatDescription(
                               record.userFile.info.description
                             ).tagArr"
                             :key="tag"
-                            color="orange"
+                            :color="TAG_COLOR_LIST[idx]"
                             class="mr-1"
                             >{{ tag }}</van-tag
                           >
                         </template>
+                        <template v-else>-</template>
                         <!-- {{
                           cacheFormatDescription(
                             record.userFile.info.description
@@ -243,7 +348,20 @@
                       </template>
                     </div>
                   </div>
-                  <div class="pl-7" v-if="!record.userFile.isDir">
+                  <div>
+                    <div class="flex items-center font-12 mb-1">
+                      <van-icon color="#E63F48" size="14px" name="like" />
+                      <span>111</span>
+                    </div>
+                    <div class="flex items-center font-12">
+                      <van-icon color="#404A66" size="14px" name="chat-o" />
+                      <span>111</span>
+                    </div>
+                  </div>
+                  <div
+                    class="w-10 flex justify-end"
+                    v-if="!record.userFile.isDir"
+                  >
                     <div
                       v-if="!record.checked"
                       class="bg-gray-300 rounded-full w-2 h-2 mr-1.5"
@@ -255,6 +373,7 @@
                       v-model="record.checked"
                     />
                   </div>
+                  <div v-else class="w-10"></div>
                 </div>
               </template>
             </div>
@@ -341,21 +460,44 @@
     </van-popup>
     <!-- 点击的文件的全部描述信息 -->
     <van-popup
+      round
       class="rounded p-4 font-14"
-      v-model:show="isShowRecordFullDesc"
-      @close="onCloseRecordFullDescPopup"
+      v-model:show="isShowDetailPopup"
+      @close="onCloseDetailPopup"
+      :style="{
+        width: '300px',
+      }"
     >
-      <template v-if="recordFullDesc.tagArr.length">
-        <van-tag
-          size="medium"
-          class="mb-1 mr-1"
-          color="orange"
-          v-for="tag in recordFullDesc.tagArr"
-          :key="tag"
-          >{{ tag }}</van-tag
+      <template v-if="showDetailInfo.name">
+        <div
+          v-for="(value, key) in showDetailInfo"
+          :key="key"
+          class="flex items-center flex-wrap"
         >
+          <div
+            class="text-gray-400 mr-1"
+            :style="{
+              width: '58px',
+            }"
+          >
+            {{ translateDetailKey(key) }}
+          </div>
+          <div v-if="key !== 'desc'">{{ value }}</div>
+          <div v-else class="flex flex-wrap flex-1 mt-1">
+            <template v-if="value.tagArr.length">
+              <van-tag
+                size="medium"
+                class="mb-1 mr-1"
+                v-for="(tag, idx) in value.tagArr"
+                :color="TAG_COLOR_LIST[idx]"
+                :key="tag"
+                >{{ tag }}</van-tag
+              >
+            </template>
+            <span>{{ value.text }}</span>
+          </div>
+        </div>
       </template>
-      {{ recordFullDesc.text }}
     </van-popup>
     <!-- 右边工具栏 -->
     <!-- <van-popup
@@ -457,12 +599,15 @@ import {
   ref,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { MFileTypeIcon } from "../../components";
+import { MFileTypeIcon, MSvgIcon } from "../../components";
 import { api as viewerApi } from "v-viewer";
 import { useUserStore } from "@/store";
-import { FILE_TYPE_MAP } from "@/constants";
+import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
 import pdfjsLib from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
+import { onClickOutside } from "@vueuse/core";
+import { TDetailInfo } from "@/device_pc/pages/Metanet/components/ModalDetail.vue";
+import { cloneDeep } from "lodash-es";
 
 type SelectedItem = {
   id: string;
@@ -480,14 +625,50 @@ type ListItem = {
   id: string; // 分享的id(没有就用空)
   token: string;
 };
+type DetailInfo = {
+  name: string;
+  type: string;
+  size: string;
+  insertedAt: string;
+  updatedAt: string;
+  desc: DescObj;
+};
+
+const DETAIL_INFO_MAP = {
+  name: "名称",
+  type: "类型",
+  size: "大小",
+  insertedAt: "创建时间",
+  updatedAt: "更新时间",
+  desc: "描述",
+};
 
 function sortByDirType(a: ListItem, b: ListItem) {
   return a.userFile?.isDir ? (b.userFile?.fullName[0] === "..." ? 1 : -1) : 1;
 }
 
+const isCanFilePreview = (record: ListItem) => {
+  // 文件或pdf
+  const f = record.userFile;
+  if (!f) return false;
+  const e = getFileType({
+    isDir: f.isDir,
+    fileName: lastOfArray(f.fullName),
+  });
+  if (FILE_TYPE_MAP.image.includes(e) || e === "pdf") {
+    return true;
+  }
+  // 其他类型返回false
+  return false;
+};
+
+/** 文件夹详情缓存,dirId作为key */
+const dirIdDetailInfoMap: { [key: string]: TDetailInfo } = {};
+
 export default defineComponent({
   components: {
     MFileTypeIcon,
+    MSvgIcon,
   },
   setup() {
     // 登录和未登录的
@@ -540,6 +721,16 @@ export default defineComponent({
         isLoadingConfirmCode.value = false;
       });
     };
+    //  name: lastOfArray(e.fullName),
+    //     type: getFileType({
+    //       isDir: e.isDir,
+    //       fileName: lastOfArray(e.fullName),
+    //     }),
+    //     size: formatBytes(+showSize),
+    //     insertedAt: dayjs(e.insertedAt).format("YYYY年MM月DD日hh:mm"),
+    //     updatedAt: dayjs(e.updatedAt).format("YYYY年MM月DD日hh:mm"),
+    //     desc: cacheFormatDescription(e.info.description || ""),
+
     const isUserLoggedIn = computed(() => userStore.isLoggedIn);
     /** 检查未登录并跳转到登录页 */
     const checkLoginStatusAndRedirect = () => {
@@ -566,6 +757,9 @@ export default defineComponent({
     };
     /** 收藏 */
     const onCollect = async () => {
+      if (checkLoginStatusAndRedirect()) {
+        return;
+      }
       if (isCurrentShareCollected.value) {
         Toast("取消收藏TODO");
         // const res = await apiCollectDelete({ id: currentShareId.value });
@@ -639,6 +833,7 @@ export default defineComponent({
         historyDir.value.splice(dirIdx + 1);
         const dirId = lastOfArray(historyDir.value).dirId;
         getSetDriveList(dirId);
+        onSetCurrentFolderDetailInfoByCache(dirId);
       }
     };
     const dirData = ref<TDir[]>([]);
@@ -849,6 +1044,14 @@ export default defineComponent({
       currentShareToken.value = data.driveFindShare.token;
       currentShareId.value = data.driveFindShare.id;
       isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
+      const e = data.driveFindShare.userFile;
+      if (isCurrentShareFolder.value === false) {
+        // 如果当前分享是一个文件, 注册详情信息
+        onSetCurrentDetailInfo(e);
+      } else {
+        onSetCurrentFolderDetailInfo(e);
+      }
+
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -878,6 +1081,13 @@ export default defineComponent({
       // console.log("fileData", fileData);
       isValid.value = true;
       isCodeResolved.value = true;
+      if (isCurrentShareFolder.value) {
+        // wait dom ready
+        useDelay().then(() => {
+          // 文件夹的话就启动详情相关监听
+          useClickOutSide();
+        });
+      }
     };
     /** 目录面包屑
      * 当点击第一个的时候是用share 的api,所以这里第一个dirId不会被用到 */
@@ -962,8 +1172,8 @@ export default defineComponent({
       });
     };
     /** 点击预览图片 */
-    const onItemClick = async (record: ListItem) => {
-      // console.log("onItemClick", record);
+    const onItemIconClick = async (record: ListItem) => {
+      // console.log("onItemIconClick", record);
       // if (notLoggedInAndRoute()) {
       //   console.log("未登录,跳转");
       //   return;
@@ -982,6 +1192,8 @@ export default defineComponent({
           dirName: lastOfArray(record.userFile.fullName),
         });
         getSetDriveList(record.userFile.id);
+        const e = record.userFile;
+        onSetCurrentFolderDetailInfo(e);
         // 1.2 change fileData
       } else if (FILE_TYPE_MAP.image.includes(fileType)) {
         // 2.是图片
@@ -1086,34 +1298,158 @@ export default defineComponent({
         console.log("TODO-其他类型");
       }
     };
-    /** record详细描述信息的弹窗 */
-    function useRecordDescPopup() {
-      const recordFullDesc = reactive<DescObj>({
+    // const currentDetailItem
+    /** 点击文件名 */
+    const onItemNameClick = async (record: ListItem) => {
+      const e = record.userFile;
+      if (!e) return;
+      if (e.isDir) return;
+      onSetCurrentDetailInfo(e);
+    };
+    const fileTableRef = ref(null);
+    const useClickOutSide = () => {
+      // console.log("useClickOutSide");
+      /** 点击除了表格的其他地方, 重置当前点击项(还原地址栏),除了地址栏的收藏icon */
+      onClickOutside(fileTableRef, (e) => {
+        // console.log("e", e.target);
+        const target = e.target as HTMLElement;
+        if (
+          (target.nodeName === "path" &&
+            target.outerHTML.includes("64C264.6")) ||
+          (target.nodeName === "svg" &&
+            target.innerHTML.includes("64C264.6")) ||
+          (target.nodeName === "a" && target.innerHTML.includes("64C264.6"))
+        ) {
+          // 如果是点击地址栏中的详情按钮, 保持detailInfo
+          return;
+        }
+        if (isShowDetailPopup.value === false) {
+          onResetCurrentDetailInfo();
+        }
+      });
+    };
+    /** 当前文件夹的详情 */
+    const currentFolderDetailInfo = reactive<DetailInfo>({
+      name: "",
+      type: "",
+      size: "",
+      insertedAt: "",
+      updatedAt: "",
+      desc: {
         tagArr: [],
         text: "",
+      },
+    });
+    /** 设置当前文件夹详情 */
+    const onSetCurrentFolderDetailInfo = (e: TFileItem) => {
+      if (dirIdDetailInfoMap[e.id]) {
+        Object.assign(currentFolderDetailInfo, dirIdDetailInfoMap[e.id]);
+        return;
+      }
+      currentFolderDetailInfo.name = lastOfArray(e.fullName);
+      currentFolderDetailInfo.type = getFileType({
+        isDir: e.isDir,
+        fileName: lastOfArray(e.fullName),
       });
-      const isShowRecordFullDesc = ref(false);
-      const onCloseRecordFullDescPopup = () => {
-        useDelay(300).then(() => {
-          recordFullDesc.tagArr = [];
-          recordFullDesc.text = "";
-        });
+      currentFolderDetailInfo.size = formatBytes(+e.info.size);
+      currentFolderDetailInfo.insertedAt = dayjs(e.insertedAt).format(
+        "YYYY年MM月DD日hh:mm"
+      );
+      currentFolderDetailInfo.updatedAt = dayjs(e.updatedAt).format(
+        "YYYY年MM月DD日hh:mm"
+      );
+      currentFolderDetailInfo.desc = cacheFormatDescription(
+        e.info.description || ""
+      );
+      dirIdDetailInfoMap[e.id] = cloneDeep(currentFolderDetailInfo);
+    };
+    /** 根据文件夹id拿缓存去设置 当前文件夹详情 */
+    const onSetCurrentFolderDetailInfoByCache = (dirId: string) => {
+      // console.log("what,why", dirIdDetailInfoMap);
+      const cacheFolderDetailInfo = dirIdDetailInfoMap[dirId];
+      if (cacheFolderDetailInfo) {
+        Object.assign(currentFolderDetailInfo, cacheFolderDetailInfo);
+      }
+    };
+    /** 重置当前文件夹详情 */
+    const onResetCurrentFolderDetailInfo = () => {
+      currentFolderDetailInfo.name = "";
+      currentFolderDetailInfo.type = "";
+      currentFolderDetailInfo.size = "";
+      currentFolderDetailInfo.insertedAt = "";
+      currentFolderDetailInfo.updatedAt = "";
+      currentFolderDetailInfo.desc.tagArr = [];
+      currentFolderDetailInfo.desc.text = "";
+    };
+    /** 是否显示详情弹窗 */
+    const isShowDetailPopup = ref(false);
+    /** 当前文件详情信息 */
+    const currentDetailInfo = reactive<DetailInfo>({
+      name: "",
+      type: "",
+      size: "",
+      insertedAt: "",
+      updatedAt: "",
+      desc: {
+        tagArr: [],
+        text: "",
+      },
+    });
+    /** 设置当前详情弹窗 */
+    const onSetCurrentDetailInfo = (e: TFileItem) => {
+      currentDetailInfo.name = lastOfArray(e.fullName);
+      currentDetailInfo.type = getFileType({
+        isDir: e.isDir,
+        fileName: lastOfArray(e.fullName),
+      });
+      currentDetailInfo.size = formatBytes(+e.info.size);
+      currentDetailInfo.insertedAt = dayjs(e.insertedAt).format(
+        "YYYY年MM月DD日hh:mm"
+      );
+      currentDetailInfo.updatedAt = dayjs(e.updatedAt).format(
+        "YYYY年MM月DD日hh:mm"
+      );
+      currentDetailInfo.desc = cacheFormatDescription(e.info.description || "");
+    };
+    /** 重置当前详情弹窗 */
+    const onResetCurrentDetailInfo = () => {
+      currentDetailInfo.name = "";
+      currentDetailInfo.type = "";
+      currentDetailInfo.size = "";
+      currentDetailInfo.insertedAt = "";
+      currentDetailInfo.updatedAt = "";
+      currentDetailInfo.desc.tagArr = [];
+      currentDetailInfo.desc.text = "";
+    };
+    /** 显示的详情 */
+    const showDetailInfo = computed(() => {
+      return currentDetailInfo.name
+        ? currentDetailInfo
+        : currentFolderDetailInfo;
+    });
+    /** record详细描述信息的弹窗 */
+    function useDetailPopup() {
+      const onShowDetailInfo = () => {
+        if (currentDetailInfo.name || currentFolderDetailInfo.name) {
+          isShowDetailPopup.value = true;
+        }
       };
-      /** 全部描述信息  */
-      const onShowRecordFullDesc = (record: ListItem) => {
-        recordFullDesc.tagArr = cacheFormatDescription(
-          record.userFile?.info.description ?? ""
-        ).tagArr;
-        recordFullDesc.text = cacheFormatDescription(
-          record.userFile?.info.description ?? ""
-        ).text;
-        isShowRecordFullDesc.value = true;
+      const onCloseDetailPopup = () => {
+        isShowDetailPopup.value = false;
+      };
+      /** 将key转换成中文 */
+      const translateDetailKey = (key: keyof DetailInfo) => {
+        return DETAIL_INFO_MAP[key];
       };
       return {
-        recordFullDesc,
-        isShowRecordFullDesc,
-        onCloseRecordFullDescPopup,
-        onShowRecordFullDesc,
+        fileTableRef,
+        isShowDetailPopup,
+        currentFolderDetailInfo,
+        currentDetailInfo,
+        showDetailInfo,
+        onShowDetailInfo,
+        onCloseDetailPopup,
+        translateDetailKey,
       };
     }
     const onShowViewer = () => {
@@ -1144,6 +1480,8 @@ export default defineComponent({
       // 经测试 关闭后会自动回收内存
     };
     return {
+      TAG_COLOR_LIST,
+      isCanFilePreview,
       svgStr,
       lockPageLoading,
       selectedRows,
@@ -1176,12 +1514,13 @@ export default defineComponent({
       onClosePopup,
       historyDir,
       // onFinishPopup,
-      onItemClick,
+      onItemIconClick,
+      onItemNameClick,
       dayjs,
       formatBytes,
       lastOfArray,
       cacheFormatDescription,
-      ...useRecordDescPopup(),
+      ...useDetailPopup(),
       onShowViewer,
       // ...useRightPopup(),
       ...useBottomPopup(),

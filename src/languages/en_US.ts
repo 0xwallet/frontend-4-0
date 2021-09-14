@@ -263,6 +263,7 @@ export default {
     private: "Private",
     valid: "Valid for 7 days",
     createAt: "Created Time",
+    updatedAt: "Update Time",
     expiredAt: "Expired Time",
     expired: "Expired",
     publishTitle: "My Publication",
