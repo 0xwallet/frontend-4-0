@@ -10,7 +10,7 @@ import {
   NetFile_Collection,
 } from "./documents";
 import { TMessageType, TSession } from "nkn";
-import { UPLOAD_MSG, MAX_MTU, REMOTE_ADDR } from "@/constants";
+import { UPLOAD_MSG, MAX_MTU } from "@/constants";
 import { getFileSHA256, writeHeaderInSession, useDelay } from "@/utils";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
@@ -175,6 +175,24 @@ export const apiResetPwd = async (
     return { err: err as Error };
   }
 };
+
+type ResponseQueryNfrAddress = {
+  driveNfrAddress: string;
+  // "driveNfrAddress": "file-jpgkdpid.5281e9f852705a509b748414148a9909a2e30ec860b3bf6ac0633c39d88613bf"
+};
+/** 查询上传地址 */
+export const apiQueryNfrAddress =
+  async (): TApiRes<ResponseQueryNfrAddress> => {
+    try {
+      const data = await useApollo<ResponseQueryNfrAddress>({
+        mode: "query",
+        gql: NetFile_Basic.driveNfrAddress,
+      });
+      return { data };
+    } catch (err) {
+      return { err: err as Error };
+    }
+  };
 
 type ResponseQureyMe = {
   // TODO
@@ -458,14 +476,18 @@ export const apiUploadSingle = async (
   const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
     try {
-      res = await multiClient.dial(REMOTE_ADDR, {
+      const resNfr = await apiQueryNfrAddress();
+      if (resNfr.err || !resNfr.data) {
+        throw Error("apiQueryNfrAddress-获取不到数据");
+      }
+      const nfrAddress = resNfr.data.driveNfrAddress;
+      res = await multiClient.dial(nfrAddress, {
         dialTimeout: 10000, // 10s dial 过期
       });
       // 过期就重试
     } catch (error) {
       console.error(
         "clientDial:remoteAddr-error-dialTryTimes",
-        REMOTE_ADDR,
         error,
         dialTryTimes
       );

@@ -28,6 +28,13 @@ export const driveListFiles = gql`
   }
 `;
 
+/** 查询上传地址 */
+export const driveNfrAddress = gql`
+  query {
+    driveNfrAddress
+  }
+`;
+
 export const driveSearch = gql`
   query ($keywords: String!, $space: DriveSpace) {
     driveSearch(keywords: $keywords, space: $space) {
