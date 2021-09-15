@@ -482,8 +482,8 @@
           >
             {{ translateDetailKey(key) }}
           </div>
-          <div v-if="key !== 'desc'">{{ value }}</div>
-          <div v-else class="flex flex-wrap flex-1 mt-1">
+          <div v-if="key !== 'desc'" class="flex flex-wrap flex-1">{{ value }}</div>
+          <div v-else class="flex flex-wrap flex-1">
             <template v-if="value.tagArr.length">
               <van-tag
                 size="medium"
