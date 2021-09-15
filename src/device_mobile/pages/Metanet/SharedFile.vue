@@ -1303,8 +1303,18 @@ export default defineComponent({
     const onItemNameClick = async (record: ListItem) => {
       const e = record.userFile;
       if (!e) return;
-      if (e.isDir) return;
-      onSetCurrentDetailInfo(e);
+      if (e.isDir) {
+        // 1.如果是文件夹, 打开文件夹
+        historyDir.value.push({
+          dirId: e.id,
+          dirName: lastOfArray(e.fullName),
+        });
+        getSetDriveList(e.id);
+        onSetCurrentFolderDetailInfo(e);
+      } else {
+        // 2.如果是文件
+        onSetCurrentDetailInfo(e);
+      }
     };
     const fileTableRef = ref(null);
     const useClickOutSide = () => {
