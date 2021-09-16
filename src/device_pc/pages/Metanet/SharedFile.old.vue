@@ -1,182 +1,138 @@
 <template>
-  <div
-    class="w-full h-fulla"
-    :style="{
-      background: '#f0f2f5',
-    }"
-  >
-    <header class="px-12 h-14 mb-6 bg-white flex items-center justify-between">
-      <div
-        class="flex items-center justify-center cursor-pointer"
-        :style="{
-          filter: 'drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25))',
-        }"
-        @click="onClickLogo"
-      >
-        <!-- TODO hover effect -->
-        <XSvgIcon icon="logo" :size="28" />
-      </div>
-      <div
-        class="
-          flex-1
-          font-14
-          text-gray-400 text-center
-          pt-1
-          flex
-          items-center
-          justify-center
-        "
-      >
-        📅
-        <span class="mx-1">{{ insertedAtText }}</span>
-        ⏳
-        {{ expiredText }}
-      </div>
-      <div
-        v-if="!isUserLoggedIn"
-        class="flex-center cursor-pointer"
-        :style="{
-          color: '#423d3d',
-        }"
-        @click="onClickUnLoggInUserIcon"
-      >
-        <XSvgIcon icon="user" :size="26" />
-      </div>
-      <XUserAvatar v-else class="w-6 h-6" />
-    </header>
-    <main class="px-20">
-      <a-spin :spinning="lockPageLoading">
-        <template #indicator>
-          <LoadingOutlined />
-        </template>
-        <div
-          class="bg-white rounded-xl"
-          :style="{
-            'min-height': 'calc(100vh - 200px)',
-            padding: 0,
-          }"
-        >
-          <template v-if="!lockPageLoading">
-            <!-- 文件有效 -->
-            <template v-if="isValid">
-              <template v-if="userPreview.email">
-                <!-- 还没通过访问码 -->
+  <a-spin :spinning="lockPageLoading">
+    <template #indicator>
+      <LoadingOutlined />
+    </template>
+    <div
+      :style="{
+        'min-height': 'calc(100vh - 200px)',
+        padding: 0,
+      }"
+    >
+      <template v-if="!lockPageLoading">
+        <!-- 文件有效 -->
+        <template v-if="isValid">
+          <template v-if="userPreview.email">
+            <!-- 还没通过访问码 -->
+            <div
+              v-if="!isCodeResolved"
+              class="flex flex-col items-center justify-center"
+              :style="{
+                height: 'calc(100vh - 300px)',
+                width: '300px',
+                margin: '0 auto',
+              }"
+            >
+              <!-- 头像 -->
+              <div
+                class="
+                  rounded-full
+                  w-14
+                  h-14
+                  flex
+                  items-center
+                  justify-center
+                  text-white text-2xl
+                  mb-3
+                "
+                :style="{
+                  background:
+                    'linear-gradient(45deg, rgb(0, 172, 193), rgb(0, 213, 226))',
+                }"
+              >
+                {{ userPreview.username[0].toUpperCase() }}
+              </div>
+              <!-- 名字 -->
+              <div class="w-full text-center mb-4 font-semibold">
+                {{ userPreview.username }}
+              </div>
+              <!-- inputcode -->
+              <div class="w-full mb-4">
+                <a-input v-model:value="inputCode" placeholder="请输入访问码" />
+              </div>
+              <!-- 提取文件 -->
+              <div class="w-full mb-4">
+                <a-button
+                  block
+                  type="primary"
+                  :loading="confirmLoading"
+                  @click="onConfirmCode"
+                  >提取文件</a-button
+                >
+              </div>
+              <!-- 文件有效期 -->
+              <div class="w-full text-center font-12 text-gray-400">
+                {{ expiredText }}
+              </div>
+            </div>
+            <!-- 通过访问码控制了 -->
+            <div v-else>
+              <div
+                class="flex items-center p-3"
+                :style="{
+                  'border-bottom': '1px solid #eee',
+                }"
+              >
                 <div
-                  v-if="!isCodeResolved"
-                  class="flex flex-col items-center justify-center"
+                  class="
+                    rounded-full
+                    w-10
+                    h-10
+                    flex
+                    items-center
+                    justify-center
+                    text-white text-xl
+                    mr-2
+                  "
                   :style="{
-                    height: 'calc(100vh - 300px)',
-                    width: '300px',
-                    margin: '0 auto',
+                    background:
+                      'linear-gradient(45deg, rgb(0, 172, 193), rgb(0, 213, 226))',
                   }"
                 >
-                  <!-- 头像 -->
-                  <div
-                    class="
-                      rounded-full
-                      w-14
-                      h-14
-                      flex
-                      items-center
-                      justify-center
-                      text-white text-2xl
-                      mb-3
-                    "
-                    :style="{
-                      background:
-                        'linear-gradient(45deg, rgb(0, 172, 193), rgb(0, 213, 226))',
-                    }"
-                  >
-                    {{ userPreview.username[0].toUpperCase() }}
-                  </div>
-                  <!-- 名字 -->
-                  <div class="w-full text-center mb-4 font-semibold">
-                    {{ userPreview.username }}
-                  </div>
-                  <!-- inputcode -->
-                  <div class="w-full mb-4">
-                    <a-input
-                      v-model:value="inputCode"
-                      placeholder="请输入访问码"
-                    />
-                  </div>
-                  <!-- 提取文件 -->
-                  <div class="w-full mb-4">
-                    <a-button
-                      block
-                      type="primary"
-                      :loading="confirmLoading"
-                      @click="onConfirmCode"
-                      >提取文件</a-button
-                    >
-                  </div>
-                  <!-- 文件有效期 -->
-                  <div class="w-full text-center font-12 text-gray-400">
-                    {{ expiredText }}
-                  </div>
+                  {{ userPreview.username[0].toUpperCase() }}
                 </div>
-                <!-- 通过访问码控制了 -->
-                <div v-else>
-                  <div
-                    class="flex items-center p-3"
-                    :style="{
-                      'border-bottom': '1px solid #eee',
-                    }"
-                  >
-                    <div
-                      class="
-                        rounded-full
-                        w-10
-                        h-10
-                        flex
-                        items-center
-                        justify-center
-                        text-white text-xl
-                        mr-2
-                      "
-                      :style="{
-                        background:
-                          'linear-gradient(45deg, rgb(0, 172, 193), rgb(0, 213, 226))',
-                      }"
-                    >
-                      {{ userPreview.username[0].toUpperCase() }}
-                    </div>
-                    <div class="font-semibold font-16 mr-2">
-                      {{ userPreview.username }} 给你分享了文件
-                    </div>
-                    <!-- <div class="font-12 text-gray-400 pt-1 flex items-center">
-                      📅
-                      <span class="mx-1">{{ insertedAtText }}</span>
-                      ⏳
-                      {{ expiredText }}
-                    </div> -->
-                    <div class="flex-1"></div>
-                    <div
-                      class="font-22 text-gray-500 px-1 mr-2"
-                      @click="onCollectShare"
-                    >
-                      <a-tooltip title="收藏">
-                        <StarFilled
-                          v-if="isCurrentShareCollected"
-                          :style="{ color: '#faad14' }"
-                        />
-                        <StarOutlined v-else />
-                      </a-tooltip>
-                    </div>
-                    <div class="font-22 text-gray-500 px-2">
-                      <a-tooltip title="转发">
-                        <XSvgIcon
-                          class="cursor-pointer"
-                          icon="share"
-                          :size="22"
-                        />
-                      </a-tooltip>
-                    </div>
-                  </div>
-                  <!-- 功能区 -->
-                  <div class="pt-3 px-3 mb-3 flex items-center">
-                    <!-- 文件夹类型才显示路径 -->
-                    <!-- <div v-if="isCurrentShareFolder" class="mr-2 flex items-center">
+                <div class="font-semibold font-16 mr-2">
+                  {{ userPreview.username }} 给你分享了文件
+                </div>
+                <div class="font-12 text-gray-400 pt-1 flex items-center">
+                  <!-- <img
+                    class="w-4 h-4 mr-1"
+                    src="~@/assets/images/calendar.png"
+                    alt=""
+                  /> -->
+                  📅
+                  <span class="mx-1">{{ insertedAtText }}</span>
+                  <!-- <img
+                    class="w-4 h-4 mr-1"
+                    src="~@/assets/images/hourglass.png"
+                    alt=""
+                  /> -->
+                  ⏳
+                  {{ expiredText }}
+                </div>
+                <div class="flex-1"></div>
+                <div
+                  class="font-22 text-gray-500 px-1 mr-2"
+                  @click="onCollectShare"
+                >
+                  <a-tooltip title="收藏">
+                    <StarFilled
+                      v-if="isCurrentShareCollected"
+                      :style="{ color: '#faad14' }"
+                    />
+                    <StarOutlined v-else />
+                  </a-tooltip>
+                </div>
+                <div class="font-22 text-gray-500 px-2">
+                  <a-tooltip title="转发">
+                    <XSvgIcon class="cursor-pointer" icon="share" :size="22" />
+                  </a-tooltip>
+                </div>
+              </div>
+              <!-- 功能区 -->
+              <div class="pt-3 px-3 mb-3 flex items-center">
+                <!-- 文件夹类型才显示路径 -->
+                <!-- <div v-if="isCurrentShareFolder" class="mr-2 flex items-center">
                   <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
                     <a
                       :class="{
@@ -193,64 +149,60 @@
                     >
                   </template>
                 </div> -->
-                    <div
-                      class="flex-1 flex items-center px-3 mr-2"
-                      :style="{
-                        height: '28px',
-                        'border-radius': '50px',
-                        'background-color': '#f7f7f8',
+                <div
+                  class="flex-1 flex items-center px-3 mr-2"
+                  :style="{
+                    height: '28px',
+                    'border-radius': '50px',
+                    'background-color': '#f7f7f8',
+                  }"
+                >
+                  <a-tooltip title="信息">
+                    <a
+                      class="mr-2"
+                      href="javascript:;"
+                      @click="onShowDetailInfoModal"
+                      :class="{
+                        'text-gray-400': !currentDetailInfo.type,
                       }"
                     >
-                      <!-- <a-tooltip title="描述信息">
-                        <a
-                          class="mr-2"
-                          href="javascript:;"
-                          @click="onShowDescriptionModal"
-                          :class="{
-                            'text-gray-400': !currentDescription,
-                          }"
-                        >
-                          <InfoCircleOutlined />
-                        </a>
-                      </a-tooltip> -->
-                      <div
-                        v-if="isCurrentShareFolder"
-                        class="mr-2 flex-1 flex items-center"
+                      <InfoCircleOutlined />
+                    </a>
+                  </a-tooltip>
+                  <div
+                    v-if="isCurrentShareFolder"
+                    class="mr-2 flex-1 flex items-center"
+                  >
+                    <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
+                      <a
+                        :class="{
+                          'text-gray-400': idx === historyDir.length - 1,
+                        }"
+                        @click="onUpperLevel(idx)"
                       >
-                        <template
-                          v-for="(dir, idx) in historyDir"
-                          :key="dir.dirId"
-                        >
-                          <a
-                            :class="{
-                              'text-gray-400': idx === historyDir.length - 1,
-                            }"
-                            @click="onUpperLevel(idx)"
-                          >
-                            {{ dir.dirName }}
-                          </a>
-                          <span
-                            v-if="idx !== historyDir.length - 1"
-                            class="px-2 text-gray-400"
-                            >></span
-                          >
-                        </template>
-                        <!-- 点击了文件名(非文件夹),地址栏显示 -->
-                        <!-- TODO -->
-                        <template v-if="currentDescriptionModalFileName">
-                          <!-- <span class="px-2 text-gray-400">></span>
-                          {{ currentDetailInfo.name }} -->
-                        </template>
-                      </div>
-                      <div v-else class="flex-1"></div>
-                      <a-tooltip title="评论">
-                        <a href="javascript:;" @click="onCommentShare">
-                          <EditOutlined />
-                        </a>
-                      </a-tooltip>
-                    </div>
-                    <div>
-                      <!-- <a-button shape="round" class="mr-2" @click="onCollectShare">
+                        {{ dir.dirName }}
+                      </a>
+                      <span
+                        v-if="idx !== historyDir.length - 1"
+                        class="px-2 text-gray-400"
+                        >></span
+                      >
+                    </template>
+                    <!-- 点击了文件名(非文件夹),地址栏显示 -->
+                    <template v-if="currentDetailInfo.type">
+                      <span class="px-2 text-gray-400">></span>
+                      {{ currentDetailInfo.name }}
+                    </template>
+                  </div>
+                  <div v-else class="flex-1"></div>
+                  <a-tooltip title="评论">
+                    <a href="javascript:;" @click="onCommentShare">
+                      <EditOutlined />
+                    </a>
+                  </a-tooltip>
+                </div>
+                <div>
+                  <!-- <a-button shape="round" class="mr-2" @click="onCollectShare">
                     <HeartFilled
                       v-if="isCurrentShareCollected"
                       :style="{ color: '#faad14' }"
@@ -260,37 +212,37 @@
                       curShareCollectedCount
                     }}</span>
                   </a-button> -->
-                      <a-button
-                        shape="round"
-                        :disabled="selectedRowKeys.length === 0"
-                        @click="
-                          saveToMetanetModalPreAction(
-                            selectedRows.map((i) => i.userFile)
-                          )
-                        "
-                        class="mr-2"
-                      >
-                        <ExportOutlined />
-                        保存到网盘
-                      </a-button>
-                      <a-button
-                        shape="round"
-                        :disabled="selectedRowKeys.length === 0"
-                        class="mr-2"
-                        @click="onBatchDownload"
-                      >
-                        <DownloadOutlined />
-                        下载
-                      </a-button>
-                      <a-button
-                        shape="round"
-                        :disabled="selectedRowKeys.length === 0"
-                        @click="onZipDownload"
-                      >
-                        <XSvgIcon icon="zip" :size="14" />
-                        <span> 压缩下载 </span>
-                      </a-button>
-                      <!-- <a-button
+                  <a-button
+                    shape="round"
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="
+                      saveToMetanetModalPreAction(
+                        selectedRows.map((i) => i.userFile)
+                      )
+                    "
+                    class="mr-2"
+                  >
+                    <ExportOutlined />
+                    保存到网盘
+                  </a-button>
+                  <a-button
+                    shape="round"
+                    :disabled="selectedRowKeys.length === 0"
+                    class="mr-2"
+                    @click="onBatchDownload"
+                  >
+                    <DownloadOutlined />
+                    下载
+                  </a-button>
+                  <a-button
+                    shape="round"
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="onZipDownload"
+                  >
+                    <XSvgIcon icon="zip" :size="14" />
+                    <span> 压缩下载 </span>
+                  </a-button>
+                  <!-- <a-button
                     shape="round"
                     :disabled="selectedRowKeys.length === 0"
                     @click="onBatchScore"
@@ -298,128 +250,77 @@
                     <HighlightOutlined />
                     评价
                   </a-button> -->
+                </div>
+              </div>
+              <!-- 表格区 -->
+              <XTableFiles
+                ref="fileTableRef"
+                class="px-3"
+                rowKey="id"
+                :columns="columns"
+                :data="fileData"
+                v-model:selectedRows="selectedRows"
+                v-model:selectedRowKeys="selectedRowKeys"
+              >
+                <template #name="{ record }">
+                  <div class="relative flex items-center">
+                    <!-- 空白就是blank 文件夹就是folder -->
+                    <XFileTypeIcon
+                      class="w-6 h-6 cursor-pointer"
+                      :type="record.userFile.fileType"
+                      @click="onItemIconClick(record)"
+                    />
+                    <a
+                      href="javascript:;"
+                      class="mx-2"
+                      :title="$lastOfArray(record.userFile.fullName)"
+                      @click="onItemNameClick(record)"
+                    >
+                      {{ $lastOfArray(record.userFile.fullName) }}
+                    </a>
+                    <div
+                      v-if="
+                        cacheFormatDescription(record.userFile.info.description)
+                          .tagArr.length
+                      "
+                    >
+                      <a-tag
+                        v-for="(tag, idx) in cacheFormatDescription(
+                          record.userFile.info.description
+                        ).tagArr"
+                        :key="tag"
+                        :color="TAG_COLOR_LIST[idx]"
+                        class="mr-1"
+                        >{{ tag }}</a-tag
+                      >
                     </div>
-                  </div>
-                  <!-- 表格区 -->
-                  <XTableFiles
-                    class="px-3"
-                    rowKey="id"
-                    :columns="columns"
-                    :data="fileData"
-                    v-model:selectedRows="selectedRows"
-                    v-model:selectedRowKeys="selectedRowKeys"
-                  >
-                    <template #name="{ record }">
-                      <div class="relative flex items-center">
-                        <!-- 空白就是blank 文件夹就是folder -->
-                        <div class="relative flex-shrink-0">
-                          <XFileTypeIcon
-                            class="w-6 h-6 cursor-pointer"
-                            :type="record.userFile.fileType"
-                            @click="onItemIconClick(record)"
-                          />
-                          <div
-                            v-if="isCanFilePreview(record)"
-                            class="
-                              absolute
-                              text-white
-                              bottom-0
-                              font-12
-                              bg-gray-400
-                              opacity-70
-                              left-0
-                              right-0
-                              text-center
-                            "
-                            :style="{
-                              height: '14px',
-                              'line-height': '14px',
-                            }"
-                          >
-                            <div
-                              class="cursor-pointer"
-                              :style="{
-                                transform: 'scale(.833)',
-                              }"
-                              @click="onItemIconClick(record)"
-                            >
-                              预览
-                            </div>
-                          </div>
-                        </div>
-
+                    <!-- hover 才显示的shortCut栏 -->
+                    <!-- 非上级目录 -->
+                    <div
+                      class="tableShortcut hidden inline-block absolute right-0"
+                    >
+                      <!-- 保存到网盘 -->
+                      <a-tooltip title="保存到网盘">
                         <a
+                          class="shortcutButton ml-1"
                           href="javascript:;"
-                          class="mx-2"
-                          :title="$lastOfArray(record.userFile.fullName)"
-                          @click="onItemNameClick(record)"
-                        >
-                          {{ $lastOfArray(record.userFile.fullName) }}
-                        </a>
-                        <!-- class="truncate" -->
-                        <div
-                          v-if="
-                            cacheFormatDescription(
-                              record.userFile.info.description
-                            ).tagArr.length
+                          @click="
+                            saveToMetanetModalPreAction([record.userFile])
                           "
-                        >
-                          <template
-                            v-for="(tag, idx) in cacheFormatDescription(
-                              record.userFile.info.description
-                            ).tagArr"
-                          >
-                            <a-tag
-                              v-if="tag"
-                              :key="tag"
-                              :color="TAG_COLOR_LIST[idx]"
-                              class="mr-1"
-                              >{{ tag }}</a-tag
-                            >
-                          </template>
-                        </div>
-                        <!-- hover 才显示的shortCut栏 -->
-                        <!-- 非上级目录 -->
-                        <div
-                          class="
-                            tableShortcut
-                            hidden
-                            inline-block
-                            absolute
-                            right-0
-                          "
-                        >
-                          <!-- 描述信息 -->
-                          <a-tooltip title="描述信息">
-                            <a
-                              class="shortcutButton ml-1"
-                              href="javascript:;"
-                              @click="onShowDescriptionModal(record.userFile)"
-                              ><XSvgIcon icon="md" :size="18"
-                            /></a>
-                          </a-tooltip>
-                          <!-- 保存到网盘 -->
-                          <a-tooltip title="保存到网盘">
-                            <a
-                              class="shortcutButton ml-1"
-                              href="javascript:;"
-                              @click="
-                                saveToMetanetModalPreAction([record.userFile])
-                              "
-                              ><ExportOutlined
-                            /></a>
-                          </a-tooltip>
-                          <!-- 下载 -->
-                          <a-tooltip title="下载">
-                            <a
-                              class="shortcutButton ml-1"
-                              href="javascript:;"
-                              @click="onRecordDownload(record)"
-                              ><DownloadOutlined
-                            /></a>
-                          </a-tooltip>
-                          <!-- 评价 -->
-                          <!-- <a-tooltip title="评价">
+                          ><ExportOutlined
+                        /></a>
+                      </a-tooltip>
+                      <!-- 下载 -->
+                      <a-tooltip title="下载">
+                        <a
+                          class="shortcutButton ml-1"
+                          href="javascript:;"
+                          @click="onRecordDownload(record)"
+                          ><DownloadOutlined
+                        /></a>
+                      </a-tooltip>
+                      <!-- 评价 -->
+                      <!-- <a-tooltip title="评价">
                         <a
                           class="shortcutButton ml-1"
                           href="javascript:;"
@@ -427,87 +328,94 @@
                           ><HighlightOutlined
                         /></a>
                       </a-tooltip> -->
-                        </div>
-                      </div>
-                    </template>
-                    <template #hash="{ record }">
-                      <XTdHash
-                        v-if="record.userFile && record.userFile.hash"
-                        :hash="record.userFile.hash"
-                      />
-                    </template>
-                    <template #feedBack>
-                      <div class="flex">
-                        <div class="flex items-center mr-2">
-                          <!-- v-if="isCurrentShareCollected" -->
-                          <!-- :style="{ color: '#E54148' }" -->
-                          <HeartFilled class="mr-1 text-gray-500" />
-                          <!-- <HeartOutlined v-else class="mr-1" /> -->
-                          <!-- {{ record.collectedCount }} -->
-                          66
-                        </div>
-                        <div class="flex items-center">
-                          <CommentOutlined class="mr-1" />
-                          <!-- <HeartFilled /> -->
-                          <!-- {{ record.commentCount || "--" }} -->
-                          66
-                        </div>
-                      </div>
-                    </template>
-                  </XTableFiles>
-                  <!-- 弹窗 保存到网盘 -->
-                  <XModalDir
-                    rowKey="dirId"
-                    title="保存到网盘"
-                    v-model:visible="isShowSaveToMetanetModal"
-                    @ok="onSaveToMetanetModalConfirm"
-                    :rowClassName="saveToMetanetModalTableRowClassName"
-                    :columns="saveToMetanetTableColumns"
-                    :dataSource="saveToMetanetModalTableData"
-                    :customRow="saveToMetanetModalTableCustomRow"
-                    :loading="saveToMetanetModalTableLoading"
+                    </div>
+                  </div>
+                </template>
+                <template #hash="{ record }">
+                  <XTdHash
+                    v-if="record.userFile && record.userFile.hash"
+                    :hash="record.userFile.hash"
                   />
-                </div>
+                </template>
+                <template #feedBack="{ record }">
+                  <div class="flex" v-if="record.collectedCount !== undefined">
+                    <div class="flex items-center mr-2">
+                      <!-- v-if="isCurrentShareCollected" -->
+                      <HeartFilled :style="{ color: '#E54148' }" class="mr-1" />
+                      <!-- <HeartOutlined v-else class="mr-1" /> -->
+                      {{ record.collectedCount }}
+                    </div>
+                    <div class="flex items-center">
+                      <CommentOutlined class="mr-1" />
+                      <!-- <HeartFilled /> -->
+                      {{ record.commentCount || "--" }}
+                    </div>
+                  </div>
+                </template>
+              </XTableFiles>
+              <!-- 弹窗 保存到网盘 -->
+              <XModalDir
+                rowKey="dirId"
+                title="保存到网盘"
+                v-model:visible="isShowSaveToMetanetModal"
+                @ok="onSaveToMetanetModalConfirm"
+                :rowClassName="saveToMetanetModalTableRowClassName"
+                :columns="saveToMetanetTableColumns"
+                :dataSource="saveToMetanetModalTableData"
+                :customRow="saveToMetanetModalTableCustomRow"
+                :loading="saveToMetanetModalTableLoading"
+              />
+            </div>
+            <ModalDetail
+              v-model:visible="isShowDetailModal"
+              :detail="currentDetailInfo"
+            >
+              <template #desc="{ record }">
+                <a-row class="mb-1" justify="space-between">
+                  <a-col class="ant-color-gray" :span="6">描述 </a-col>
+                  <a-col :span="17">
+                    <template v-if="record.desc.tagArr.length">
+                      <a-tag
+                        v-for="item in record.desc.tagArr"
+                        color="orange"
+                        :key="item"
+                        class="mb-1"
+                        >{{ item }}</a-tag
+                      >
+                    </template>
+                    {{ record.desc.text }}
+                  </a-col>
+                </a-row>
               </template>
-            </template>
-            <!-- 文件无效 -->
-            <template v-else>
-              <!-- color: #faad14; -->
-              <div class="pt-40 flex flex-col items-center justify-center">
-                <WarningFilled
-                  class="mb-4"
-                  :style="{
-                    'font-size': '80px',
-                    color: '#faad14',
-                  }"
-                />
-                <div class="font-semibold font-20">文件已删除或已过期</div>
-              </div>
-              <!-- <a-result class="pt-30" status="warning" title="文件已过期或被删除"> -->
-              <!-- <template #extra>
+            </ModalDetail>
+          </template>
+        </template>
+        <!-- 文件无效 -->
+        <template v-else>
+          <!-- color: #faad14; -->
+          <div class="pt-40 flex flex-col items-center justify-center">
+            <WarningFilled
+              class="mb-4"
+              :style="{
+                'font-size': '80px',
+                color: '#faad14',
+              }"
+            />
+            <div class="font-semibold font-20">文件已删除或已过期</div>
+          </div>
+          <!-- <a-result class="pt-30" status="warning" title="文件已过期或被删除"> -->
+          <!-- <template #extra>
               <a-button key="console" type="primary">Go Console</a-button>
             </template> -->
-              <!-- </a-result> -->
-            </template>
-          </template>
-        </div>
-      </a-spin>
-    </main>
-    <a-modal
-      :destroyOnClose="true"
-      v-model:visible="isShowDescriptionModal"
-      :title="`描述信息-${currentDescriptionModalFileName}`"
-      :footer="null"
-    >
-      <XMdParser v-if="currentDescription" :content="currentDescription" />
-      <div v-else class="text-gray-400 text-center">暂无描述</div>
-    </a-modal>
-  </div>
+          <!-- </a-result> -->
+        </template>
+      </template>
+    </div>
+  </a-spin>
 </template>
 
 <script lang="ts">
 import {
-  computed,
   defineComponent,
   h,
   onActivated,
@@ -538,8 +446,6 @@ import {
   XSvgIcon,
   XTdHash,
   XModalDir,
-  XUserAvatar,
-  XMdParser,
 } from "../../components";
 import { useI18n } from "vue-i18n";
 import {
@@ -590,8 +496,6 @@ export default defineComponent({
     XSvgIcon,
     XTdHash,
     XModalDir,
-    XUserAvatar,
-    XMdParser,
     ExportOutlined,
     DownloadOutlined,
     HeartFilled,
@@ -619,18 +523,6 @@ export default defineComponent({
     const currentShareId = ref("");
     /** 创建时间 */
     const insertedAtText = ref("");
-    /** 描述弹窗的标题 */
-    const currentDescriptionModalFileName = ref("");
-    /** 显示的描述信息 */
-    const currentDescription = ref("");
-    /** 设置详情弹窗的标题和内容 */
-    const setCurrentDescriptionModalData = (
-      fileName: string,
-      descSource: string
-    ) => {
-      currentDescriptionModalFileName.value = fileName;
-      currentDescription.value = descSource;
-    };
     /** 当前这个分享的收藏数 */
     const curShareCollectedCount = ref(0);
     /** 当前的分享是否收藏过 */
@@ -643,13 +535,9 @@ export default defineComponent({
       email: "",
       username: "",
     });
-    /** 用户是否登录状态 */
-    const isUserLoggedIn = computed(() => {
-      return userStore.isLoggedIn;
-    });
-    /** 检查登录转态并返回是否登录,未登录跳转到登录页(带上redirect) */
-    const checkLoginStatusThenRoute = (): boolean => {
-      if (!isUserLoggedIn.value) {
+    /** 检查登录转态并返回是否登录,未登录就打开登录弹窗 */
+    const checkLoginStatusAndOpenModal = (): boolean => {
+      if (!userStore.isLoggedIn || !userStore.token) {
         // baseStore.changeIsShowLoginModal(true);
         router.push({
           name: "Login",
@@ -660,32 +548,6 @@ export default defineComponent({
         return true;
       }
       return false;
-    };
-    /** 点击logo */
-    const onClickLogo = () => {
-      if (checkLoginStatusThenRoute()) {
-        return;
-      }
-      // 导航到文件tab
-      // 要打开的窗口id
-      const windowId = baseStore.getNewOpenWindowId();
-      // console.log(`左菜单栏点击的,获取的还未激活的windoId,${windowId}`);
-      router.push({
-        name: "MetanetFile",
-        query: {
-          id: windowId,
-          path: "~",
-        },
-      });
-    };
-    /** 点击未登录状态下的usericon */
-    const onClickUnLoggInUserIcon = () => {
-      router.push({
-        name: "Login",
-        query: {
-          redirect: route.fullPath,
-        },
-      });
     };
     const selectedRowKeys = ref<string[]>([]);
     const selectedRows = ref<ListItem[]>([]);
@@ -802,21 +664,6 @@ export default defineComponent({
         console.log("other-type");
       }
     };
-    /** 文件是否可预览 */
-    const isCanFilePreview = (record: ListItem) => {
-      // 文件或pdf
-      const f = record.userFile;
-      if (!f) return false;
-      const e = getFileType({
-        isDir: f.isDir,
-        fileName: lastOfArray(f.fullName),
-      });
-      if (FILE_TYPE_MAP.image.includes(e) || e === "pdf") {
-        return true;
-      }
-      // 其他类型返回false
-      return false;
-    };
     /** 点击文件名, 地址栏显示, 设置详情数据 */
     const onItemNameClick = async (record: ListItem) => {
       // console.log("onItemNameClick");
@@ -831,13 +678,42 @@ export default defineComponent({
           dirName: lastOfArray(e.fullName),
         });
         getSetDriveList(e.id);
+        currentDetailInfo.value = {};
         return;
       }
-      setCurrentDescriptionModalData(
-        lastOfArray(e.fullName),
-        e.info.description || ""
-      );
+      // 如果是文件夹 请求文件夹大小接口
+      const showSize = e.isDir
+        ? (await apiQueryDirSize({ dirId: e.id })).data?.driveDirSize ?? 0
+        : e.info.size;
+      currentDetailInfo.value = {
+        name: lastOfArray(e.fullName),
+        type: getFileType({
+          isDir: e.isDir,
+          fileName: lastOfArray(e.fullName),
+        }),
+        size: formatBytes(+showSize),
+        insertedAt: dayjs(e.insertedAt).format("YYYY年MM月DD日hh:mm"),
+        updatedAt: dayjs(e.updatedAt).format("YYYY年MM月DD日hh:mm"),
+        desc: cacheFormatDescription(e.info.description || ""),
+      };
     };
+    const fileTableRef = ref(null);
+    /** 点击除了表格的其他地方, 重置当前点击项(还原地址栏),除了地址栏的收藏icon */
+    onClickOutside(fileTableRef, (e) => {
+      // console.log("e", e.target);
+      const target = e.target as HTMLElement;
+      if (
+        (target.nodeName === "path" && target.outerHTML.includes("64C264.6")) ||
+        (target.nodeName === "svg" && target.innerHTML.includes("64C264.6")) ||
+        (target.nodeName === "a" && target.innerHTML.includes("64C264.6"))
+      ) {
+        // 如果是点击地址栏中的详情按钮, 保持detailInfo
+        return;
+      }
+      if (isShowDetailModal.value === false) {
+        currentDetailInfo.value = {};
+      }
+    });
     /** 请求目录里面的数据 */
     const getSetDriveList = (dirId: string) => {
       const token = currentShareToken.value;
@@ -923,32 +799,33 @@ export default defineComponent({
       },
     ];
     /** 显示该分享 */
-    const onShowDescriptionModal = (e: TFileItem) => {
-      setCurrentDescriptionModalData(
-        lastOfArray(e.fullName),
-        e.info.description || ""
-      );
-      isShowDescriptionModal.value = true;
+    const onShowDetailInfoModal = () => {
+      if (!currentDetailInfo.value.type) {
+        // message.warning("请先点击某个文件再查看详情");
+        return;
+      }
+      isShowDetailModal.value = true;
     };
     /** 评论该分享 */
     const onCommentShare = () => {
       message.info("TODO");
     };
-
-    /** 是否显示描述弹窗 */
-    const isShowDescriptionModal = ref(false);
-    // watch(
-    //   () => isShowDescriptionModal.value,
-    //   (newVal) => {
-    //     if (newVal === false) {
-    //       currentDescription.value = "";
-    //     }
-    //   }
-    // );
+    /** 详情-分享 */
+    const currentDetailInfo = ref<TDetailInfo>({});
+    /** 是否显示详情卡片 */
+    const isShowDetailModal = ref(false);
+    watch(
+      () => isShowDetailModal.value,
+      (newVal) => {
+        if (newVal === false) {
+          currentDetailInfo.value = {};
+        }
+      }
+    );
     // TODO 文件夹 支持上一级目录
     /** shortcut-下载 */
     const onRecordDownload = (record: ListItem) => {
-      // if (checkLoginStatusThenRoute()) {
+      // if (checkLoginStatusAndOpenModal()) {
       //   return;
       // }
       // console.log("onRecordDownload", record);
@@ -972,14 +849,14 @@ export default defineComponent({
     };
     /** shortcut -评价 */
     const onRecordScore = (record: ListItem) => {
-      if (checkLoginStatusThenRoute()) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       // console.log("onRecordScore", record);
     };
     /** 批量下载 */
     const onBatchDownload = () => {
-      // if (checkLoginStatusThenRoute()) {
+      // if (checkLoginStatusAndOpenModal()) {
       //   return;
       // }
       selectedRows.value.forEach((i) => {
@@ -994,7 +871,7 @@ export default defineComponent({
     };
     /** 批量收藏 */
     const onCollectShare = async () => {
-      if (checkLoginStatusThenRoute()) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       if (isCurrentShareCollected.value) {
@@ -1021,7 +898,7 @@ export default defineComponent({
     };
     /** 批量评价 */
     const onBatchScore = () => {
-      if (checkLoginStatusThenRoute()) {
+      if (checkLoginStatusAndOpenModal()) {
         return;
       }
       console.log("onBatchScore");
@@ -1051,13 +928,24 @@ export default defineComponent({
       currentShareToken.value = data.driveFindShare.token;
       currentShareId.value = data.driveFindShare.id;
       isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
-      if (!isCurrentShareFolder.value) {
-        // 如果不是文件夹,说明只有一个文件,直接注册详情
-        // setCurrentDescriptionModalData(
-        //   lastOfArray(data.driveFindShare.userFile.fullName),
-        //   data.driveFindShare.userFile.info.description || ""
-        // );
-      }
+      // currentDetailInfo.value = {
+      //   type: getFileType({
+      //     isDir: data.driveFindShare.userFile.isDir,
+      //     fileName: lastOfArray(data.driveFindShare.userFile.fullName),
+      //   }),
+      //   size: formatBytes(+data.driveFindShare.userFile.info.size),
+      //   shareLink: makeShareUrlByUri(data.driveFindShare.uri),
+      //   shareHash: data.driveFindShare.userFile.hash,
+      //   insertedAt: dayjs(data.driveFindShare.insertedAt).format(
+      //     "YYYY年MM月DD日hh:mm"
+      //   ),
+      //   updatedAt: dayjs(data.driveFindShare.updatedAt).format(
+      //     "YYYY年MM月DD日hh:mm"
+      //   ),
+      //   desc: cacheFormatDescription(
+      //     data.driveFindShare.userFile.info.description || ""
+      //   ),
+      // };
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -1299,7 +1187,7 @@ export default defineComponent({
       };
       /** 设置要移动的idList,操作类型 */
       const saveToMetanetModalPreAction = (item: TFileItem[]) => {
-        if (checkLoginStatusThenRoute()) {
+        if (checkLoginStatusAndOpenModal()) {
           return;
         }
         // 重置为全部文件
@@ -1343,21 +1231,17 @@ export default defineComponent({
       historyDir,
       onUpperLevel,
       onItemIconClick,
-      isCanFilePreview,
       onItemNameClick,
+      fileTableRef,
       onConfirmCode,
-      isUserLoggedIn,
-      onClickLogo,
-      onClickUnLoggInUserIcon,
       columns,
       selectedRowKeys,
       selectedRows,
       fileData,
-      onShowDescriptionModal,
+      onShowDetailInfoModal,
       onCommentShare,
-      currentDescriptionModalFileName,
-      currentDescription,
-      isShowDescriptionModal,
+      currentDetailInfo,
+      isShowDetailModal,
       onRecordDownload,
       onRecordScore,
       onBatchDownload,
@@ -1373,5 +1257,5 @@ export default defineComponent({
 });
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 </style>

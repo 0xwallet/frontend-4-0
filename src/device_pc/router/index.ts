@@ -116,16 +116,16 @@ const routes: RouteRecordRaw[] = [
         },
         component: MetanetShare,
       },
-      {
-        // 登录状态的分享链接跳转到这里
-        path: "metanet/sharedFile",
-        name: "MetanetSharedFile",
-        meta: {
-          needAuth: false,
-          title: "metanet.sharedFile",
-        },
-        component: MetanetSharedFile,
-      },
+      // {
+      //   // 登录状态的分享链接跳转到这里
+      //   path: "metanet/sharedFile",
+      //   name: "MetanetSharedFile",
+      //   meta: {
+      //     needAuth: false,
+      //     title: "metanet.sharedFile",
+      //   },
+      //   component: MetanetSharedFile,
+      // },
       {
         path: "metanet/publish",
         name: "MetanetPublish",
@@ -181,6 +181,16 @@ const routes: RouteRecordRaw[] = [
         component: TransportPeerTransfer,
       },
     ],
+  },
+  {
+    // 登录状态的分享链接跳转到这里
+    path: "/metanet/sharedFile",
+    name: "MetanetSharedFile",
+    meta: {
+      needAuth: false,
+      title: "metanet.sharedFile",
+    },
+    component: MetanetSharedFile,
   },
   {
     // TODO 4040 找不到叶妙

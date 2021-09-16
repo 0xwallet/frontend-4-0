@@ -39,6 +39,7 @@
         </template>
       </div>
     </div>
+    <slot name="bottom" :record="detail" />
     <!-- bottom -->
   </a-modal>
 </template>

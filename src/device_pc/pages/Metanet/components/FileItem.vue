@@ -643,12 +643,13 @@
       <!-- <a-form> </a-form> -->
       <a-form :label-col="{ span: 0 }" :wrapper-col="{ span: 24 }">
         <a-form-item>
-          <a-textarea
-            :autoSize="{ minRows: 3, maxRows: 6 }"
-            placeholder="可用两个#来表示标签, 例如#标签1#"
-            :maxlength="200"
-            v-model:value="editDescriptionModalRef.desc"
-          />
+          <a-tooltip title="支持markdown语法, 可用两个#来表示标签, 例如#标签1#">
+            <a-textarea
+              :autoSize="{ minRows: 6 }"
+              placeholder="支持markdown语法, 可用两个#来表示标签, 例如#标签1#"
+              v-model:value="editDescriptionModalRef.desc"
+            />
+          </a-tooltip>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -741,11 +742,17 @@
     </a-modal> -->
 
     <!-- 详情卡片 -->
-    <ModalDetail v-model:visible="isShowDetailModal" :detail="currentDetailInfo">
+    <ModalDetail
+      v-model:visible="isShowDetailModal"
+      :detail="currentDetailInfo"
+    >
       <!-- <template #name="{ value }">
         <div>i am the name--{{ value }}</div>
       </template> -->
-      <template v-if="currentDetailInfo.slotDiskUsageInfo" #slotDiskUsagePercent>
+      <template
+        v-if="currentDetailInfo.slotDiskUsageInfo"
+        #slotDiskUsagePercent
+      >
         <a-tooltip
           :title="`总空间 ${
             currentDetailInfo.slotDiskUsageInfo.split(' / ')[1]
@@ -769,7 +776,8 @@
           </a-col>
         </a-row>
       </template>
-      <template #desc="{ record }">
+      <template #rawDescription><div></div></template>
+      <!-- <template #rawDescription="{ record }">
         <a-row class="mb-1" justify="space-between">
           <a-col class="ant-color-gray" :span="6"
             >描述
@@ -796,6 +804,40 @@
             {{ record.desc.text }}
           </a-col>
         </a-row>
+      </template> -->
+      <template #bottom="{ record }">
+        <div class="relative">
+          <div
+            class="p-4 mt-4"
+            :style="{
+              border: '1px solid #eff2f9',
+              'border-radius': '12px',
+            }"
+          >
+            <XMdParser
+              v-if="record.rawDescription"
+              :content="record.rawDescription"
+            />
+            <div v-else class="text-gray-300 text-center">
+              <!-- 无 -->
+            </div>
+          </div>
+          <div
+            class="absolute ant-color-gray"
+            :style="{
+              top: '-10px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '0 10px',
+              background: '#fff',
+            }"
+          >
+            描述
+            <a href="javascript:;">
+              <EditOutlined @click="onShowDescriptionModal" />
+            </a>
+          </div>
+        </div>
       </template>
     </ModalDetail>
   </div>
@@ -845,6 +887,7 @@ import {
   XFileTypeIcon,
   XTdHash,
   XModalDir,
+  XMdParser,
 } from "../../../components";
 import { useI18n } from "vue-i18n";
 import {
@@ -991,6 +1034,7 @@ export default defineComponent({
     XFileTypeIcon,
     XTdHash,
     XModalDir,
+    XMdParser,
     ModalDetail,
   },
   setup() {
@@ -2042,9 +2086,8 @@ export default defineComponent({
         }
         isShowEditDescriptionModal.value = false;
         // 编辑成功后立马修改弹窗里的信息
-        currentDetailInfo.value.desc = cacheFormatDescription(
-          res.data.driveEditDescription.info.description || ""
-        );
+        currentDetailInfo.value.rawDescription =
+          res.data.driveEditDescription.info.description || "";
         // 还要刷新列表, 因为详情是从列表拿的
         // 如果不刷新的话,再次点开弹窗依然是修改前的状态
         // getAndSetTableDataFn({ dirId: curFolderId.value });
@@ -2108,9 +2151,6 @@ export default defineComponent({
       };
       // 详情
       const onRecordDetail = async (record: TFileItem) => {
-        const formatedDescObj = cacheFormatDescription(
-          record.info.description || ""
-        );
         // 点击详情的时候设置编辑描述的弹窗里的内容 -star
         editDescriptionModalRef.name = lastOfArray(record.fullName);
         editDescriptionModalRef.fileId = record.id;
@@ -2138,7 +2178,7 @@ export default defineComponent({
             ) + "%",
           insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
           updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
-          desc: formatedDescObj,
+          rawDescription: record.info.description || "",
         };
         isShowDetailModal.value = true;
       };

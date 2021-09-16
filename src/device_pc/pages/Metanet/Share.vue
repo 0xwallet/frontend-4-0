@@ -179,7 +179,7 @@
     </XTableFiles>
     <!-- 详情卡片 -->
     <ModalDetail v-model:visible="isShowDetailModal" :detail="currenDetailInfo">
-      <template #desc="{ record }">
+      <!-- <template #desc="{ record }">
         <a-row class="mb-1" justify="space-between">
           <a-col class="ant-color-gray" :span="6"
             >描述
@@ -206,6 +206,41 @@
             {{ record.desc.text }}
           </a-col>
         </a-row>
+      </template> -->
+      <template #rawDescription><div></div></template>
+      <template #bottom="{ record }">
+        <div class="relative">
+          <div
+            class="p-4 mt-4"
+            :style="{
+              border: '1px solid #eff2f9',
+              'border-radius': '12px',
+            }"
+          >
+            <XMdParser
+              v-if="record.rawDescription"
+              :content="record.rawDescription"
+            />
+            <div v-else class="text-gray-300 text-center">
+              <!-- 无 -->
+            </div>
+          </div>
+          <div
+            class="absolute ant-color-gray"
+            :style="{
+              top: '-10px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '0 10px',
+              background: '#fff',
+            }"
+          >
+            描述
+            <a href="javascript:;">
+              <EditOutlined @click="onShowDescriptionModal" />
+            </a>
+          </div>
+        </div>
       </template>
     </ModalDetail>
     <!-- 修改表格单项 有效期,访问码 -->
@@ -255,9 +290,8 @@
       <a-form :label-col="{ span: 0 }" :wrapper-col="{ span: 24 }">
         <a-form-item>
           <a-textarea
-            :autoSize="{ minRows: 3, maxRows: 6 }"
+            :autoSize="{ minRows: 3 }"
             placeholder="可用两个#来表示标签, 例如#标签1#"
-            :maxlength="200"
             v-model:value="editDescriptionModalRef.desc"
           />
         </a-form-item>
@@ -288,7 +322,7 @@ import {
   CloseCircleOutlined,
   EllipsisOutlined,
 } from "@ant-design/icons-vue";
-import { XFileTypeIcon, XTableFiles } from "../../components";
+import { XFileTypeIcon, XTableFiles, XMdParser } from "../../components";
 import { useI18n } from "vue-i18n";
 import dayjs from "dayjs";
 import {
@@ -354,6 +388,7 @@ export default defineComponent({
     CopyOutlined,
     EllipsisOutlined,
     XTableFiles,
+    XMdParser,
     ModalDetail,
   },
   setup() {
@@ -658,9 +693,9 @@ export default defineComponent({
     /** 表格里单项详情 */
     const onRecordDetail = (record: TTableShareFileItem) => {
       // console.log("onRecordDetail", record);
-      const formatedDescObj = cacheFormatDescription(
-        record.userFile.info.description || ""
-      );
+      // const formatedDescObj = cacheFormatDescription(
+      //   record.userFile.info.description || ""
+      // );
       // 点击详情的时候设置编辑描述的弹窗里的内容 -star
       editDescriptionModalRef.name = lastOfArray(record.userFile.fullName);
       editDescriptionModalRef.fileId = record.userFile.id;
@@ -677,7 +712,8 @@ export default defineComponent({
         shareHash: record.userFile.hash,
         insertedAt: dayjs(record.insertedAt).format("YYYY年MM月DD日hh:mm"),
         updatedAt: dayjs(record.updatedAt).format("YYYY年MM月DD日hh:mm"),
-        desc: formatedDescObj,
+        // desc: formatedDescObj,
+        rawDescription: record.userFile.info.description || "",
       };
       isShowDetailModal.value = true;
     };
@@ -716,9 +752,8 @@ export default defineComponent({
         }
         isShowEditDescriptionModal.value = false;
         // 编辑成功后立马修改弹窗里的信息
-        currenDetailInfo.value.desc = cacheFormatDescription(
-          res.data.driveEditDescription.info.description || ""
-        );
+        currenDetailInfo.value.rawDescription =
+          res.data.driveEditDescription.info.description || "";
         // 还要刷新列表, 因为详情是从列表拿的
         // 如果不刷新的话,再次点开弹窗依然是修改前的状态
         onRefreshTableData();

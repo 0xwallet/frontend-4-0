@@ -273,6 +273,11 @@ body,
   // 测试用边框
   border: 1px solid red;
 }
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-items: center;
+}
 </style>
 
 <style lang="less">

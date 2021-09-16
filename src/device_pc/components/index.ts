@@ -6,3 +6,5 @@ export { default as XTdHash } from "./XTdHash.vue";
 export { default as XModalDir } from "./XModalDir.vue";
 export { default as XModalLogin } from "./XModalLogin.vue";
 export { default as XSvgIcon } from "./XSvgIcon.vue";
+export { default as XUserAvatar } from "./XUserAvatar.vue";
+export { default as XMdParser } from "./XMdParser.vue";

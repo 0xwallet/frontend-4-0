@@ -1,5 +1,7 @@
 import { isMobile } from "./utils";
-(window as any).__isMobile__ = isMobile()
+// markdown style
+import "@/assets/github-markdown-css.css";
+(window as any).__isMobile__ = isMobile();
 if ((window as any).__isMobile__) {
   console.log("isMobile");
   import(

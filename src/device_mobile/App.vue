@@ -113,6 +113,11 @@ body {
 .ant-blue {
   color: #1890ff;
 }
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .borderTest {
   // 测试用边框
   border: 1px solid red;

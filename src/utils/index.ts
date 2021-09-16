@@ -174,8 +174,8 @@ export const mergeUint8Array = (head: Uint8Array, tail: Uint8Array) => {
 
 /** 通过blob 下载文件 */
 export const downloadFileByBlob = (blob: Blob, fileName: string) => {
-  if (window.navigator.msSaveBlob) {
-    window.navigator.msSaveBlob(blob, fileName);
+  if ((window.navigator as any).msSaveBlob) {
+    (window.navigator as any).msSaveBlob(blob, fileName);
   } else {
     const url = window.URL.createObjectURL(blob);
     downloadFileByUrl(url, fileName);
