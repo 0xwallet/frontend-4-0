@@ -269,14 +269,28 @@ body,
 .font-12 {
   font-size: 0.75rem; //12px
 }
-.borderTest {
-  // 测试用边框
-  border: 1px solid red;
-}
 .flex-center {
   display: flex;
   align-items: center;
   justify-items: center;
+}
+.text-overflow-2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.text-overflow-3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.borderTest {
+  // 测试用边框
+  border: 1px solid red;
 }
 </style>
 

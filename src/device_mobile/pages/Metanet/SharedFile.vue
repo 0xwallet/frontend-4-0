@@ -1354,7 +1354,7 @@ export default defineComponent({
       insertedAtText,
       curShareCollectedCount,
       onUpperLevel,
-      fileData,
+      fileData, 
       dirData,
       isLoadingDirData,
       popupState,
@@ -1382,19 +1382,5 @@ export default defineComponent({
   &:hover {
     background: #fafafb;
   }
-}
-.text-overflow-2 {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.text-overflow-3 {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
 }
 </style>

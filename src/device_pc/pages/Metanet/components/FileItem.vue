@@ -249,7 +249,7 @@
             href="javascript:;"
             class="ml-2"
             :title="record.fullName[0]"
-            @click.stop="onClickTableItemName(record)"
+            @click.stop="onClickItemName(record)"
           >
             {{ record.fullName[0] }}
           </a>
@@ -818,8 +818,8 @@
               v-if="record.rawDescription"
               :content="record.rawDescription"
             />
-            <div v-else class="text-gray-300 text-center">
-              <!-- 无 -->
+            <div v-else class="text-gray-400 text-center">
+              暂无描述
             </div>
           </div>
           <div
@@ -2311,7 +2311,7 @@ export default defineComponent({
         });
       };
       /** 表格里每一行的名字的点击事件 */
-      const onClickTableItemName = async (record: TFileItem) => {
+      const onClickItemName = async (record: TFileItem) => {
         const { fileType: e, id, fullName, isShared, user, space } = record;
         if (!e) return;
         // console.log("点击的当前record", e, id);
@@ -2745,7 +2745,7 @@ export default defineComponent({
       return {
         historyDir,
         isCurFolderShared,
-        onClickTableItemName,
+        onClickItemName,
         onUpperLevel,
         onClickHistoryDirUpperLevel,
         onRefreshTableData,

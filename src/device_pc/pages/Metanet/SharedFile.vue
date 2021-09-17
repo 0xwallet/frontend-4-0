@@ -1,6 +1,6 @@
 <template>
   <div
-    class="w-full h-fulla"
+    class="w-full h-full"
     :style="{
       background: '#f0f2f5',
     }"
@@ -201,18 +201,15 @@
                         'background-color': '#f7f7f8',
                       }"
                     >
-                      <!-- <a-tooltip title="描述信息">
+                      <a-tooltip title="描述信息">
                         <a
                           class="mr-2"
                           href="javascript:;"
                           @click="onShowDescriptionModal"
-                          :class="{
-                            'text-gray-400': !currentDescription,
-                          }"
                         >
                           <InfoCircleOutlined />
                         </a>
-                      </a-tooltip> -->
+                      </a-tooltip>
                       <div
                         v-if="isCurrentShareFolder"
                         class="mr-2 flex-1 flex items-center"
@@ -237,9 +234,11 @@
                         </template>
                         <!-- 点击了文件名(非文件夹),地址栏显示 -->
                         <!-- TODO -->
-                        <template v-if="currentDescriptionModalFileName">
-                          <!-- <span class="px-2 text-gray-400">></span>
-                          {{ currentDetailInfo.name }} -->
+                        <template
+                          v-if="isShowDescriptionModalFileNameInAddressBar"
+                        >
+                          <span class="px-2 text-gray-400">></span>
+                          {{ currentDescriptionModalFileName }}
                         </template>
                       </div>
                       <div v-else class="flex-1"></div>
@@ -302,6 +301,7 @@
                   </div>
                   <!-- 表格区 -->
                   <XTableFiles
+                    ref="fileTableRef"
                     class="px-3"
                     rowKey="id"
                     :columns="columns"
@@ -358,6 +358,7 @@
                         </a>
                         <!-- class="truncate" -->
                         <div
+                          class="text-overflow-2"
                           v-if="
                             cacheFormatDescription(
                               record.userFile.info.description
@@ -389,15 +390,6 @@
                             right-0
                           "
                         >
-                          <!-- 描述信息 -->
-                          <a-tooltip title="描述信息">
-                            <a
-                              class="shortcutButton ml-1"
-                              href="javascript:;"
-                              @click="onShowDescriptionModal(record.userFile)"
-                              ><XSvgIcon icon="md" :size="18"
-                            /></a>
-                          </a-tooltip>
                           <!-- 保存到网盘 -->
                           <a-tooltip title="保存到网盘">
                             <a
@@ -549,6 +541,7 @@ import {
   lastOfArray,
   cacheFormatDescription,
   makeShareUrlByUri,
+  cacheFn,
 } from "@/utils";
 import {
   ExportOutlined,
@@ -581,6 +574,11 @@ type ListItem = {
 function sortByDirType(a: ListItem, b: ListItem) {
   return a.userFile?.isDir ? (b.userFile?.fullName[0] === "..." ? 1 : -1) : 1;
 }
+
+const idMapDescriptionCache = new Map<
+  string,
+  { fileName: string; descSource: string }
+>();
 
 export default defineComponent({
   name: "MetanetSharedFile",
@@ -623,14 +621,71 @@ export default defineComponent({
     const currentDescriptionModalFileName = ref("");
     /** 显示的描述信息 */
     const currentDescription = ref("");
+    /** 地址栏是否显示描述文件的名称 */
+    const isShowDescriptionModalFileNameInAddressBar = ref(false);
     /** 设置详情弹窗的标题和内容 */
     const setCurrentDescriptionModalData = (
+      id: string,
       fileName: string,
       descSource: string
     ) => {
       currentDescriptionModalFileName.value = fileName;
       currentDescription.value = descSource;
+      if (!idMapDescriptionCache.has(id)) {
+        idMapDescriptionCache.set(id, {
+          fileName,
+          descSource,
+        });
+      }
     };
+    const setCurrentDescriptionModalDataFromCache = (id: string) => {
+      const e = idMapDescriptionCache.get(id);
+      if (!e) {
+        throw Error(`没有找到改文件id ${id}的缓存`);
+      }
+      const { fileName, descSource } = e;
+      currentDescriptionModalFileName.value = fileName;
+      currentDescription.value = descSource;
+    };
+    /** 如果分享是文件夹, 这个文件夹的dirId */
+    let firstFolderDirId = "0";
+    const fileTableRef = ref(null);
+    /** 点击除了表格的其他地方, 重置当前点击项(还原地址栏),除了地址栏的收藏icon
+     *  文件夹的情况下才开启, 单文件不用变更地址栏和详情
+     */
+    const useClickOutSideWhenShareIsFolder = () => {
+      onClickOutside(fileTableRef, (e) => {
+        // console.log("e", e.target);
+        // 已经打开弹窗的情况下, 不重置描述弹窗内容
+        if (isShowDescriptionModal.value) {
+          return;
+        }
+        const target = e.target as HTMLElement;
+        if (
+          (target.nodeName === "path" &&
+            target.outerHTML.includes("M512 64C264.6 64 64")) ||
+          (target.nodeName === "svg" &&
+            target.innerHTML.includes("M512 64C264.6 64 64")) ||
+          (target.nodeName === "a" &&
+            target.innerHTML.includes("M512 64C264.6 64 64"))
+        ) {
+          return;
+        }
+        isShowDescriptionModalFileNameInAddressBar.value = false;
+        // 设置回当前文件夹的详情
+        const len = historyDir.value.length;
+        if (len === 1) {
+          // 全部文件
+          setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+        } else {
+          // 二/3级文件夹
+          setCurrentDescriptionModalDataFromCache(
+            lastOfArray(historyDir.value).dirId
+          );
+        }
+      });
+    };
+
     /** 当前这个分享的收藏数 */
     const curShareCollectedCount = ref(0);
     /** 当前的分享是否收藏过 */
@@ -722,12 +777,14 @@ export default defineComponent({
         clearSelected();
         historyDir.value.splice(1);
         getSetFileData();
+        setCurrentDescriptionModalDataFromCache(firstFolderDirId);
       } else {
         clearSelected();
         // 点击的不是第一个"全部文件",删除后面的目录
         historyDir.value.splice(dirIdx + 1);
         const dirId = lastOfArray(historyDir.value).dirId;
         getSetDriveList(dirId);
+        setCurrentDescriptionModalDataFromCache(dirId);
       }
     };
     const previewImages = reactive<string[]>([]);
@@ -747,6 +804,11 @@ export default defineComponent({
           dirName: lastOfArray(record.userFile.fullName),
         });
         getSetDriveList(record.userFile.id);
+        setCurrentDescriptionModalData(
+          record.userFile.id,
+          lastOfArray(record.userFile.fullName),
+          record.userFile.info.description || ""
+        );
         // 1.2 change fileData
       } else if (FILE_TYPE_MAP.image.includes(fileType)) {
         previewImages.length = 0;
@@ -831,12 +893,21 @@ export default defineComponent({
           dirName: lastOfArray(e.fullName),
         });
         getSetDriveList(e.id);
-        return;
+        setCurrentDescriptionModalData(
+          e.id,
+          lastOfArray(e.fullName),
+          e.info.description || ""
+        );
+        isShowDescriptionModalFileNameInAddressBar.value = false;
+      } else {
+        // 如果是文件, 更新到地址栏, 并设置详情
+        setCurrentDescriptionModalData(
+          e.id,
+          lastOfArray(e.fullName),
+          e.info.description || ""
+        );
+        isShowDescriptionModalFileNameInAddressBar.value = true;
       }
-      setCurrentDescriptionModalData(
-        lastOfArray(e.fullName),
-        e.info.description || ""
-      );
     };
     /** 请求目录里面的数据 */
     const getSetDriveList = (dirId: string) => {
@@ -924,10 +995,6 @@ export default defineComponent({
     ];
     /** 显示该分享 */
     const onShowDescriptionModal = (e: TFileItem) => {
-      setCurrentDescriptionModalData(
-        lastOfArray(e.fullName),
-        e.info.description || ""
-      );
       isShowDescriptionModal.value = true;
     };
     /** 评论该分享 */
@@ -1051,13 +1118,16 @@ export default defineComponent({
       currentShareToken.value = data.driveFindShare.token;
       currentShareId.value = data.driveFindShare.id;
       isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
-      if (!isCurrentShareFolder.value) {
-        // 如果不是文件夹,说明只有一个文件,直接注册详情
-        // setCurrentDescriptionModalData(
-        //   lastOfArray(data.driveFindShare.userFile.fullName),
-        //   data.driveFindShare.userFile.info.description || ""
-        // );
+      if (isCurrentShareFolder.value) {
+        firstFolderDirId = data.driveFindShare.userFile.id;
+        useClickOutSideWhenShareIsFolder();
       }
+      // 直接注册详情
+      setCurrentDescriptionModalData(
+        data.driveFindShare.userFile.id,
+        lastOfArray(data.driveFindShare.userFile.fullName),
+        data.driveFindShare.userFile.info.description || ""
+      );
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -1334,6 +1404,7 @@ export default defineComponent({
       isValid,
       userPreview,
       insertedAtText,
+      fileTableRef,
       curShareCollectedCount,
       isCurrentShareCollected,
       isCurrentShareFolder,
@@ -1358,6 +1429,7 @@ export default defineComponent({
       currentDescriptionModalFileName,
       currentDescription,
       isShowDescriptionModal,
+      isShowDescriptionModalFileNameInAddressBar,
       onRecordDownload,
       onRecordScore,
       onBatchDownload,
