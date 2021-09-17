@@ -7,7 +7,7 @@
   >
     <div v-if="lockPageLoading" class="w-full h-full relative">
       <div class="absolute inset-0 bg-white opacity-10"></div>
-      <div class="absolute inset-0 text-center pt-28">
+      <div class="absolute top-16 inset-x-0 text-center pt-28">
         <van-loading size="40" color="#0094ff" vertical>加载中...</van-loading>
       </div>
     </div>
@@ -190,13 +190,9 @@
             </div>
           </template>
           <template v-else>
-            <div
-              ref="fileTableRef"
-              v-if="isCurrentShareFolder"
-              class="px-4 font-semibold"
-            >
+            <div v-if="isCurrentShareFolder" class="px-4 font-semibold">
               <div v-if="historyDir.length === 1" class="flex items-center">
-                <!-- <div>
+                <div>
                   <van-icon
                     color="#404A66"
                     size="16px"
@@ -204,7 +200,7 @@
                     name="info-o"
                     @click="onShowDescriptionPopup"
                   />
-                </div> -->
+                </div>
                 <!-- 共有{{ fileData.length }}个文件 -->
                 <div class="flex-1">/</div>
                 <div v-if="isUserLoggedIn">
@@ -213,7 +209,7 @@
               </div>
               <!-- <div v-else>全部文件/3200/所发生的</div> -->
               <div v-else class="flex items-center">
-                <!-- <div>
+                <div>
                   <van-icon
                     size="16px"
                     class="mr-2"
@@ -221,7 +217,7 @@
                     @click="onShowDescriptionPopup"
                     color="#404A66"
                   />
-                </div> -->
+                </div>
                 <div class="flex-1 flex items-center truncate">
                   <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
                     <div
@@ -238,6 +234,10 @@
                       >></span
                     >
                   </template>
+                  <template v-if="isShowDescriptionModalFileNameInAddressBar">
+                    <span class="px-2 text-gray-400">></span>
+                    {{ currentDescriptionModalFileName }}
+                  </template>
                 </div>
                 <div v-if="isUserLoggedIn">
                   <van-icon color="#404A66" size="16px" name="edit" />
@@ -247,13 +247,13 @@
             <!-- 如果不是文件夹, 信息图标 , 登录后加评论图标 -->
             <div v-else class="flex items-center justify-center">
               <!-- TODO detailInfo -->
-              <!-- <van-icon
+              <van-icon
                 color="#404A66"
                 size="16px"
                 class="mr-1 w-6 h-6 flex items-center justify-center"
                 name="info-o"
                 @click="onShowDescriptionPopup"
-              /> -->
+              />
               <!-- 登录后显示评论按钮 -->
               <van-icon
                 v-if="isUserLoggedIn"
@@ -265,6 +265,7 @@
             </div>
             <!-- 文件列表 -->
             <div
+              ref="fileTableRef"
               class="mt-1"
               :style="{
                 overflow: 'hidden',
@@ -282,7 +283,7 @@
                   v-for="record in fileData"
                   :key="record.id"
                 >
-                  <div class="mr-2 relative" @click="onItemClick(record)">
+                  <div class="mr-2 relative" @click="onItemIconClick(record)">
                     <MFileTypeIcon
                       class="w-9 h-9"
                       :type="record.userFile.fileType"
@@ -306,7 +307,7 @@
                   </div>
                   <div
                     class="flex-1 text-overflow-3"
-                    @click="onItemClick(record)"
+                    @click="onItemNameClick(record)"
                   >
                     <div class="font-medium text-overflow-2">
                       {{ lastOfArray(record.userFile.fullName) }}
@@ -336,15 +337,6 @@
                         </template>
                       </template>
                     </div>
-                  </div>
-                  <div
-                    class="px-3 h-8 flex-center"
-                    :style="{
-                      color: '#404a66',
-                    }"
-                    @click="onShowDescriptionPopup(record.userFile)"
-                  >
-                    <MSvgIcon icon="md" :size="16" />
                   </div>
                   <div>
                     <div class="flex items-center font-12 mb-1">
@@ -537,7 +529,10 @@
           <van-icon name="cross" size="22px" />
         </div>
       </div>
-      <div v-if="isLoadingPdf" class="absolute inset-0 text-center pt-28">
+      <div
+        v-if="isLoadingPdf"
+        class="absolute top-16 inset-x-0 text-center pt-28"
+      >
         <van-loading size="40" color="#0094ff" vertical>加载中...</van-loading>
       </div>
       <div
@@ -581,6 +576,7 @@ import { Dialog, Toast } from "vant";
 import {
   computed,
   defineComponent,
+  nextTick,
   onMounted,
   onUnmounted,
   reactive,
@@ -651,7 +647,10 @@ const isCanFilePreview = (record: ListItem) => {
 };
 
 /** 文件夹详情缓存,dirId作为key */
-const dirIdDetailInfoMap: { [key: string]: TDetailInfo } = {};
+const idMapDescriptionCache = new Map<
+  string,
+  { fileName: string; descSource: string }
+>();
 
 export default defineComponent({
   components: {
@@ -817,11 +816,13 @@ export default defineComponent({
       if (dirIdx === 0) {
         historyDir.value.splice(1);
         getSetFileData();
+        setCurrentDescriptionModalDataFromCache(firstFolderDirId);
       } else {
         // 点击的不是第一个"全部文件",删除后面的目录
         historyDir.value.splice(dirIdx + 1);
         const dirId = lastOfArray(historyDir.value).dirId;
         getSetDriveList(dirId);
+        setCurrentDescriptionModalDataFromCache(dirId);
       }
     };
     const dirData = ref<TDir[]>([]);
@@ -1004,6 +1005,8 @@ export default defineComponent({
         onCloseBottomPopup,
       };
     }
+    /** 当前打开的第一个文件夹的id */
+    let firstFolderDirId = "0";
     // const onFinishPopup = () => {
     //   console.log("onFinishPopup", popupState);
     // };
@@ -1033,6 +1036,16 @@ export default defineComponent({
       currentShareId.value = data.driveFindShare.id;
       isCurrentShareFolder.value = data.driveFindShare.userFile.isDir;
       const e = data.driveFindShare.userFile;
+      if (isCurrentShareFolder.value) {
+        firstFolderDirId = data.driveFindShare.userFile.id;
+        useClickOutSideWhenShareIsFolder();
+      }
+      // 直接注册详情
+      setCurrentDescriptionModalData(
+        e.id,
+        lastOfArray(e.fullName),
+        e.info.description || ""
+      );
       // 查询当前分享是否收藏过
       // isCurrentShareCollected
       apiQueryCollectList({ type: "SHARE" }).then((res) => {
@@ -1145,9 +1158,9 @@ export default defineComponent({
         fileData.value.sort(sortByDirType);
       });
     };
-    /** 点击预览图片 */
-    const onItemClick = async (record: ListItem) => {
-      // console.log("onItemClick", record);
+    /** 点击icon */
+    const onItemIconClick = async (record: ListItem) => {
+      // console.log("onItemIconClick", record);
       // if (notLoggedInAndRoute()) {
       //   console.log("未登录,跳转");
       //   return;
@@ -1166,6 +1179,7 @@ export default defineComponent({
           dirName: lastOfArray(record.userFile.fullName),
         });
         getSetDriveList(record.userFile.id);
+        isShowDescriptionModalFileNameInAddressBar.value = false;
         // 1.2 change fileData
       } else if (FILE_TYPE_MAP.image.includes(fileType)) {
         // 2.是图片
@@ -1183,7 +1197,7 @@ export default defineComponent({
         previewImages.value.push(url);
         onShowViewer();
       } else if (fileType === "pdf") {
-        console.log("pdf-类型");
+        // console.log("pdf-类型");
         const { user, space, id: fileId, fullName } = record.userFile;
         const token = record.token;
         const pdfUrl = `https://drive-s.owaf.io/preview/${
@@ -1270,23 +1284,62 @@ export default defineComponent({
         console.log("TODO-其他类型");
       }
     };
+    /** 点击名字 */
+    const onItemNameClick = async (record: ListItem) => {
+      // console.log("onItemNameClick");
+      const e = record.userFile;
+      if (!e) return;
+      // 如果是文件夹, 就进入文件夹, 更新地址栏和详情数据
+      if (e.isDir) {
+        historyDir.value.push({
+          dirId: e.id,
+          dirName: lastOfArray(e.fullName),
+        });
+        getSetDriveList(e.id);
+        setCurrentDescriptionModalData(
+          e.id,
+          lastOfArray(e.fullName),
+          e.info.description || ""
+        );
+        isShowDescriptionModalFileNameInAddressBar.value = false;
+      } else {
+        // 如果是文件, 更新到地址栏, 并设置详情
+        setCurrentDescriptionModalData(
+          e.id,
+          lastOfArray(e.fullName),
+          e.info.description || ""
+        );
+        isShowDescriptionModalFileNameInAddressBar.value = true;
+      }
+    };
+
+    const isShowDescriptionModalFileNameInAddressBar = ref(false);
     const currentDescriptionModalFileName = ref("");
     const currentDescription = ref("");
     const setCurrentDescriptionModalData = (
+      id: string,
       fileName: string,
       descSource: string
     ) => {
+      currentDescriptionModalFileName.value = fileName;
+      currentDescription.value = descSource;
+      if (!idMapDescriptionCache.has(id)) {
+        idMapDescriptionCache.set(id, { fileName, descSource });
+      }
+    };
+    const setCurrentDescriptionModalDataFromCache = (id: string) => {
+      const e = idMapDescriptionCache.get(id);
+      if (!e) {
+        throw Error(`没有找到改文件id ${id}的缓存`);
+      }
+      const { fileName, descSource } = e;
       currentDescriptionModalFileName.value = fileName;
       currentDescription.value = descSource;
     };
     const isShowDescriptionPopup = ref(false);
     /** record详细描述信息的弹窗 */
     function useDescriptionPopup() {
-      const onShowDescriptionPopup = (e: TFileItem) => {
-        setCurrentDescriptionModalData(
-          lastOfArray(e.fullName),
-          e.info.description || ""
-        );
+      const onShowDescriptionPopup = () => {
         isShowDescriptionPopup.value = true;
       };
       const onCloseDescriptionPopup = () => {
@@ -1300,6 +1353,35 @@ export default defineComponent({
         onCloseDescriptionPopup,
       };
     }
+    const fileTableRef = ref(null);
+    /** 点击除了表格的其他地方, 重置当前点击项(还原地址栏),除了地址栏的收藏icon
+     *  文件夹的情况下才开启, 单文件不用变更地址栏和详情
+     */
+    const useClickOutSideWhenShareIsFolder = () => {
+      onClickOutside(fileTableRef, (e) => {
+        if (!isShowDescriptionPopup.value) {
+          setTimeout(() => {
+            // console.log("e", e.target);
+            // 已经打开弹窗的情况下, 不重置描述弹窗内容
+            if (isShowDescriptionPopup.value) {
+              return;
+            }
+            isShowDescriptionModalFileNameInAddressBar.value = false;
+            // 设置回当前文件夹的详情
+            const len = historyDir.value.length;
+            if (len === 1) {
+              // 全部文件
+              setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+            } else {
+              // 二/3级文件夹
+              setCurrentDescriptionModalDataFromCache(
+                lastOfArray(historyDir.value).dirId
+              );
+            }
+          }, 100);
+        }
+      });
+    };
     const onShowViewer = () => {
       const $viewer = viewerApi({
         options: {
@@ -1354,7 +1436,7 @@ export default defineComponent({
       insertedAtText,
       curShareCollectedCount,
       onUpperLevel,
-      fileData, 
+      fileData,
       dirData,
       isLoadingDirData,
       popupState,
@@ -1362,13 +1444,16 @@ export default defineComponent({
       onClosePopup,
       historyDir,
       // onFinishPopup,
-      onItemClick,
+      isShowDescriptionModalFileNameInAddressBar,
+      onItemIconClick,
+      onItemNameClick,
       dayjs,
       formatBytes,
       lastOfArray,
       cacheFormatDescription,
-      ...useDescriptionPopup(),
+      fileTableRef,
       onShowViewer,
+      ...useDescriptionPopup(),
       // ...useRightPopup(),
       ...useBottomPopup(),
     };

@@ -655,33 +655,26 @@ export default defineComponent({
      */
     const useClickOutSideWhenShareIsFolder = () => {
       onClickOutside(fileTableRef, (e) => {
-        // console.log("e", e.target);
-        // 已经打开弹窗的情况下, 不重置描述弹窗内容
-        if (isShowDescriptionModal.value) {
-          return;
-        }
-        const target = e.target as HTMLElement;
-        if (
-          (target.nodeName === "path" &&
-            target.outerHTML.includes("M512 64C264.6 64 64")) ||
-          (target.nodeName === "svg" &&
-            target.innerHTML.includes("M512 64C264.6 64 64")) ||
-          (target.nodeName === "a" &&
-            target.innerHTML.includes("M512 64C264.6 64 64"))
-        ) {
-          return;
-        }
-        isShowDescriptionModalFileNameInAddressBar.value = false;
-        // 设置回当前文件夹的详情
-        const len = historyDir.value.length;
-        if (len === 1) {
-          // 全部文件
-          setCurrentDescriptionModalDataFromCache(firstFolderDirId);
-        } else {
-          // 二/3级文件夹
-          setCurrentDescriptionModalDataFromCache(
-            lastOfArray(historyDir.value).dirId
-          );
+        if (!isShowDescriptionModal.value) {
+          setTimeout(() => {
+            // console.log("e", e.target);
+            // 已经打开弹窗的情况下, 不重置描述弹窗内容
+            if (isShowDescriptionModal.value) {
+              return;
+            }
+            isShowDescriptionModalFileNameInAddressBar.value = false;
+            // 设置回当前文件夹的详情
+            const len = historyDir.value.length;
+            if (len === 1) {
+              // 全部文件
+              setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+            } else {
+              // 二/3级文件夹
+              setCurrentDescriptionModalDataFromCache(
+                lastOfArray(historyDir.value).dirId
+              );
+            }
+          }, 100);
         }
       });
     };
@@ -809,6 +802,7 @@ export default defineComponent({
           lastOfArray(record.userFile.fullName),
           record.userFile.info.description || ""
         );
+        isShowDescriptionModalFileNameInAddressBar.value = false;
         // 1.2 change fileData
       } else if (FILE_TYPE_MAP.image.includes(fileType)) {
         previewImages.length = 0;
