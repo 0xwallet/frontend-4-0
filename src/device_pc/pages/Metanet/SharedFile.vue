@@ -542,6 +542,7 @@ import {
   cacheFormatDescription,
   makeShareUrlByUri,
   cacheFn,
+  useDelay,
 } from "@/utils";
 import {
   ExportOutlined,
@@ -671,7 +672,9 @@ export default defineComponent({
             } else {
               // 二/3级文件夹
               setCurrentDescriptionModalDataFromCache(
-                lastOfArray(historyDir.value).dirId
+                historyDir.value.length
+                  ? lastOfArray(historyDir.value).dirId
+                  : firstFolderDirId
               );
             }
           }, 100);
@@ -757,23 +760,26 @@ export default defineComponent({
     /** 目录面包屑
      * 当点击第一个的时候是用share 的api,所以这里第一个dirId不会被用到 */
     const historyDir = ref<{ dirId: string; dirName: string }[]>([
-      { dirId: "none", dirName: "/" },
+      // { dirId: "none", dirName: "/" },
     ]);
     /** 点击上一级 */
     const onUpperLevel = (dirIdx: number) => {
-      // 最后一个就是当前目录,不用点击
-      if (dirIdx === historyDir.value.length - 1) {
-        return;
-      }
-      // 如果点的是全部文件
+      // 1.如果点的是第一个
       if (dirIdx === 0) {
-        clearSelected();
-        historyDir.value.splice(1);
-        getSetFileData();
-        setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+        // 1.1如果地址栏只有一个
+        if (historyDir.value.length === 1) {
+          historyDir.value.length = 0;
+          getSetFileData();
+          setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+        } else {
+          //1.2如果地址栏有多个
+          historyDir.value.splice(dirIdx + 1);
+          const dirId = lastOfArray(historyDir.value).dirId;
+          getSetDriveList(dirId);
+          setCurrentDescriptionModalDataFromCache(dirId);
+        }
       } else {
-        clearSelected();
-        // 点击的不是第一个"全部文件",删除后面的目录
+        // 2.如果点的不是第一个
         historyDir.value.splice(dirIdx + 1);
         const dirId = lastOfArray(historyDir.value).dirId;
         getSetDriveList(dirId);

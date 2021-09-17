@@ -157,8 +157,7 @@
           <div class="text-center font-semibold font-20 mx-3 mb-2">
             {{ userPreview.username }}
           </div>
-          <div class="van-hairline--bottom text-gray-400 text-center"></div>
-          <div class="pb-2"></div>
+          <div class="text-gray-400 text-center"></div>
           <template v-if="!isCodeResolved">
             <div class="px-6 mb-4">
               <van-field
@@ -190,26 +189,16 @@
             </div>
           </template>
           <template v-else>
-            <div v-if="isCurrentShareFolder" class="px-4 font-semibold">
-              <div v-if="historyDir.length === 1" class="flex items-center">
-                <div>
-                  <van-icon
-                    color="#404A66"
-                    size="16px"
-                    class="mr-2"
-                    name="info-o"
-                    @click="onShowDescriptionPopup"
-                  />
-                </div>
-                <!-- 共有{{ fileData.length }}个文件 -->
-                <div class="flex-1">/</div>
-                <div v-if="isUserLoggedIn">
-                  <van-icon color="#404A66" size="16px" name="edit" />
-                </div>
-              </div>
-              <!-- <div v-else>全部文件/3200/所发生的</div> -->
-              <div v-else class="flex items-center">
-                <div>
+            <div
+              class="mx-1 rounded-full"
+              :style="{
+                padding: '2px 0px',
+                border: '1px solid #f2f2f2',
+              }"
+            >
+              <div v-if="isCurrentShareFolder" class="px-2 font-semibold">
+                <!-- <div v-else>全部文件/3200/所发生的</div> -->
+                <div class="flex items-center justify-center h-6">
                   <van-icon
                     size="16px"
                     class="mr-2"
@@ -217,62 +206,83 @@
                     @click="onShowDescriptionPopup"
                     color="#404A66"
                   />
-                </div>
-                <div class="flex-1 flex items-center truncate">
-                  <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
-                    <div
-                      :class="{
-                        'text-gray-400': idx === historyDir.length - 1,
-                      }"
-                      @click="onUpperLevel(idx)"
-                    >
-                      {{ dir.dirName }}
-                    </div>
-                    <span
-                      v-if="idx !== historyDir.length - 1"
-                      class="px-2 text-gray-400"
-                      >></span
-                    >
-                  </template>
-                  <template v-if="isShowDescriptionModalFileNameInAddressBar">
-                    <span class="px-2 text-gray-400">></span>
-                    {{ currentDescriptionModalFileName }}
-                  </template>
-                </div>
-                <div v-if="isUserLoggedIn">
-                  <van-icon color="#404A66" size="16px" name="edit" />
+                  <div
+                    class="flex-1 flex items-center truncate"
+                    :style="{
+                      transition: 'max-width .3s ease-in',
+                      'max-width': shouldCollapseHistoryDirBar
+                        ? '0px'
+                        : '999px',
+                    }"
+                  >
+                    <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
+                      <div
+                        :class="{
+                          'text-gray-400': idx === historyDir.length - 1,
+                        }"
+                        @click="onUpperLevel(idx)"
+                      >
+                        {{ dir.dirName }}
+                      </div>
+                      <span
+                        v-if="idx !== historyDir.length - 1"
+                        class="px-2 text-gray-400"
+                        >></span
+                      >
+                    </template>
+                    <template v-if="isShowDescriptionModalFileNameInAddressBar">
+                      <span class="px-2 text-gray-400">></span>
+                      {{ currentDescriptionModalFileName }}
+                    </template>
+                  </div>
+                  <van-icon
+                    v-if="isUserLoggedIn"
+                    color="#404A66"
+                    size="16px"
+                    name="edit"
+                  />
                 </div>
               </div>
+              <!-- 如果不是文件夹, 信息图标 , 登录后加评论图标 -->
+              <div v-else class="flex items-center justify-center h-6">
+                <!-- TODO detailInfo -->
+                <van-icon
+                  color="#404A66"
+                  size="16px"
+                  class="mr-1 w-6 h-6 flex items-center justify-center"
+                  name="info-o"
+                  @click="onShowDescriptionPopup"
+                />
+                <!-- 登录后显示评论按钮 -->
+                <van-icon
+                  v-if="false"
+                  color="#404A66"
+                  size="16px"
+                  class="mr-1 w-6 h-6 flex items-center justify-center"
+                  name="edit"
+                />
+              </div>
             </div>
-            <!-- 如果不是文件夹, 信息图标 , 登录后加评论图标 -->
-            <div v-else class="flex items-center justify-center">
-              <!-- TODO detailInfo -->
-              <van-icon
-                color="#404A66"
-                size="16px"
-                class="mr-1 w-6 h-6 flex items-center justify-center"
-                name="info-o"
-                @click="onShowDescriptionPopup"
-              />
-              <!-- 登录后显示评论按钮 -->
-              <van-icon
-                v-if="isUserLoggedIn"
-                color="#404A66"
-                size="16px"
-                class="mr-1 w-6 h-6 flex items-center justify-center"
-                name="edit"
-              />
-            </div>
+
             <!-- 文件列表 -->
             <div
               ref="fileTableRef"
-              class="mt-1"
+              class="mt-1 relative"
               :style="{
                 overflow: 'hidden',
                 'overflow-y': 'scroll',
                 height: 'calc(100% - 80px)',
               }"
             >
+              <van-loading
+                v-if="isLoadingListData"
+                class="absolute top-6"
+                size="36px"
+                :style="{
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                }"
+              />
               <template v-if="fileData.length === 0">
                 <!-- <div class="pt-4 pl-4 text-gray-400 text-center">空文件夹</div> -->
                 <van-empty description="空文件夹" />
@@ -581,6 +591,7 @@ import {
   onUnmounted,
   reactive,
   ref,
+  watch,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { MFileTypeIcon, MSvgIcon, MMdParser } from "../../components";
@@ -590,8 +601,6 @@ import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
 import pdfjsLib from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
 import { onClickOutside } from "@vueuse/core";
-import { TDetailInfo } from "@/device_pc/pages/Metanet/components/ModalDetail.vue";
-import { cloneDeep } from "lodash-es";
 
 type SelectedItem = {
   id: string;
@@ -693,6 +702,8 @@ export default defineComponent({
     const insertedAtText = ref("");
     /** 当前这个分享的收藏数 */
     const curShareCollectedCount = ref(0);
+    /** 是否正在加载列表中的数据 */
+    const isLoadingListData = ref(false);
     const fileData = ref<ListItem[]>([]);
     const previewImages = ref<string[]>([]);
     const isLoadingConfirmCode = ref(false);
@@ -808,17 +819,25 @@ export default defineComponent({
       // console.log("saveToMetanetModalPreAction");
     };
     const onUpperLevel = (dirIdx: number) => {
-      // 最后一个就是当前目录,不用点击
-      if (dirIdx === historyDir.value.length - 1) {
-        return;
-      }
-      // 如果点的是全部文件
+      // 1.如果点的是第一个
       if (dirIdx === 0) {
-        historyDir.value.splice(1);
-        getSetFileData();
-        setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+        // 1.1如果地址栏只有一个
+        if (historyDir.value.length === 1) {
+          shouldCollapseHistoryDirBar.value = true;
+          useDelay(300).then(() => {
+            historyDir.value.length = 0;
+          });
+          getSetFileData();
+          setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+        } else {
+          //1.2如果地址栏有多个
+          historyDir.value.splice(dirIdx + 1);
+          const dirId = lastOfArray(historyDir.value).dirId;
+          getSetDriveList(dirId);
+          setCurrentDescriptionModalDataFromCache(dirId);
+        }
       } else {
-        // 点击的不是第一个"全部文件",删除后面的目录
+        // 2.如果点的不是第一个
         historyDir.value.splice(dirIdx + 1);
         const dirId = lastOfArray(historyDir.value).dirId;
         getSetDriveList(dirId);
@@ -1012,6 +1031,7 @@ export default defineComponent({
     // };
     /** 获取文件信息 */
     const getSetFileData = async () => {
+      isLoadingListData.value = true;
       const { data, err } = await apiQuerySharedFile({
         uri: currentUri.value,
         ...(!isCodeResolved.value || inputCode.value
@@ -1020,6 +1040,7 @@ export default defineComponent({
             }
           : {}),
       });
+      isLoadingListData.value = false;
       if (err || !data) return;
       if (data.driveFindShare === null) {
         Toast("访问码错误");
@@ -1079,8 +1100,23 @@ export default defineComponent({
     /** 目录面包屑
      * 当点击第一个的时候是用share 的api,所以这里第一个dirId不会被用到 */
     const historyDir = ref<{ dirId: string; dirName: string }[]>([
-      { dirId: "none", dirName: "/" },
+      // { dirId: "none", dirName: "/" },
+      // 默认改为空的
     ]);
+    /** 是否折叠路径栏 */
+    const shouldCollapseHistoryDirBar = ref(false);
+    watch(
+      () => historyDir.value,
+      (newVal) => {
+        // console.log("newVal", newVal);
+        if (!newVal.length) {
+          shouldCollapseHistoryDirBar.value = true;
+        } else {
+          shouldCollapseHistoryDirBar.value = false;
+        }
+      },
+      { immediate: true, deep: true }
+    );
     onMounted(() => {
       const queryUri = route.query.uri as string;
       // console.log("queryUri", queryUri);
@@ -1132,10 +1168,12 @@ export default defineComponent({
     });
     const getSetDriveList = (dirId: string) => {
       const token = currentShareToken.value;
+      isLoadingListData.value = true;
       apiQueryFileByDir({
         dirId,
         token,
       }).then((res) => {
+        isLoadingListData.value = false;
         if (res.err || !res.data) {
           return;
         }
@@ -1375,7 +1413,9 @@ export default defineComponent({
             } else {
               // 二/3级文件夹
               setCurrentDescriptionModalDataFromCache(
-                lastOfArray(historyDir.value).dirId
+                historyDir.value.length
+                  ? lastOfArray(historyDir.value).dirId
+                  : firstFolderDirId
               );
             }
           }, 100);
@@ -1434,6 +1474,7 @@ export default defineComponent({
       previewImages,
       expiredText,
       insertedAtText,
+      isLoadingListData,
       curShareCollectedCount,
       onUpperLevel,
       fileData,
@@ -1443,6 +1484,7 @@ export default defineComponent({
       onChangePopup,
       onClosePopup,
       historyDir,
+      shouldCollapseHistoryDirBar,
       // onFinishPopup,
       isShowDescriptionModalFileNameInAddressBar,
       onItemIconClick,
