@@ -34,11 +34,11 @@ export default defineComponent({
         },
       },
     });
-    DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-      if ("target" in (node as any)) {
-        node.setAttribute("target", "_blank");
-      }
-    });
+    // DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+    //   if ("target" in (node as any)) {
+    //     node.setAttribute("target", "_blank");
+    //   }
+    // });
     watch(
       () => props.content,
       (newVal) => {
