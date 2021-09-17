@@ -276,12 +276,8 @@
             >
               <van-loading
                 v-if="isLoadingListData"
-                class="absolute top-6"
+                class="absolute top-6 listLoading"
                 size="36px"
-                :style="{
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                }"
               />
               <template v-if="fileData.length === 0">
                 <!-- <div class="pt-4 pl-4 text-gray-400 text-center">空文件夹</div> -->
@@ -1509,5 +1505,12 @@ export default defineComponent({
   &:hover {
     background: #fafafb;
   }
+}
+</style>
+<style lang="less">
+.listLoading {
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
 }
 </style>
