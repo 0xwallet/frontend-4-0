@@ -1012,7 +1012,7 @@ export type QueryShareFileItem = {
   updatedAt: string;
   uri: string;
   status: null | "expired" | "wrong_code";
-  userFile: TFileItem | null;
+  userFile: TFileItem | null; // TODO 排除掉 isShared space user字段
 };
 
 type ResponseQueryShareFile = {
