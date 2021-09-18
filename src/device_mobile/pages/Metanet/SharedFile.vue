@@ -190,6 +190,7 @@
           </template>
           <template v-else>
             <div
+              ref="fileTableRef"
               class="mx-1 rounded-full"
               :style="{
                 padding: '2px 0px',
@@ -201,7 +202,7 @@
                 <div class="flex items-center justify-center h-6">
                   <van-icon
                     size="16px"
-                    class="mr-2"
+                    class="mr-2.5"
                     name="info-o"
                     @click="onShowDescriptionPopup"
                     color="#404A66"
@@ -236,6 +237,9 @@
                     </template>
                   </div>
                   <van-icon
+                    :class="{
+                      'ml-2.5': !shouldCollapseHistoryDirBar,
+                    }"
                     v-if="isUserLoggedIn"
                     color="#404A66"
                     size="16px"
@@ -265,7 +269,6 @@
 
             <!-- 文件列表 -->
             <div
-              ref="fileTableRef"
               class="mt-1 relative"
               :style="{
                 overflow: 'hidden',
@@ -311,7 +314,7 @@
                     </div>
                   </div>
                   <div
-                    class="flex-1 text-overflow-3"
+                    class="flex-1 text-overflow-3 mr-2"
                     @click="onItemNameClick(record)"
                   >
                     <div class="font-medium text-overflow-2">
@@ -814,25 +817,30 @@ export default defineComponent({
       // console.log("saveToMetanetModalPreAction");
     };
     const onUpperLevel = (dirIdx: number) => {
-      // 1.如果点的是第一个
-      if (dirIdx === 0) {
-        // 1.1如果地址栏只有一个
-        if (historyDir.value.length === 1) {
+      // 1. 如果点的是当前文件夹
+      if (dirIdx === historyDir.value.length - 1) {
+        // 1.1 如果有 描述文件栏
+        if (isShowDescriptionModalFileNameInAddressBar.value) {
+          isShowDescriptionModalFileNameInAddressBar.value = false;
+          const _dirId = historyDir.value[dirIdx].dirId;
+          setCurrentDescriptionModalDataFromCache(_dirId);
+        } else if (dirIdx === 0) {
+          // 1.2 如果没有 描述文件栏 且是根目录, 收起所有地址栏
           shouldCollapseHistoryDirBar.value = true;
           useDelay(300).then(() => {
             historyDir.value.length = 0;
           });
           getSetFileData();
           setCurrentDescriptionModalDataFromCache(firstFolderDirId);
-        } else {
-          //1.2如果地址栏有多个
-          historyDir.value.splice(dirIdx + 1);
-          const dirId = lastOfArray(historyDir.value).dirId;
-          getSetDriveList(dirId);
-          setCurrentDescriptionModalDataFromCache(dirId);
         }
       } else {
-        // 2.如果点的不是第一个
+        // 2. 如果点的不是当前文件夹
+        // 2.1 如果有 描述文件栏
+        if (isShowDescriptionModalFileNameInAddressBar.value) {
+          isShowDescriptionModalFileNameInAddressBar.value = false;
+          const _dirId = historyDir.value[dirIdx].dirId;
+          setCurrentDescriptionModalDataFromCache(_dirId);
+        }
         historyDir.value.splice(dirIdx + 1);
         const dirId = lastOfArray(historyDir.value).dirId;
         getSetDriveList(dirId);
@@ -1191,6 +1199,7 @@ export default defineComponent({
         fileData.value.sort(sortByDirType);
       });
     };
+    let destoryPdfLoadingTask: (() => void) | null = null;
     /** 点击icon */
     const onItemIconClick = async (record: ListItem) => {
       // console.log("onItemIconClick", record);
@@ -1230,6 +1239,10 @@ export default defineComponent({
         previewImages.value.push(url);
         onShowViewer();
       } else if (fileType === "pdf") {
+        // 先清理上一次的任务(如果有)
+        if (destoryPdfLoadingTask) {
+          destoryPdfLoadingTask();
+        }
         // console.log("pdf-类型");
         const { user, space, id: fileId, fullName } = record.userFile;
         const token = record.token;
@@ -1253,14 +1266,19 @@ export default defineComponent({
           "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.1.266/build/pdf.worker.min.js";
         let viewer: HTMLElement | null;
         let thePdf: PDFDocumentProxy;
-        PDFjs.getDocument(pdfUrl)
-          .promise.then((pdf) => {
+        const pdfLoadingTask = PDFjs.getDocument(pdfUrl);
+        destoryPdfLoadingTask = () => {
+          pdfLoadingTask.destroy();
+          destoryPdfLoadingTask = null;
+        };
+        pdfLoadingTask.promise
+          .then((pdf) => {
             isLoadingPdf.value = false;
             useDelay(10).then(async () => {
               viewer = document.getElementById("pdfCanvas");
               thePdf = pdf;
               const renderQueue = [];
-              console.time("全部pdf页面渲染时间");
+              // console.time("全部pdf页面渲染时间");
               for (let page = 1; page <= pdf.numPages; page++) {
                 const canvas = document.createElement("canvas");
                 canvas.className = "pdf-page-canvas";
@@ -1306,9 +1324,9 @@ export default defineComponent({
           // console.time(`${pageNumber}`);
           return renderTask.promise.then(() => {
             // console.timeEnd(`${pageNumber}`);
-            if (pageNumber === thePdf.numPages) {
-              console.timeEnd("全部pdf页面渲染时间");
-            }
+            // if (pageNumber === thePdf.numPages) {
+            //   console.timeEnd("全部pdf页面渲染时间");
+            // }
           });
         };
         //
@@ -1391,31 +1409,31 @@ export default defineComponent({
      *  文件夹的情况下才开启, 单文件不用变更地址栏和详情
      */
     const useClickOutSideWhenShareIsFolder = () => {
-      onClickOutside(fileTableRef, (e) => {
-        if (!isShowDescriptionPopup.value) {
-          setTimeout(() => {
-            // console.log("e", e.target);
-            // 已经打开弹窗的情况下, 不重置描述弹窗内容
-            if (isShowDescriptionPopup.value) {
-              return;
-            }
-            isShowDescriptionModalFileNameInAddressBar.value = false;
-            // 设置回当前文件夹的详情
-            const len = historyDir.value.length;
-            if (len === 1) {
-              // 全部文件
-              setCurrentDescriptionModalDataFromCache(firstFolderDirId);
-            } else {
-              // 二/3级文件夹
-              setCurrentDescriptionModalDataFromCache(
-                historyDir.value.length
-                  ? lastOfArray(historyDir.value).dirId
-                  : firstFolderDirId
-              );
-            }
-          }, 100);
-        }
-      });
+      // onClickOutside(fileTableRef, (e) => {
+      //   // if (!isShowDescriptionPopup.value) {
+      //   // setTimeout(() => {
+      //   // console.log("e", e.target);
+      //   // 已经打开弹窗的情况下, 不重置描述弹窗内容
+      //   if (isShowDescriptionPopup.value) {
+      //     return;
+      //   }
+      //   isShowDescriptionModalFileNameInAddressBar.value = false;
+      //   // 设置回当前文件夹的详情
+      //   const len = historyDir.value.length;
+      //   if (len === 1) {
+      //     // 全部文件
+      //     setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+      //   } else {
+      //     // 二/3级文件夹
+      //     setCurrentDescriptionModalDataFromCache(
+      //       historyDir.value.length
+      //         ? lastOfArray(historyDir.value).dirId
+      //         : firstFolderDirId
+      //     );
+      //   }
+      //   // }, 100);
+      //   // }
+      // });
     };
     const onShowViewer = () => {
       const $viewer = viewerApi({
