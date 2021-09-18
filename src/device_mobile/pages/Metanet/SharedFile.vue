@@ -249,16 +249,15 @@
                 <van-icon
                   color="#404A66"
                   size="16px"
-                  class="mr-1 w-6 h-6 flex items-center justify-center"
+                  class="mr-2"
                   name="info-o"
                   @click="onShowDescriptionPopup"
                 />
                 <!-- 登录后显示评论按钮 -->
                 <van-icon
-                  v-if="false"
+                  v-if="isUserLoggedIn"
                   color="#404A66"
                   size="16px"
-                  class="mr-1 w-6 h-6 flex items-center justify-center"
                   name="edit"
                 />
               </div>
