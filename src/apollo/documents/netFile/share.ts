@@ -50,13 +50,13 @@ export const driveFindShare = gql`
         hash
         id
         isDir
-        isShared
+        # isShared
         insertedAt
         updatedAt
-        space
-        user {
-          id
-        }
+        # space
+        # user {
+        #   id
+        # }
         info {
           size
           description
