@@ -194,6 +194,7 @@
                   </template>
                 </div> -->
                     <div
+                      ref="fileTableRef"
                       class="flex-1 flex items-center px-3 mr-2"
                       :style="{
                         height: '28px',
@@ -301,11 +302,11 @@
                   </div>
                   <!-- 表格区 -->
                   <XTableFiles
-                    ref="fileTableRef"
                     class="px-3"
                     rowKey="id"
                     :columns="columns"
                     :data="fileData"
+                    :loading="isLoadingListData"
                     v-model:selectedRows="selectedRows"
                     v-model:selectedRowKeys="selectedRowKeys"
                   >
@@ -655,35 +656,37 @@ export default defineComponent({
      *  文件夹的情况下才开启, 单文件不用变更地址栏和详情
      */
     const useClickOutSideWhenShareIsFolder = () => {
-      onClickOutside(fileTableRef, (e) => {
-        if (!isShowDescriptionModal.value) {
-          setTimeout(() => {
-            // console.log("e", e.target);
-            // 已经打开弹窗的情况下, 不重置描述弹窗内容
-            if (isShowDescriptionModal.value) {
-              return;
-            }
-            isShowDescriptionModalFileNameInAddressBar.value = false;
-            // 设置回当前文件夹的详情
-            const len = historyDir.value.length;
-            if (len === 1) {
-              // 全部文件
-              setCurrentDescriptionModalDataFromCache(firstFolderDirId);
-            } else {
-              // 二/3级文件夹
-              setCurrentDescriptionModalDataFromCache(
-                historyDir.value.length
-                  ? lastOfArray(historyDir.value).dirId
-                  : firstFolderDirId
-              );
-            }
-          }, 100);
-        }
-      });
+      // onClickOutside(fileTableRef, (e) => {
+      //   if (!isShowDescriptionModal.value) {
+      //     setTimeout(() => {
+      //       // console.log("e", e.target);
+      //       // 已经打开弹窗的情况下, 不重置描述弹窗内容
+      //       if (isShowDescriptionModal.value) {
+      //         return;
+      //       }
+      //       isShowDescriptionModalFileNameInAddressBar.value = false;
+      //       // 设置回当前文件夹的详情
+      //       const len = historyDir.value.length;
+      //       if (len === 1) {
+      //         // 全部文件
+      //         setCurrentDescriptionModalDataFromCache(firstFolderDirId);
+      //       } else {
+      //         // 二/3级文件夹
+      //         setCurrentDescriptionModalDataFromCache(
+      //           historyDir.value.length
+      //             ? lastOfArray(historyDir.value).dirId
+      //             : firstFolderDirId
+      //         );
+      //       }
+      //     }, 100);
+      //   }
+      // });
     };
 
     /** 当前这个分享的收藏数 */
     const curShareCollectedCount = ref(0);
+    /** 是否正在加载列表中的数据 */
+    const isLoadingListData = ref(false);
     /** 当前的分享是否收藏过 */
     const isCurrentShareCollected = ref(false);
     /** 当前的分享是否是单个文件夹 */
@@ -764,22 +767,27 @@ export default defineComponent({
     ]);
     /** 点击上一级 */
     const onUpperLevel = (dirIdx: number) => {
-      // 1.如果点的是第一个
-      if (dirIdx === 0) {
-        // 1.1如果地址栏只有一个
-        if (historyDir.value.length === 1) {
+      // 1. 如果点的是当前文件夹
+      if (dirIdx === historyDir.value.length - 1) {
+        // 1.1 如果有 描述文件栏
+        if (isShowDescriptionModalFileNameInAddressBar.value) {
+          isShowDescriptionModalFileNameInAddressBar.value = false;
+          const _dirId = historyDir.value[dirIdx].dirId;
+          setCurrentDescriptionModalDataFromCache(_dirId);
+        } else if (dirIdx === 0) {
+          // 1.2 如果没有 描述文件栏 且是根目录, 收起所有地址栏
           historyDir.value.length = 0;
           getSetFileData();
           setCurrentDescriptionModalDataFromCache(firstFolderDirId);
-        } else {
-          //1.2如果地址栏有多个
-          historyDir.value.splice(dirIdx + 1);
-          const dirId = lastOfArray(historyDir.value).dirId;
-          getSetDriveList(dirId);
-          setCurrentDescriptionModalDataFromCache(dirId);
         }
       } else {
-        // 2.如果点的不是第一个
+        // 2. 如果点的不是当前文件夹
+        // 2.1 如果有 描述文件栏
+        if (isShowDescriptionModalFileNameInAddressBar.value) {
+          isShowDescriptionModalFileNameInAddressBar.value = false;
+          const _dirId = historyDir.value[dirIdx].dirId;
+          setCurrentDescriptionModalDataFromCache(_dirId);
+        }
         historyDir.value.splice(dirIdx + 1);
         const dirId = lastOfArray(historyDir.value).dirId;
         getSetDriveList(dirId);
@@ -912,10 +920,12 @@ export default defineComponent({
     /** 请求目录里面的数据 */
     const getSetDriveList = (dirId: string) => {
       const token = currentShareToken.value;
+      isLoadingListData.value = true;
       apiQueryFileByDir({
         dirId,
         token,
       }).then((res) => {
+        isLoadingListData.value = false;
         if (res.err || !res.data) {
           return;
         }
@@ -1095,6 +1105,7 @@ export default defineComponent({
     };
     /** 获取文件信息 */
     const getSetFileData = async () => {
+      isLoadingListData.value = true;
       const { data, err } = await apiQuerySharedFile({
         uri: currentUri.value,
         ...(!isCodeResolved.value
@@ -1103,6 +1114,7 @@ export default defineComponent({
             }
           : {}),
       });
+      isLoadingListData.value = false;
       if (err || !data) return;
       if (data.driveFindShare === null) {
         message.warning("访问码错误");
@@ -1408,6 +1420,7 @@ export default defineComponent({
       curShareCollectedCount,
       isCurrentShareCollected,
       isCurrentShareFolder,
+      isLoadingListData,
       expiredText,
       confirmLoading,
       lockPageLoading,
