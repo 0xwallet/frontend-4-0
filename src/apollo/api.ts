@@ -478,6 +478,7 @@ export const apiUploadSingle = async (
     try {
       const resNfr = await apiQueryNfrAddress();
       if (resNfr.err || !resNfr.data) {
+        console.error("apiQueryNfrAddress-获取不到数据");
         throw Error("apiQueryNfrAddress-获取不到数据");
       }
       const nfrAddress = resNfr.data.driveNfrAddress;

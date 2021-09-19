@@ -53,10 +53,10 @@ export const driveFindShare = gql`
         # isShared
         insertedAt
         updatedAt
-        # space
-        # user {
-        #   id
-        # }
+        space
+        user {
+          id
+        }
         info {
           size
           description
