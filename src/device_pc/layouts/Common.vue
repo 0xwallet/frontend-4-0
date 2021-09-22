@@ -141,6 +141,7 @@
               py-1
               bg-white
               rounded-full
+              cursor-pointer
             "
             :style="{
               left: '28px',
@@ -151,18 +152,36 @@
             <!-- 状态区 -->
             <!-- nkn节点状态 -->
             <!-- <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`"> -->
-            <div class="cursor-pointer flex items-center justify-center">
-              <LoadingOutlined v-if="isLoadingNknMulticlient" class="font-14" />
-              <img
-                v-else
-                class="inline-block"
-                :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
-                :style="{
-                  width: '14px',
-                  height: '14px',
-                }"
-              />
-            </div>
+            <a-dropdown placement="topLeft">
+              <div class="cursor-pointer flex items-center justify-center">
+                <LoadingOutlined
+                  v-if="isLoadingNknMulticlient"
+                  class="font-14"
+                />
+                <img
+                  v-else
+                  class="inline-block"
+                  :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
+                  :style="{
+                    width: '14px',
+                    height: '14px',
+                  }"
+                />
+              </div>
+              <template #overlay>
+                <a-menu class="py-0 rounded-full overflow-hidden">
+                  <a-menu-item class="text-center">
+                    <a
+                      class="px-4"
+                      href="javascript:;"
+                      @click="onShowSetDefaultNknCountModal"
+                      >设置nkn最小节点数</a
+                    >
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+
             <!-- </a-tooltip> -->
           </div>
           <div
@@ -177,6 +196,7 @@
               py-1
               bg-white
               rounded-full
+              cursor-pointer
             "
             :style="{
               left: '12px',
@@ -185,30 +205,44 @@
               color: 'rgba(0, 0, 0, 0.85)',
             }"
           >
-            <!-- 状态区 -->
-            <!-- nkn节点状态 -->
-            <template v-if="isLoadingNknMulticlient">
-              <div class="flex items-center justify-center font-14">
-                <LoadingOutlined class="mr-2" />
-                初始化nkn节点
-              </div>
-            </template>
-            <template v-else>
-              <div class="flex items-center justify-center">
-                <!-- @click="onResetNknMultiClient" -->
-                <img
-                  class="inline-block mr-2"
-                  :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
-                  :style="{
-                    width: '14px',
-                    height: '14px',
-                  }"
-                />
-                <div v-if="lockBeforeCollapsed">
-                  nkn节点 : {{ nknStatusCount }}/4
+            <a-dropdown placement="topLeft">
+              <!-- 状态区 -->
+              <!-- nkn节点状态 -->
+              <template v-if="isLoadingNknMulticlient">
+                <div class="flex items-center justify-center font-14">
+                  <LoadingOutlined class="mr-2" />
+                  初始化nkn节点
                 </div>
-              </div>
-            </template>
+              </template>
+              <template v-else>
+                <div class="flex items-center justify-center">
+                  <!-- @click="onResetNknMultiClient" -->
+                  <img
+                    class="inline-block mr-2"
+                    :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
+                    :style="{
+                      width: '14px',
+                      height: '14px',
+                    }"
+                  />
+                  <div v-if="lockBeforeCollapsed">
+                    nkn节点 : {{ nknStatusCount }}/4
+                  </div>
+                </div>
+              </template>
+              <template #overlay>
+                <a-menu class="py-0 rounded-full overflow-hidden">
+                  <a-menu-item class="text-center">
+                    <a
+                      class="px-4"
+                      href="javascript:;"
+                      @click="onShowSetDefaultNknCountModal"
+                      >设置nkn最小节点数</a
+                    >
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
 
             <!-- </a-tooltip> -->
           </div>
@@ -444,7 +478,7 @@
             </a-avatar>
             <span class="pl-2">{{ username }}</span> -->
 
-            <XUserAvatar class="w-6 h-6 mr-4"/>
+            <XUserAvatar class="w-6 h-6 mr-4" />
           </div>
           <!-- tabbar -->
         </a-layout-header>
@@ -462,6 +496,27 @@
         </a-layout-content>
       </a-layout>
     </a-layout>
+    <a-modal
+      width="400px"
+      v-model:visible="isShowSetDefaultNknCountModal"
+      title="设置nkn最小节点数"
+      @ok="onSetDefaultNknCountModalConfirm"
+    >
+      <a-row type="flex" align="middle" class="mb-4">
+        <a-col :span="6"> 最小值 : </a-col>
+        <a-col :span="16">
+          <a-input-number
+            id="nknCount"
+            v-model:value="nknCountInputValue"
+            :min="1"
+            :max="4"
+          />
+        </a-col>
+      </a-row>
+      <div class="text-gray-400 font-12">
+        更多的节点数需要的准备时间更长, 但可以达到更好的传输性能
+      </div>
+    </a-modal>
   </div>
 </template>
 <script lang="ts">
@@ -501,7 +556,7 @@ import { useRoute, useRouter } from "vue-router";
 import { PRODUCT_NAME } from "@/constants";
 import { XLocaleSwither, XUserAvatar } from "../components";
 import { useBaseStore, useTransportStore, useUserStore } from "@/store";
-import { Modal } from "ant-design-vue";
+import { message, Modal } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import { useLocalStorage } from "@vueuse/core";
 import Sortable from "sortablejs";
@@ -868,19 +923,36 @@ export default defineComponent({
         return userStore.isLoadingMultiClient;
       });
       const nknStatusCount = ref(0);
+      let readClientCounter: number;
       watch(
         () => isLoadingNknMulticlient.value,
         (newVal) => {
+          clearInterval(readClientCounter);
           if (newVal === false) {
-            userStore.getMultiClient().then((multiClient) => {
+            userStore.getStoreMultiClient().then((multiClient) => {
               if (multiClient) {
                 nknStatusCount.value = multiClient.readyClientIDs().length;
+                // console.log(
+                //   "multiClient-isuserstoreclient same multiclient",
+                //   userStore.multiClient?.addr === multiClient.addr,
+                //   multiClient.readyClientIDs().length,
+                //   nknStatusCount.value
+                // );
+                if (nknStatusCount.value < 4) {
+                  readClientCounter = window.setInterval(() => {
+                    nknStatusCount.value = multiClient.readyClientIDs().length;
+                    if (nknStatusCount.value >= 4) {
+                      clearInterval(readClientCounter);
+                    }
+                  }, 1000);
+                }
               }
             });
           }
         },
         { immediate: true }
       );
+
       /** 重置nkn 节点 */
       // const onResetNknMultiClient = () => {
       //   Modal.confirm({
@@ -890,10 +962,33 @@ export default defineComponent({
       //     },
       //   });
       // };
+      const nknCountInputValue = ref(1);
+      const isShowSetDefaultNknCountModal = ref(false);
+      const onShowSetDefaultNknCountModal = () => {
+        nknCountInputValue.value = userStore.defaultNknCount;
+        isShowSetDefaultNknCountModal.value = true;
+      };
+      const onSetDefaultNknCountModalConfirm = () => {
+        const v = nknCountInputValue.value;
+        // 不一样才设置(调用函数)
+        if (v !== userStore.defaultNknCount) {
+          // 有上传任务, 不能设置
+          if (transPortStore.uploadingList.length) {
+            message.warning("有任务正在上传, 请稍后再试");
+          } else {
+            userStore.setDefaultNknCount(v);
+          }
+        }
+        isShowSetDefaultNknCountModal.value = false;
+      };
       return {
         isLoadingNknMulticlient,
         nknStatusCount,
         // onResetNknMultiClient
+        nknCountInputValue,
+        isShowSetDefaultNknCountModal,
+        onShowSetDefaultNknCountModal,
+        onSetDefaultNknCountModalConfirm,
       };
     }
     return {

@@ -6,10 +6,12 @@ import { getMultiClient } from "@/apollo/nknConfig";
 import { toRaw } from "vue";
 import { apiNknOnline, apiQueryMeAvatar, TApiRes } from "@/apollo/api";
 import { Channel, Socket } from "phoenix";
+import { promiseChecker } from "@/utils";
 const userLocalStorage = useLocalStorage<UserBaseState | Record<string, never>>(
   "user",
   {}
 );
+const defaultNknCountStorage = useLocalStorage<number>("defaultNknCount", 1);
 // console.log("user-store里的", userLocalStorage, toRaw(userLocalStorage.value));
 type UserBaseState = {
   id: string;
@@ -42,8 +44,31 @@ export default defineStore({
   }),
   getters: {
     isLoggedIn: (state) => state.token && state.wallet,
+    defaultNknCount: () => defaultNknCountStorage.value,
   },
   actions: {
+    setDefaultNknCount(payload: number) {
+      // console.log("call-setDefaultNknCount", payload);
+      defaultNknCountStorage.value = payload;
+      // 已经在setMultiClient 途中这里就不用操作
+      if (this.isLoadingMultiClient) {
+        return;
+      }
+      // console.log(
+      //   "when call , this.mcl",
+      //   this.multiClient?.addr,
+      //   this.multiClient?.readyClientIDs().length
+      // );
+      if (
+        !this.multiClient ||
+        this.multiClient.readyClientIDs().length < payload
+      ) {
+        // console.log("action");
+        this.multiClient = null;
+        this.isLoadingMultiClient = true;
+        this.setMultiClient();
+      }
+    },
     /** 请求并设置头像 */
     getAndSetUserAvatar() {
       apiQueryMeAvatar().then(({ data, err }) => {
@@ -114,7 +139,10 @@ export default defineStore({
       const getIsMultiClientReady = () => {
         if (!this.multiClient) return false;
         // return this.multiClient.readyClientIDs().length >= 2;
-        return this.multiClient.readyClientIDs().length >= 1;
+        return (
+          this.multiClient.readyClientIDs().length >=
+          defaultNknCountStorage.value
+        );
       };
       return new Promise((resolve, reject) => {
         if (!this.wallet) reject("wallet 未初始化");
@@ -192,16 +220,18 @@ export default defineStore({
         });
     },
     /** 获取client */
-    getMultiClient() {
+    getStoreMultiClient() {
       return new Promise<classMultiClient | null>((resolve) => {
-        if (this.multiClient) resolve(this.multiClient);
+        if (!this.isLoadingMultiClient && this.multiClient)
+          resolve(this.multiClient);
         else {
           let counter = 0;
           const id = setInterval(() => {
             counter++;
             if (
               this.multiClient &&
-              this.multiClient.readyClientIDs().length >= 2
+              this.multiClient.readyClientIDs().length >=
+                defaultNknCountStorage.value
             ) {
               clearInterval(id);
               resolve(this.multiClient);

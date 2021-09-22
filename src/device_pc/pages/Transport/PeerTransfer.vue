@@ -584,7 +584,7 @@ export default defineComponent({
     const initMultiClient = async () => {
       if (nknClient) return nknClient;
       if (userStore.isLoggedIn) {
-        nknClient = await userStore.getMultiClient();
+        nknClient = await userStore.getStoreMultiClient();
       } else {
         nknClient = await getReadyAnonymousMultiClient();
       }
