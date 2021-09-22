@@ -208,16 +208,20 @@
                     color="#404A66"
                   />
                   <div
-                    class="flex-1 flex items-center truncate"
+                    class="
+                      flex-1 flex
+                      items-center
+                      whitespace-nowrap
+                      overflow-hidden overflow-x-scroll
+                    "
                     :style="{
                       transition: 'max-width .3s ease-in',
-                      'max-width': shouldCollapseHistoryDirBar
-                        ? '0px'
-                        : '999px',
+                      'max-width': shouldCollapseHistoryDirBar ? '0px' : '100%',
                     }"
                   >
                     <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
                       <div
+                        class="historyDirItem"
                         :class="{
                           'text-gray-400': idx === historyDir.length - 1,
                         }"
@@ -232,8 +236,10 @@
                       >
                     </template>
                     <template v-if="isShowDescriptionModalFileNameInAddressBar">
-                      <span class="px-2 text-gray-400">></span>
-                      {{ currentDescriptionModalFileName }}
+                      <div class="historyDirItem">
+                        <span class="px-2 text-gray-400">></span>
+                        {{ currentDescriptionModalFileName }}
+                      </div>
                     </template>
                   </div>
                   <van-icon
@@ -1108,6 +1114,19 @@ export default defineComponent({
     ]);
     /** 是否折叠路径栏 */
     const shouldCollapseHistoryDirBar = ref(false);
+    /** 地址栏的最后一个元素滑动进入视图 */
+    const scrollLastAddressItemIntoView = () => {
+      const lastHistoryDirItemElement = [
+        ...document.querySelectorAll(".historyDirItem"),
+      ].pop();
+      console.log("lastHistoryDirItemElement", lastHistoryDirItemElement);
+      // 地址栏最后一个进入视图
+      if (lastHistoryDirItemElement) {
+        lastHistoryDirItemElement.scrollIntoView({
+          behavior: "smooth",
+        });
+      }
+    };
     watch(
       () => historyDir.value,
       (newVal) => {
@@ -1117,6 +1136,7 @@ export default defineComponent({
         } else {
           shouldCollapseHistoryDirBar.value = false;
         }
+        useDelay(0).then(scrollLastAddressItemIntoView);
       },
       { immediate: true, deep: true }
     );
@@ -1365,6 +1385,16 @@ export default defineComponent({
     };
 
     const isShowDescriptionModalFileNameInAddressBar = ref(false);
+    watch(
+      () => isShowDescriptionModalFileNameInAddressBar.value,
+      (newVal) => {
+        if (newVal) {
+          console.log("yes");
+          // 如果文件名显示在地址栏, 滑动它进入视图
+          useDelay(0).then(scrollLastAddressItemIntoView);
+        }
+      }
+    );
     const currentDescriptionModalFileName = ref("");
     const currentDescription = ref("");
     const setCurrentDescriptionModalData = (
