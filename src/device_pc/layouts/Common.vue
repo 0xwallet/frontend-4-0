@@ -642,6 +642,10 @@ export default defineComponent({
           // console.log("route-newVal", newRoute.fullPath);
           const pathStr = newRoute.path;
           const fullPath = newRoute.fullPath;
+          // 分享链接页 不进入tab栏
+          if (fullPath.includes("metanet/sharedFile")) {
+            return;
+          }
           // console.log("routeNewVal", pathStr, openKeys.value);
           // console.log("pathStr", newRoute, pathStr);
           // /general/account
@@ -682,11 +686,11 @@ export default defineComponent({
             if (found) found.routePath = fullPath;
           } else if (fullPath.includes("metanet/sharedFile")) {
             // 如果是分享页面,更新routePath
-            const found = navList.value.find(
-              (i) =>
-                exactUniqueTabId(i.routePath) === exactUniqueTabId(fullPath)
-            );
-            if (found) found.routePath = fullPath;
+            // const found = navList.value.find(
+            //   (i) =>
+            //     exactUniqueTabId(i.routePath) === exactUniqueTabId(fullPath)
+            // );
+            // if (found) found.routePath = fullPath;
           }
         },
         {
