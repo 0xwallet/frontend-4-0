@@ -1119,7 +1119,7 @@ export default defineComponent({
       const lastHistoryDirItemElement = [
         ...document.querySelectorAll(".historyDirItem"),
       ].pop();
-      console.log("lastHistoryDirItemElement", lastHistoryDirItemElement);
+      // console.log("lastHistoryDirItemElement", lastHistoryDirItemElement);
       // 地址栏最后一个进入视图
       if (lastHistoryDirItemElement) {
         lastHistoryDirItemElement.scrollIntoView({
@@ -1389,7 +1389,6 @@ export default defineComponent({
       () => isShowDescriptionModalFileNameInAddressBar.value,
       (newVal) => {
         if (newVal) {
-          console.log("yes");
           // 如果文件名显示在地址栏, 滑动它进入视图
           useDelay(0).then(scrollLastAddressItemIntoView);
         }
