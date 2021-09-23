@@ -110,6 +110,16 @@
           {{ record.item.version }}
         </a>
       </template>
+      <template #statusText="{ record }">
+        <span>
+          <!-- TODO 不同的状态判断 -->
+          <XStatusDot
+            class="mr-1"
+            :type="record.statusText.includes('剩余时间') ? 'success' : 'error'"
+          />
+          <span class="align-middle">{{ record.statusText }}</span>
+        </span>
+      </template>
     </XTableFiles>
     <!-- 详情卡片 -->
     <ModalDetail v-model:visible="isShowDetailModal" :detail="currenDetailInfo">
@@ -195,7 +205,12 @@ import {
   EditOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
-import { XFileTypeIcon, XTableFiles, XTdHash } from "../../components";
+import {
+  XFileTypeIcon,
+  XTableFiles,
+  XTdHash,
+  XStatusDot,
+} from "../../components";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
 import { message, Modal } from "ant-design-vue";
 import {
@@ -242,6 +257,7 @@ export default defineComponent({
     XFileTypeIcon,
     XTableFiles,
     XTdHash,
+    XStatusDot,
     ModalDetail,
   },
   setup() {
@@ -279,6 +295,7 @@ export default defineComponent({
       {
         title: "状态",
         dataIndex: "statusText",
+        slots: { customRender: "statusText" },
         width: 180,
       },
       {
@@ -324,7 +341,7 @@ export default defineComponent({
               }),
               statusText: i.item.userFile
                 ? i.item.status === null
-                  ? "剩余时间"
+                  ? `剩余时间${dayjs(i.item.expiredAt).diff(dayjs(), "day")}天`
                   : i.item.status === "expired"
                   ? "已过期"
                   : "无效"

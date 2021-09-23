@@ -6,7 +6,7 @@ import { getMultiClient } from "@/apollo/nknConfig";
 import { toRaw } from "vue";
 import { apiNknOnline, apiQueryMeAvatar, TApiRes } from "@/apollo/api";
 import { Channel, Socket } from "phoenix";
-import { promiseChecker } from "@/utils";
+import { promiseChecker, useDelay } from "@/utils";
 const userLocalStorage = useLocalStorage<UserBaseState | Record<string, never>>(
   "user",
   {}
@@ -64,9 +64,16 @@ export default defineStore({
         this.multiClient.readyClientIDs().length < payload
       ) {
         // console.log("action");
+        this.wallet = null;
         this.multiClient = null;
         this.isLoadingMultiClient = true;
-        this.setMultiClient();
+        this.setWallet();
+        useDelay(300).then(() => {
+          if (this.wallet) {
+            console.log("重置后的wallet", this.wallet);
+            this.setMultiClient();
+          }
+        });
       }
     },
     /** 请求并设置头像 */
@@ -168,7 +175,7 @@ export default defineStore({
               timerCheckMultiClient = window.setTimeout(() => {
                 console.log("getIsMultiClientReady()", getIsMultiClientReady());
                 if (!getIsMultiClientReady()) {
-                  this.resetMultiClient();
+                  this.resetWalletAndMultiClient();
                   checkMulticlientAfter10s();
                 } else {
                   this.isLoadingMultiClient = false;
@@ -179,7 +186,7 @@ export default defineStore({
                   );
                   clearTimeout(timerCheckMultiClient);
                 }
-              }, 10000);
+              }, 10_000);
             };
             checkMulticlientAfter10s();
           } else {
@@ -189,11 +196,21 @@ export default defineStore({
       });
     },
     /** 重置multiClient */
-    resetMultiClient() {
-      if (!this.wallet) throw Error("wallet 未初始化");
+    resetWalletAndMultiClient() {
+      // if (!this.wallet) throw Error("wallet 未初始化");
+      this.wallet = null;
       this.multiClient = null;
-      this.multiClient = getMultiClient(this.wallet);
-      console.log("有效节点数未满足,重置为新的multiClient:", this.multiClient);
+      this.setWallet();
+      useDelay(300).then(() => {
+        if (this.wallet) {
+          console.log("重置后的wallet", this.wallet);
+          this.multiClient = getMultiClient(this.wallet);
+          console.log(
+            "有效节点数未满足,重置为新的multiClient:",
+            this.multiClient
+          );
+        }
+      });
     },
     /** 设置登录的socket 连接 */
     setSocket() {
