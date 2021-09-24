@@ -14,7 +14,7 @@ export const FILE_TYPE_MAP = {
 /** 最大传输单元20kb */
 export const MAX_MTU = 1024 * 20;
 /** nkn multiclient 数量 */
-export const NKN_SUB_CLIENT_COUNT = 4;
+export const NKN_SUB_CLIENT_COUNT = 12;
 /** 表示 [header长度] 的uint8Array 的长度 */
 export const LEN_OF_HEADER_U8_LENGTH = 4;
 /** 最多打开的窗口数量 */

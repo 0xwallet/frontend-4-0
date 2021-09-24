@@ -296,7 +296,6 @@ import {
   lastOfArray,
   useDelay,
 } from "@/utils";
-import { NKN_SUB_CLIENT_COUNT } from "@/constants";
 import { throttle } from "lodash-es";
 import { Empty, message } from "ant-design-vue";
 import { apiQueryFileByDir, apiQueryMeSpace, TFileItem } from "@/apollo/api";

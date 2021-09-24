@@ -219,14 +219,14 @@
                   <!-- @click="onResetNknMultiClient" -->
                   <img
                     class="inline-block mr-2"
-                    :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
+                    :src="require(`@/assets/images/wifi_${wifiPngIdx}.png`)"
                     :style="{
                       width: '14px',
                       height: '14px',
                     }"
                   />
                   <div v-if="lockBeforeCollapsed">
-                    nkn节点 : {{ nknStatusCount }}/4
+                    nkn节点 : {{ nknStatusCount }}/{{ NKN_SUB_CLIENT_COUNT }}
                   </div>
                 </div>
               </template>
@@ -553,7 +553,7 @@ import {
 } from "@ant-design/icons-vue";
 import { remove } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
-import { PRODUCT_NAME } from "@/constants";
+import { PRODUCT_NAME, NKN_SUB_CLIENT_COUNT } from "@/constants";
 import { XLocaleSwither, XUserAvatar } from "../components";
 import { useBaseStore, useTransportStore, useUserStore } from "@/store";
 import { message, Modal } from "ant-design-vue";
@@ -927,6 +927,14 @@ export default defineComponent({
         return userStore.isLoadingMultiClient;
       });
       const nknStatusCount = ref(0);
+      const wifiPngIdx = computed(() => {
+        const e = nknStatusCount.value
+        if (e === 0) return 0;
+        else if (e <= 3.6) return 1;
+        else if (e <= 7.2) return 2;
+        else if (e < 12) return 3;
+        else return 4;
+      });
       let readClientCounter: number;
       watch(
         () => isLoadingNknMulticlient.value,
@@ -942,10 +950,11 @@ export default defineComponent({
                 //   multiClient.readyClientIDs().length,
                 //   nknStatusCount.value
                 // );
-                if (nknStatusCount.value < 4) {
+                // 节点未全满的情况下始终去更新 nknStatusCount
+                if (nknStatusCount.value < NKN_SUB_CLIENT_COUNT) {
                   readClientCounter = window.setInterval(() => {
                     nknStatusCount.value = multiClient.readyClientIDs().length;
-                    if (nknStatusCount.value >= 4) {
+                    if (nknStatusCount.value >= NKN_SUB_CLIENT_COUNT) {
                       clearInterval(readClientCounter);
                     }
                   }, 1000);
@@ -986,8 +995,10 @@ export default defineComponent({
         isShowSetDefaultNknCountModal.value = false;
       };
       return {
+        NKN_SUB_CLIENT_COUNT,
         isLoadingNknMulticlient,
         nknStatusCount,
+        wifiPngIdx,
         // onResetNknMultiClient
         nknCountInputValue,
         isShowSetDefaultNknCountModal,

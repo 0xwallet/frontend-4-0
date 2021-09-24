@@ -11,7 +11,7 @@ const userLocalStorage = useLocalStorage<UserBaseState | Record<string, never>>(
   "user",
   {}
 );
-const defaultNknCountStorage = useLocalStorage<number>("defaultNknCount", 1);
+const defaultNknCountStorage = useLocalStorage<number>("defaultNknCount", 2);
 // console.log("user-store里的", userLocalStorage, toRaw(userLocalStorage.value));
 type UserBaseState = {
   id: string;
