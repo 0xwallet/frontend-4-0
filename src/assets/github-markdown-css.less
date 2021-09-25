@@ -987,24 +987,27 @@
 }
 
 .markdown-body {
-  ul {
-    list-style-type: disc;
-    list-style-position: inside;
+  ul,
+  ol {
+    display: block;
+    list-style: disc outside none;
+    margin: 1em 0;
+    padding: 0 0 0 40px;
   }
   ol {
     list-style-type: decimal;
-    list-style-position: inside;
+  }
+  li {
+    display: list-item;
   }
   ul ul,
   ol ul {
     list-style-type: circle;
-    list-style-position: inside;
     margin-left: 15px;
   }
   ol ol,
   ul ol {
     list-style-type: lower-latin;
-    list-style-position: inside;
     margin-left: 15px;
   }
 }
