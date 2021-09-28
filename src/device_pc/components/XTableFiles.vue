@@ -9,7 +9,7 @@
     :loading="loading"
     :columns="columns"
     :data-source="data"
-    :scroll="{ x: false }"
+    :scroll="scroll"
     :row-selection="rowSelection"
     :pagination="false"
     :rowClassName="rowClassName"
@@ -79,6 +79,10 @@ export default defineComponent({
     customRow: {
       type: [Function, Object],
       default: () => null,
+    },
+    scroll: {
+      type: Object,
+      default: () => ({ x: false }),
     },
   },
   emits: ["update:selectedRows", "update:selectedRowKeys"],

@@ -1,7 +1,7 @@
 <template>
   <a-config-provider :locale="locale">
     <!-- 增加开发环境的路由组件显示 -->
-    <div
+    <!-- <div
       v-if="isEnvDevelopment"
       class="
         fixed
@@ -18,7 +18,7 @@
     >
       <div>当前路由: {{ curRouteObj.path }}</div>
       <div>路由组件: {{ curRouteObj.component }}</div>
-    </div>
+    </div> -->
     <!-- 全局登录弹窗 -->
     <XModalLogin
       :visible="isShowLoginModal"
@@ -268,6 +268,22 @@ body,
 }
 .font-12 {
   font-size: 0.75rem; //12px
+}
+.absoulte-center-x {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.absoulte-center-y {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.absoulte-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 .flex-center {
   display: flex;

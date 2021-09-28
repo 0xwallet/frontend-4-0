@@ -183,9 +183,12 @@
       </div>
       <div>
         <div class="text-center text-gray-500 mb-16">
-          <router-link to="/login" class="ant-color-blue-6">{{
-            $t("pageLogin.backLoginButton")
-          }}</router-link>
+          <a
+            href="javascript:;"
+            class="ant-color-blue-6"
+            @click="onRouteToLogin"
+            >{{ $t("pageLogin.backLoginButton") }}</a
+          >
           <span
             class="pb-1 relative"
             :style="{
@@ -231,7 +234,7 @@ import {
   toRaw,
 } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 const strongReg = new RegExp(
   "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{8,})"
@@ -253,7 +256,7 @@ const pwsStrengthChecker = (pws: string): 2 | 1 | 0 => {
 export default defineComponent({
   setup() {
     const { t } = useI18n();
-    const router = useRouter();
+    const [route, router] = [useRoute(), useRouter()];
     /** logo和名称tips */
     function useLogoSvgAndName() {
       return {
@@ -342,6 +345,19 @@ export default defineComponent({
         });
         useDelay().then(() => router.replace({ name: "Login" }));
       };
+      const onRouteToLogin = () => {
+        const queryRedirect = route.query.redirect as string;
+        if (queryRedirect) {
+          router.push({
+            name: "Login",
+            query: {
+              redirect: queryRedirect,
+            },
+          });
+        } else {
+          router.push({ name: "Login" });
+        }
+      };
       return {
         form,
         passwordStrength,
@@ -351,6 +367,7 @@ export default defineComponent({
         isLoadingSubmit,
         onSendEmailCode,
         onSubmit,
+        onRouteToLogin,
       };
     }
     return {

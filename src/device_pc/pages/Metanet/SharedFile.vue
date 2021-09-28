@@ -701,23 +701,23 @@ export default defineComponent({
     const isUserLoggedIn = computed(() => {
       return userStore.isLoggedIn;
     });
-    /** 检查登录转态并返回是否登录,未登录跳转到登录页(带上redirect) */
-    const checkLoginStatusThenRoute = (): boolean => {
+    /** 检查登录转态并返回是否登录,未登录就打开登录弹窗 */
+    const checkLoginStatusThenOpenModalSignIn = (): boolean => {
       if (!isUserLoggedIn.value) {
-        // baseStore.changeIsShowLoginModal(true);
-        router.push({
-          name: "Login",
-          query: {
-            redirect: route.fullPath,
-          },
-        });
+        baseStore.changeIsShowLoginModal(true);
+        // router.push({
+        //   name: "Login",
+        //   query: {
+        //     redirect: route.fullPath,
+        //   },
+        // });
         return true;
       }
       return false;
     };
     /** 点击logo */
     const onClickLogo = () => {
-      if (checkLoginStatusThenRoute()) {
+      if (checkLoginStatusThenOpenModalSignIn()) {
         return;
       }
       // 导航到文件tab
@@ -734,12 +734,13 @@ export default defineComponent({
     };
     /** 点击未登录状态下的usericon */
     const onClickUnLoggInUserIcon = () => {
-      router.push({
-        name: "Login",
-        query: {
-          redirect: route.fullPath,
-        },
-      });
+      checkLoginStatusThenOpenModalSignIn();
+      // router.push({
+      //   name: "Login",
+      //   query: {
+      //     redirect: route.fullPath,
+      //   },
+      // });
     };
     const selectedRowKeys = ref<string[]>([]);
     const selectedRows = ref<ListItem[]>([]);
@@ -1025,7 +1026,7 @@ export default defineComponent({
     // TODO 文件夹 支持上一级目录
     /** shortcut-下载 */
     const onRecordDownload = (record: ListItem) => {
-      // if (checkLoginStatusThenRoute()) {
+      // if (checkLoginStatusThenOpenModalSignIn()) {
       //   return;
       // }
       // console.log("onRecordDownload", record);
@@ -1049,14 +1050,14 @@ export default defineComponent({
     };
     /** shortcut -评价 */
     const onRecordScore = (record: ListItem) => {
-      if (checkLoginStatusThenRoute()) {
+      if (checkLoginStatusThenOpenModalSignIn()) {
         return;
       }
       // console.log("onRecordScore", record);
     };
     /** 批量下载 */
     const onBatchDownload = () => {
-      // if (checkLoginStatusThenRoute()) {
+      // if (checkLoginStatusThenOpenModalSignIn()) {
       //   return;
       // }
       selectedRows.value.forEach((i) => {
@@ -1071,7 +1072,7 @@ export default defineComponent({
     };
     /** 批量收藏 */
     const onCollectShare = async () => {
-      if (checkLoginStatusThenRoute()) {
+      if (checkLoginStatusThenOpenModalSignIn()) {
         return;
       }
       if (isCurrentShareCollected.value) {
@@ -1098,7 +1099,7 @@ export default defineComponent({
     };
     /** 批量评价 */
     const onBatchScore = () => {
-      if (checkLoginStatusThenRoute()) {
+      if (checkLoginStatusThenOpenModalSignIn()) {
         return;
       }
       console.log("onBatchScore");
@@ -1381,7 +1382,7 @@ export default defineComponent({
       };
       /** 设置要移动的idList,操作类型 */
       const saveToMetanetModalPreAction = (item: TFileItem[]) => {
-        if (checkLoginStatusThenRoute()) {
+        if (checkLoginStatusThenOpenModalSignIn()) {
           return;
         }
         // 重置为全部文件

@@ -87,9 +87,9 @@
     </main>
     <div class="mt-6 bg-gray-100">
       <div class="font-14 text-center text-gray-500 mb-12">
-        <router-link to="/login" class="ant-blue">{{
+        <a href="javascript:;" class="ant-blue" @click="onRouteToLogin">{{
           $t("pageLogin.backLoginButton")
-        }}</router-link>
+        }}</a>
         <span
           class="pb-1 relative"
           :style="{
@@ -127,7 +127,7 @@ import {
   toRaw,
 } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 export default defineComponent({
   setup() {
@@ -138,7 +138,7 @@ export default defineComponent({
       };
     }
     const { t } = useI18n();
-    const router = useRouter();
+    const [route, router] = [useRoute(), useRouter()];
     const formReset = reactive({
       email: "",
       code: "",
@@ -237,6 +237,19 @@ export default defineComponent({
       Toast(t("pageLogin.resetSuccess"));
       useDelay().then(() => router.replace({ name: "Login" }));
     };
+    const onRouteToLogin = () => {
+      const queryRedirect = route.query.redirect as string;
+      if (queryRedirect) {
+        router.push({
+          name: "Login",
+          query: {
+            redirect: queryRedirect,
+          },
+        });
+      } else {
+        router.push({ name: "Login" });
+      }
+    };
     return {
       ...useLogoSvgAndName(),
       formReset,
@@ -250,6 +263,7 @@ export default defineComponent({
       onSwitchIsPasswordVisible,
       onSwitchIsRepeatPasswordVisible,
       onSubmit,
+      onRouteToLogin,
     };
   },
 });

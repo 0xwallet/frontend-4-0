@@ -89,7 +89,7 @@ export default {
     scanSign: `scanning the code to complete the login`,
 
     rememberMe: "Remember me",
-    forgetPassword: "Forget Password?",
+    forgetPassword: "Forgotten Password?",
     otherSignIn: "Sign in with",
     notAccountyet: "Don't have an account yet?",
     signUpNow: "sign up now",

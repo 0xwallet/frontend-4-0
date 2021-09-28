@@ -5,17 +5,25 @@
         <component :is="Component" />
       </transition>
     </router-view>
+    <MPopupLogin
+      :visible="isShowLoginPopup"
+      @update:visible="onUpdateVisible"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { useUserStore } from "@/store";
+import { useBaseStore, useUserStore } from "@/store";
 import { addHead } from "@/utils";
 import { Toast } from "vant";
-import { computed, defineComponent } from "vue";
+import { computed, defineComponent, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { MPopupLogin } from "./components";
 
 export default defineComponent({
+  components: {
+    MPopupLogin,
+  },
   setup() {
     // document
     //   .getElementsByName("viewport")[0]
@@ -31,8 +39,20 @@ export default defineComponent({
     //   content: "black-translucent",
     // });
     const userStore = useUserStore();
+    const baseStore = useBaseStore();
     const router = useRouter();
     const route = useRoute();
+    /** 全局的登录弹窗 */
+    function useLoginModal() {
+      const isShowLoginPopup = computed(() => baseStore.isShowLoginModal);
+      const onUpdateVisible = (v: boolean) =>
+        baseStore.changeIsShowLoginModal(v);
+      return {
+        isShowLoginPopup,
+        onUpdateVisible,
+      };
+    }
+
     async function trySignInWithLocalStorageAndRedirect() {
       const { signInWithLocalStorage } = userStore;
       // const [res, err] = await signInWithLocalStorage();
@@ -51,7 +71,9 @@ export default defineComponent({
       console.log("[从本地存储中登录成功] : ", result.data);
     }
     trySignInWithLocalStorageAndRedirect();
-    return {};
+    return {
+      ...useLoginModal(),
+    };
   },
 });
 </script>

@@ -33,7 +33,6 @@
             href="javascript:;"
             class="inline-block px-1 mr-2"
             @click="onBatchStart()"
-            :disabled="selectedRows.length === 0"
           >
             <RightCircleOutlined />
           </a>
@@ -43,7 +42,6 @@
             href="javascript:;"
             class="inline-block px-1 mr-2"
             @click="onBatchPause()"
-            :disabled="selectedRows.length === 0"
           >
             <PauseOutlined />
           </a>
@@ -61,7 +59,6 @@
             href="javascript:;"
             class="inline-block px-1 mr-2"
             @click="onBatchCancel()"
-            :disabled="selectedRows.length === 0"
           >
             <CloseCircleOutlined />
           </a>
@@ -752,18 +749,30 @@ export default defineComponent({
         transportStore.cancelItem(record.uniqueId);
       };
       const onBatchStart = () => {
+        if (selectedRows.value.length === 0) {
+          message.warning("请选择数据");
+          return;
+        }
         // console.log("onBatchStart");
         transportStore.uploadingList
           .filter((i) => canResumeStatusKeys.includes(i.status))
           .forEach((i) => transportStore.resumeItem(i.uniqueId));
       };
       const onBatchPause = () => {
+        if (selectedRows.value.length === 0) {
+          message.warning("请选择数据");
+          return;
+        }
         // console.log("onBatchPause");
         transportStore.uploadingList
           .filter((i) => canPauseStatusKeys.includes(i.status))
           .forEach((i) => transportStore.pauseItem(i.uniqueId));
       };
       const onBatchCancel = () => {
+        if (selectedRows.value.length === 0) {
+          message.warning("请选择数据");
+          return;
+        }
         // console.log("onBatchCancel");
         transportStore.uploadingList
           .filter((i) => i.status !== "waiting")

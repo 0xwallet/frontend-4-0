@@ -13,7 +13,7 @@
     </div>
     <div v-else class="w-full h-full relative">
       <header class="h-11 px-4 flex items-center text-white">
-        <div>
+        <div @click="onClickLogo">
           <div v-html="svgStr"></div>
         </div>
         <div
@@ -600,7 +600,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import { MFileTypeIcon, MSvgIcon, MMdParser } from "../../components";
 import { api as viewerApi } from "v-viewer";
-import { useUserStore } from "@/store";
+import { useBaseStore, useUserStore } from "@/store";
 import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
 import pdfjsLib from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
@@ -675,6 +675,7 @@ export default defineComponent({
     // 登录和未登录的
     // 未登录的是可以看的,但是点击功能后导航去登录页,登录完再返回来
     const svgStr = useSvgWhiteLogo();
+    const baseStore = useBaseStore();
     const lockPageLoading = ref(true);
     const route = useRoute();
     const router = useRouter();
@@ -736,12 +737,13 @@ export default defineComponent({
 
     const isUserLoggedIn = computed(() => userStore.isLoggedIn);
     /** 检查未登录并跳转到登录页 */
-    const checkLoginStatusAndRedirect = () => {
+    const checkLoginStatusThenOpenPopupLogin = () => {
       if (!isUserLoggedIn.value) {
-        router.push({
-          name: "Login",
-          query: { redirect: route.fullPath },
-        });
+        baseStore.changeIsShowLoginModal(true);
+        // router.push({
+        //   name: "Login",
+        //   query: { redirect: route.fullPath },
+        // });
         return true;
       }
       return false;
@@ -750,9 +752,17 @@ export default defineComponent({
       const userName = userStore.username;
       return { userName };
     });
+    /** logo的点击 */
+    const onClickLogo = () => {
+      if (checkLoginStatusThenOpenPopupLogin()) {
+        return;
+      }
+      // 已经登录就跳转到account
+      router.push("/account");
+    };
     /** header 右边头像的点击 */
     const onUserIconClick = () => {
-      if (checkLoginStatusAndRedirect()) {
+      if (checkLoginStatusThenOpenPopupLogin()) {
         return;
       }
       // 已经登录就跳转到account
@@ -760,7 +770,7 @@ export default defineComponent({
     };
     /** 收藏 */
     const onCollect = async () => {
-      if (checkLoginStatusAndRedirect()) {
+      if (checkLoginStatusThenOpenPopupLogin()) {
         return;
       }
       if (isCurrentShareCollected.value) {
@@ -784,7 +794,7 @@ export default defineComponent({
 
     /** 下载 */
     const onDownload = () => {
-      // if (checkLoginStatusAndRedirect()) {
+      // if (checkLoginStatusThenOpenPopupLogin()) {
       //   return;
       // }
       // console.log("onDownload");
@@ -811,7 +821,7 @@ export default defineComponent({
     };
     /** 保存到网盘 */
     const saveToMetanetModalPreAction = () => {
-      if (checkLoginStatusAndRedirect()) {
+      if (checkLoginStatusThenOpenPopupLogin()) {
         return;
       }
       getSetSaveToMetanetModalTableData().then(() => {
@@ -1508,6 +1518,7 @@ export default defineComponent({
       isCurrentShareCollected,
       isUserLoggedIn,
       myInfo,
+      onClickLogo,
       onUserIconClick,
       onCollect,
       onDownload,
