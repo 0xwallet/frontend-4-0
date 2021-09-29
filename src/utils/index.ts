@@ -208,6 +208,12 @@ export const getRandomNumStr = (n = 6): string => {
     .join("");
 };
 
+// https://stackoverflow.com/questions/9719570/generate-random-password-string-with-requirements-in-javascript/9719815
+/** 创建随机的字母数字 */
+export const getRandomNumAndStr = (n: 6): string => {
+  return Math.random().toString(36).slice(-n);
+};
+
 /** 从文件应用路由中提取窗口id */
 export const exactWindowId = (fileRoutePath: string) => {
   const match = /id=(\d*)&?/g.exec(fileRoutePath);
@@ -280,4 +286,30 @@ export const promiseChecker = (
     }, interVal);
   });
   return [p, wrapper];
+};
+
+let zIndex = 100000;
+/** 全局Toast */
+export const XToast = (msg = "default", size = 14, durationSecond = 2) => {
+  let div: HTMLDivElement | null;
+  div = document.createElement("div");
+  div.style.position = "fixed";
+  div.style.left = "50%";
+  div.style.top = "50%";
+  div.style.transform = "translate(-50%,-50%)";
+  div.style.backgroundColor = "rgba(0,0,0,.8)";
+  div.style.borderRadius = "4px";
+  div.style.fontSize = `${size}px`;
+  div.style.textAlign = "center";
+  div.style.color = "#fff";
+  div.style.padding = "10px 14px";
+  div.style.zIndex = `${zIndex++}`;
+  div.style.opacity = ".9";
+  div.style.backfaceVisibility = "hidden";
+  div.innerText = msg;
+  document.body.appendChild(div);
+  setTimeout(() => {
+    div?.remove();
+    div = null;
+  }, durationSecond * 1000);
 };

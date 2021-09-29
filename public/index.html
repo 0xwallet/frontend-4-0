@@ -95,7 +95,10 @@
         "DOMContentLoaded",
         () => {
           // if(window.__isMobile__) {}
-          var vConsole = new window.VConsole();
+          // 生产环境才调用
+          if (location.protocol === "https") {
+            var vConsole = new window.VConsole();
+          }
         },
         { once: true }
       );

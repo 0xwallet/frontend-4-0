@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :width="500"
+    :width="460"
     :closable="false"
     destroyOnClose
     centered
@@ -8,110 +8,344 @@
     @update:visible="updateVisible"
     @cancel="onModalCancel"
     :footer="null"
-    :bodyStyle="{ padding: '18px 12px', border: '1px solid #f2f2f2' }"
+    :bodyStyle="{ padding: '0 12px 16px 12px' }"
     transitionName="fadeDown"
     wrapClassName="modalLogin"
   >
-    <div class="px-5 pt-3 text-center font-semibold text-2xl mb-6">
-      登录到比特网盘
-    </div>
-    <a-form class="px-5" :label-col="{ span: 0 }" :wrapper-col="{ span: 24 }">
-      <a-form-item v-bind="validateInfos.email" class="mb-4">
-        <div
-          class="mb-1 font-14 text-gray-400"
-          :style="{
-            height: '26px',
-            'line-height': '26px',
-          }"
-        >
-          {{ $t("pageLogin.emailLabel") }}
-        </div>
-        <a-input
-          size="large"
-          class="inputModalLogin"
-          :style="{}"
-          v-model:value="modelRef.email"
-        />
-      </a-form-item>
-      <a-form-item v-bind="validateInfos.password" class="mb-4">
-        <div
-          class="mb-1 font-14 text-gray-400"
-          :style="{
-            height: '26px',
-            'line-height': '26px',
-          }"
-        >
-          {{ $t("pageLogin.passwordLabel") }}
-        </div>
-        <a-input-password
-          size="large"
-          :visibilityToggle="false"
-          class="inputModalLogin"
-          v-model:value="modelRef.password"
-        />
-      </a-form-item>
-      <a-form-item class="pt-4" :wrapper-col="{ span: 24 }">
-        <div class="flex items-center justify-between">
-          <a-button
-            type="primary"
-            class="rounded font-16 px-4"
-            :loading="submitLoading"
-            @click.prevent="onSubmit"
-            :style="{
-              border: 'none',
-              'border-radius': '4px',
-              height: '36px',
-              'line-height': '36px',
-            }"
-          >
-            <XSvgIcon icon="check" :size="16" class="mr-1" />
-            {{ $t("pageLogin.loginButton") }}</a-button
-          >
-          <a
-            href="javascript:;"
-            class="ant-color-blue-6"
-            @click="onClickForgetPwd"
-            >{{ $t("pageLogin.forgetPassword") }}</a
-          >
-        </div>
-      </a-form-item>
-    </a-form>
-    <div class="text-center mb-4">
+    <div
+      class="
+        text-center
+        font-16
+        h-11
+        flex
+        items-center
+        justify-center
+        bg-gray-100
+        relative
+      "
+      :style="{
+        margin: '0 -12px 12px -12px',
+        'border-bottom': '1px solid #e7e7e7',
+      }"
+    >
+      {{ $t("pageLogin.welcomeUsage") }}
+      {{ $t("pageLogin.productName") }}
       <div
-        class="w-40 mx-auto"
+        class="absolute cursor-pointer"
+        @click="onModalCancel"
         :style="{
-          height: '1px',
-          background: '#eee',
+          right: '14px',
+        }"
+      >
+        <CloseOutlined />
+      </div>
+    </div>
+    <div
+      class="h-20 flex items-center justify-center mb-3"
+      :style="{
+        filter: 'drop-shadow(0px 0px 8px #231F20)',
+      }"
+    >
+      <div
+        v-html="svgStr"
+        :style="{
+          transform: 'scale(3)',
         }"
       ></div>
     </div>
-    <div class="flex items-center justify-center pb-4">
-      <a href="javascript:;" class="mr-2">
-        <img src="~@/assets/images/nkn_gray.png" class="w-6 h-6" alt="" />
-      </a>
-      <a href="javascript:;" class="mr-2">
-        <img src="~@/assets/images/nkn_gray.png" class="w-6 h-6" alt="" />
-      </a>
-      <a href="javascript:;">
-        <img src="~@/assets/images/nkn_gray.png" class="w-6 h-6" alt="" />
-      </a>
+
+    <!-- 登录模式 -->
+    <div
+      class="flex items-center justify-center font-18 mb-5"
+      :style="{
+        color: '#505050',
+      }"
+    >
+      <div
+        class="w-24 cursor-pointer text-center"
+        :class="{
+          'ant-color-blue-6': loginType === 'password',
+        }"
+        @click="onChangeLoginType('password')"
+      >
+        密码登录
+      </div>
+      <div
+        class="mx-2"
+        :style="{
+          width: '1px',
+          height: '20px',
+          'background-color': '#e7e7e7',
+        }"
+      ></div>
+      <div
+        class="w-24 cursor-pointer text-center"
+        :class="{
+          'ant-color-blue-6': loginType === 'nMobile',
+        }"
+        @click="onChangeLoginType('nMobile')"
+      >
+        nMobile
+      </div>
+      <div
+        class="mx-2"
+        :style="{
+          width: '1px',
+          height: '20px',
+          'background-color': '#e7e7e7',
+        }"
+      ></div>
+      <div
+        class="w-24 cursor-pointer text-center"
+        :class="{
+          'ant-color-blue-6': loginType === 'webAuthn',
+        }"
+        @click="onChangeLoginType('webAuthn')"
+      >
+        webAuthn
+      </div>
+    </div>
+    <section
+      class="mx-auto"
+      :style="{
+        width: '400px',
+      }"
+    >
+      <!-- 表单区 -->
+      <!-- 登录的form -->
+      <div
+        v-if="formType === 'signIn'"
+        class="mb-5"
+        :style="{
+          border: '1px solid #e7e7e7',
+          'border-radius': '8px',
+        }"
+      >
+        <div
+          class="flex h-11 items-center px-5"
+          :style="{
+            'border-bottom': '1px solid #e7e7e7',
+          }"
+        >
+          <div class="w-14">
+            {{ $t("pageLogin.emailLabel") }}
+          </div>
+          <input
+            class="inputModalLogin w-52"
+            type="text"
+            placeholder="请输入邮箱"
+            v-model="form.email"
+          />
+        </div>
+        <div class="flex h-11 items-center px-5">
+          <div class="w-14">
+            {{ $t("pageLogin.passwordLabel") }}
+          </div>
+          <input
+            class="inputModalLogin w-52"
+            type="password"
+            placeholder="请输入密码"
+            v-model="form.password"
+          />
+          <div
+            class="ml-auto cursor-pointer ant-color-blue-6"
+            @click="onClickForgetPwd"
+          >
+            {{ $t("pageLogin.forgetPassword") }}
+          </div>
+        </div>
+      </div>
+      <!-- 注册的form -->
+      <div
+        v-else
+        class="mb-5"
+        :style="{
+          border: '1px solid #e7e7e7',
+          'border-radius': '8px',
+        }"
+      >
+        <div
+          class="flex h-11 items-center px-5"
+          :style="{
+            'border-bottom': '1px solid #e7e7e7',
+          }"
+        >
+          <div class="w-14">
+            {{ $t("pageLogin.emailLabel") }}
+          </div>
+          <input
+            class="inputModalLogin w-52"
+            type="text"
+            placeholder="请输入邮箱"
+            v-model="signUpForm.email"
+          />
+          <div
+            class="ml-auto cursor-pointer ant-color-blue-6"
+            @click="onSendEmailCode"
+          >
+            {{
+              isLockSendEamil ? countdownSendEamil : $t("countdown.normalText")
+            }}
+          </div>
+        </div>
+        <div class="flex h-11 items-center px-5">
+          <div class="w-14">
+            {{ $t("account.verifyCode") }}
+          </div>
+          <input
+            class="inputModalLogin w-52"
+            type="text"
+            placeholder="请输入验证码"
+            v-model="signUpForm.code"
+          />
+        </div>
+      </div>
+
+      <div
+        v-if="formType === 'signIn'"
+        class="flex items-center justify-between mb-5"
+      >
+        <a-button
+          class="rounded font-14"
+          @click.prevent="onSwitchFormType('signUp')"
+          :style="{
+            width: '194px',
+            'border-radius': '8px',
+            height: '40px',
+            'line-height': '40px',
+          }"
+        >
+          {{ $t("pageLogin.registerButton") }}</a-button
+        >
+        <a-button
+          type="primary"
+          class="rounded font-14"
+          :loading="submitLoading"
+          @click.prevent="onSubmit"
+          :style="{
+            width: '194px',
+            'border-radius': '8px',
+            height: '40px',
+            'line-height': '40px',
+          }"
+        >
+          {{ $t("pageLogin.loginButton") }}</a-button
+        >
+      </div>
+      <div v-else class="flex items-center justify-center mb-5 relative">
+        <a
+          class="absolute rounded-full cursor-pointer font-16 text-gray-400"
+          :style="{
+            left: '20px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+          }"
+          href="javascript:;"
+          @click="onSwitchFormType('signIn')"
+        >
+          <a-tooltip title="返回密码登录">
+            <ArrowLeftOutlined />
+          </a-tooltip>
+        </a>
+        <a-button
+          type="primary"
+          class="rounded font-14"
+          :loading="signUpSubmitLoading"
+          @click.prevent="onSignUpSubmit"
+          :style="{
+            width: '194px',
+            'border-radius': '8px',
+            height: '40px',
+            'line-height': '40px',
+          }"
+        >
+          登录 / 注册
+        </a-button>
+      </div>
+    </section>
+    <div
+      class="text-center mb-2"
+      :style="{
+        color: '#999',
+      }"
+    >
+      其他登录方式
+    </div>
+    <div class="flex items-center justify-center mb-6">
+      <a-button
+        type="primary"
+        class="text-white flex items-center moneyBtn"
+        :style="{
+          'border-radius': '4px',
+        }"
+      >
+        <img
+          src="~@/assets/images/money_button.png"
+          alt=""
+          :style="{
+            width: '22px',
+            height: '22px',
+          }"
+        />
+        <div
+          class="mx-2 opacity-30"
+          :style="{
+            width: '1px',
+            height: '14px',
+            'background-color': '#fff',
+          }"
+        ></div>
+        Sign in with Money Button
+      </a-button>
+    </div>
+    <div
+      class="font-12 text-center"
+      :style="{
+        color: '#999',
+      }"
+    >
+      <div>未注册过比特网盘的邮箱，我们将自动帮你注册账号</div>
+      <div>
+        登录或完成注册即代表你同意
+        <a class="ant-color-blue-6" href="javascript:;">用户协议</a>
+        和
+        <a class="ant-color-blue-6" href="javascript:;">隐私政策</a>
+      </div>
     </div>
   </a-modal>
 </template>
 
 <script lang="ts">
-import { apiEmailLogin } from "@/apollo/api";
-import { useUserStore } from "@/store";
-import { useForm } from "@ant-design-vue/use";
-import { defineComponent, reactive, ref } from "vue";
+import {
+  apiEmailLogin,
+  apiSendSignUpEmailCaptcha,
+  apiSignUp,
+} from "@/apollo/api";
+import { useBaseStore, useUserStore } from "@/store";
+import { getRandomNumAndStr, useSvgWhiteLogo, XToast } from "@/utils";
+import {
+  createVNode,
+  defineComponent,
+  h,
+  onUnmounted,
+  reactive,
+  ref,
+  toRaw,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import XSvgIcon from "./XSvgIcon.vue";
-// import { CheckOutlined } from "@ant-design/icons-vue";
+import { CloseOutlined, ArrowLeftOutlined } from "@ant-design/icons-vue";
+import { message, Modal, notification } from "ant-design-vue";
+import { REG_OBJ } from "@/constants";
+
+type LoginType = "password" | "nMobile" | "webAuthn";
+type FormType = "signIn" | "signUp";
 
 export default defineComponent({
   components: {
-    // CheckOutlined,
+    CloseOutlined,
+    ArrowLeftOutlined,
     XSvgIcon,
   },
   props: {
@@ -124,80 +358,201 @@ export default defineComponent({
   setup(props, { emit }) {
     const { t } = useI18n();
     const [route, router] = [useRoute(), useRouter()];
+    const userStore = useUserStore();
+    const baseStore = useBaseStore();
     const updateVisible = (v: boolean) => {
       emit("update:visible", v);
     };
+    /** logo和名称tips */
+    function useLogoSvgAndName() {
+      return {
+        svgStr: useSvgWhiteLogo(),
+      };
+    }
     const onModalCancel = () => {
       updateVisible(false);
     };
-    const modelRef = reactive({
+    const loginType = ref<LoginType>("password");
+    const onChangeLoginType = (s: LoginType) => (loginType.value = s);
+    const formType = ref<FormType>("signIn");
+    const form = reactive({
       email: "",
       password: "",
     });
-    const rulesRef = reactive({
-      email: [
-        {
-          type: "email",
-          required: true,
-          message: t("pageLogin.emailPlaceholder"),
-        },
-      ],
-      password: [
-        {
-          required: true,
-          message: t("pageLogin.passwordPlaceholder"),
-        },
-      ],
+    const resetForm = () => {
+      form.email = "";
+      form.password = "";
+    };
+    const signUpForm = reactive({
+      email: "",
+      code: "", // 验证码
     });
-    const { resetFields, validate, validateInfos } = useForm(
-      modelRef,
-      rulesRef
-    );
+    const resetSignUpForm = () => {
+      signUpForm.email = "";
+      signUpForm.code = "";
+    };
     const submitLoading = ref(false);
-    const onSubmit = () => {
-      validate().then(async () => {
-        console.log("校验通过,开始登录");
-        submitLoading.value = true;
-        const resultEmailLogin = await apiEmailLogin({
-          email: modelRef.email,
-          password: modelRef.password,
-        });
-        submitLoading.value = false;
-        if (resultEmailLogin.err) {
-          // Modal.error(err); // initApollo onError 会报错
-          return;
-        }
-        console.log("apiEmailLogin", resultEmailLogin.data);
-        const { token } = resultEmailLogin.data.signin;
-        const { id, username } = resultEmailLogin.data.signin.user;
-        const { signInFullPath } = useUserStore();
-        const resultSignInFullPath = await signInFullPath({
-          id,
-          token,
-          username,
-          email: modelRef.email,
-        });
-        resetFields();
-        setTimeout(() => {
-          window.location.reload();
-        }, 0);
-        if (resultSignInFullPath.err) return;
+    const signUpSubmitLoading = ref(false);
+    const isLockSendEamil = ref(false);
+    const countdownSendEamil = ref(0);
+    let counter: number;
+    const onSendEmailCode = async () => {
+      const { email } = toRaw(signUpForm);
+      if (!email.length || !REG_OBJ.email.test(email)) {
+        message.warning(t("pageLogin.emailPlaceholder"));
+        return;
+      }
+      if (isLockSendEamil.value) {
+        return;
+      }
+      const resultSendCaptcha = await apiSendSignUpEmailCaptcha({
+        email,
+        type: "ACTIVE_EMAIL",
       });
+      if (resultSendCaptcha.err) return;
+      // 验证码发送成功 提示语 按钮60秒禁用 ?
+      message.success(t("pageLogin.verificationSend"));
+      // 禁用发送验证码按钮和计数
+      isLockSendEamil.value = true;
+      countdownSendEamil.value = 60;
+      counter = window.setInterval(() => {
+        if (countdownSendEamil.value > 1) {
+          countdownSendEamil.value--;
+        } else {
+          // 倒数完毕,清空计时器,重置锁定
+          clearInterval(counter);
+          isLockSendEamil.value = false;
+        }
+      }, 1000);
+      // 防止内存泄漏
+    };
+    onUnmounted(() => counter && clearInterval(counter));
+    const onSubmit = async () => {
+      if (!form.email || !form.password) {
+        message.warning("请完善表单");
+        return;
+      }
+      console.log("校验通过,开始登录");
+      submitLoading.value = true;
+      const resultEmailLogin = await apiEmailLogin({
+        email: form.email,
+        password: form.password,
+      });
+      submitLoading.value = false;
+      if (resultEmailLogin.err) {
+        // Modal.error(err); // initApollo onError 会报错
+        return;
+      }
+      console.log("apiEmailLogin", resultEmailLogin.data);
+      const { token } = resultEmailLogin.data.signin;
+      const { id, username } = resultEmailLogin.data.signin.user;
+      const { signInFullPath } = useUserStore();
+      const resultSignInFullPath = await signInFullPath({
+        id,
+        token,
+        username,
+        email: form.email,
+      });
+      if (resultSignInFullPath.err) return;
+      message.success("登录成功!");
+      resetForm();
+      resetSignUpForm();
+      baseStore.changeIsShowLoginModal(false);
+    };
+    const onSignUpSubmit = async () => {
+      const { email, code } = signUpForm;
+      if (!email || !code) {
+        message.warning("请完善表单");
+        return;
+      }
+      // TODO
+      // 根据邮箱, 验证码 生成随机6位密码登录, 弹窗6位密码的提示
+      // getRandomNumAndStr
+      const password = getRandomNumAndStr(6);
+      signUpSubmitLoading.value = true;
+      const resultSignUp = await apiSignUp({
+        email,
+        password,
+        code,
+        username: email.split("@")[0],
+        nknPublicKey: "",
+      });
+      if (resultSignUp.err) {
+        signUpSubmitLoading.value = false;
+        // TODO 注册失败?
+        console.log(resultSignUp.err);
+        message.warning(resultSignUp.err.message);
+        return;
+      }
+      const resultEmailLogin = await apiEmailLogin({ email, password });
+      if (resultEmailLogin.err) {
+        signUpSubmitLoading.value = false;
+        // Modal.error(err); // initApollo onError 会报错
+        message.warning(t("pageLogin.loginFailed"));
+        return;
+      }
+      const { token } = resultEmailLogin.data.signin;
+      const { id, username } = resultEmailLogin.data.signin.user;
+      const resultSignInFullPath = await userStore.signInFullPath({
+        id,
+        token,
+        username,
+        email,
+      });
+      signUpSubmitLoading.value = false;
+      if (resultSignInFullPath.err) {
+        signUpSubmitLoading.value = false;
+        message.warning(resultSignInFullPath.err.message);
+        return;
+      }
+      Modal.success({
+        title: "登录/注册成功!",
+        content: createVNode("div", {}, [
+          createVNode("span", { class: "mr-2" }, "新密码是 "),
+          createVNode("span", { style: { color: "red" } }, `${password}`),
+        ]),
+        onOk: () => {
+          resetForm();
+          resetSignUpForm();
+          baseStore.changeIsShowLoginModal(false);
+        },
+      });
+      ///
+    };
+    const onSwitchFormType = (t: FormType) => {
+      if (t === "signIn") {
+        resetForm();
+        formType.value = "signIn";
+      } else {
+        resetSignUpForm();
+        formType.value = "signUp";
+      }
     };
     const onClickForgetPwd = () => {
-      emit("update:visible", false);
-      router.push({
-        name: "ResetPwd",
-        query: { redirect: route.fullPath },
-      });
+      // emit("update:visible", false);
+      // router.push({
+      //   name: "ResetPwd",
+      //   query: { redirect: route.fullPath },
+      // });
+      window.open(router.resolve({ name: "ResetPwd" }).href, "_blank");
     };
     return {
+      ...useLogoSvgAndName(),
       onModalCancel,
       updateVisible,
-      modelRef,
-      validateInfos,
+      loginType,
+      onChangeLoginType,
+      formType,
+      form,
+      signUpForm,
+      isLockSendEamil,
+      countdownSendEamil,
+      onSendEmailCode,
       submitLoading,
+      signUpSubmitLoading,
       onSubmit,
+      onSignUpSubmit,
+      onSwitchFormType,
       onClickForgetPwd,
     };
   },
@@ -207,23 +562,22 @@ export default defineComponent({
 <style lang="less">
 .modalLogin {
   .ant-modal-content {
-    border-radius: 4px;
+    border-radius: 8px;
   }
 }
 </style>
 <style lang="less" scoped>
 .inputModalLogin {
-  height: 40px;
-  line-height: 40px;
-  color: #555;
-  border: none;
-  outline: none;
-  border-radius: 4px;
-  background-color: rgba(238, 238, 238, 0.6) !important;
   &:focus {
-    color: #25282c;
-    background-color: #fff !important;
-    box-shadow: 0 0 2px 2px rgba(53, 126, 221, 0.6) !important;
+    outline: none;
+    border: none;
+  }
+}
+.moneyBtn {
+  &:hover {
+    // background-color: #4b8ce1 !important;
+    background-color: #40a9ff;
+    border-color: #40a9ff;
   }
 }
 </style>
