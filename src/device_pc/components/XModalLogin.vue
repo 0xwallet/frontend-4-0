@@ -6,7 +6,6 @@
     centered
     :visible="visible"
     @update:visible="updateVisible"
-    @cancel="onModalCancel"
     :footer="null"
     :bodyStyle="{ padding: '0 12px 16px 12px' }"
     transitionName="fadeDown"
@@ -30,7 +29,8 @@
     >
       {{ $t("pageLogin.welcomeUsage") }}
       {{ $t("pageLogin.productName") }}
-      <div
+      <a
+        href="javascript:;"
         class="absolute cursor-pointer"
         @click="onModalCancel"
         :style="{
@@ -38,7 +38,7 @@
         }"
       >
         <CloseOutlined />
-      </div>
+      </a>
     </div>
     <div
       class="h-20 flex items-center justify-center mb-3"
@@ -56,20 +56,47 @@
 
     <!-- 登录模式 -->
     <div
-      class="flex items-center justify-center font-18 mb-5"
+      class="flex items-center justify-center font-18 mb-4"
       :style="{
         color: '#505050',
       }"
     >
-      <div
+      <!-- <div
         class="w-24 cursor-pointer text-center"
         :class="{
           'ant-color-blue-6': loginType === 'password',
         }"
         @click="onChangeLoginType('password')"
       >
-        密码登录
-      </div>
+        登录
+      </div> -->
+      <a-dropdown
+        class="w-28 cursor-pointer text-center"
+        placement="bottomRight"
+      >
+        <a
+          :class="{ 'ant-color-blue-6': formType !== 'signUp' }"
+          @click.prevent="onDropdownMenuItemClick(loginType)"
+        >
+          {{ LOGINTYPE_MAP[loginType] }}
+          <DownOutlined class="" />
+        </a>
+        <template #overlay>
+          <a-menu
+            class="py-1"
+            :style="{
+              'border-radius': '8px',
+            }"
+          >
+            <a-menu-item v-for="item in otherLoginType" :key="item">
+              <a href="javascript:;" @click="onDropdownMenuItemClick(item)">{{
+                LOGINTYPE_MAP[item]
+              }}</a>
+            </a-menu-item>
+          </a-menu>
+        </template>
+      </a-dropdown>
+
       <div
         class="mx-2"
         :style="{
@@ -79,15 +106,15 @@
         }"
       ></div>
       <div
-        class="w-24 cursor-pointer text-center"
+        class="w-28 cursor-pointer text-center"
         :class="{
-          'ant-color-blue-6': loginType === 'nMobile',
+          'ant-color-blue-6': formType === 'signUp',
         }"
-        @click="onChangeLoginType('nMobile')"
+        @click="onSwitchFormType('signUp')"
       >
-        nMobile
+        {{ $t("pageLogin.registerButton") }}
       </div>
-      <div
+      <!-- <div
         class="mx-2"
         :style="{
           width: '1px',
@@ -103,7 +130,7 @@
         @click="onChangeLoginType('webAuthn')"
       >
         webAuthn
-      </div>
+      </div> -->
     </div>
     <section
       class="mx-auto"
@@ -201,29 +228,14 @@
         </div>
       </div>
 
-      <div
-        v-if="formType === 'signIn'"
-        class="flex items-center justify-between mb-5"
-      >
+      <div v-if="formType === 'signIn'" class="mb-5">
         <a-button
-          class="rounded font-14"
-          @click.prevent="onSwitchFormType('signUp')"
-          :style="{
-            width: '194px',
-            'border-radius': '8px',
-            height: '40px',
-            'line-height': '40px',
-          }"
-        >
-          {{ $t("pageLogin.registerButton") }}</a-button
-        >
-        <a-button
+          block
           type="primary"
           class="rounded font-14"
           :loading="submitLoading"
           @click.prevent="onSubmit"
           :style="{
-            width: '194px',
             'border-radius': '8px',
             height: '40px',
             'line-height': '40px',
@@ -232,34 +244,20 @@
           {{ $t("pageLogin.loginButton") }}</a-button
         >
       </div>
-      <div v-else class="flex items-center justify-center mb-5 relative">
-        <a
-          class="absolute rounded-full cursor-pointer font-16 text-gray-400"
-          :style="{
-            left: '20px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-          }"
-          href="javascript:;"
-          @click="onSwitchFormType('signIn')"
-        >
-          <a-tooltip title="返回密码登录">
-            <ArrowLeftOutlined />
-          </a-tooltip>
-        </a>
+      <div v-else class="mb-5">
         <a-button
+          block
           type="primary"
           class="rounded font-14"
           :loading="signUpSubmitLoading"
           @click.prevent="onSignUpSubmit"
           :style="{
-            width: '194px',
             'border-radius': '8px',
             height: '40px',
             'line-height': '40px',
           }"
         >
-          登录 / 注册
+          {{ $t("pageLogin.loginButton") }}
         </a-button>
       </div>
     </section>
@@ -304,9 +302,8 @@
         color: '#999',
       }"
     >
-      <div>未注册过比特网盘的邮箱，我们将自动帮你注册账号</div>
       <div>
-        登录或完成注册即代表你同意
+        未注册邮箱验证后自动登录，注册即代表同意
         <a class="ant-color-blue-6" href="javascript:;">用户协议</a>
         和
         <a class="ant-color-blue-6" href="javascript:;">隐私政策</a>
@@ -324,6 +321,7 @@ import {
 import { useBaseStore, useUserStore } from "@/store";
 import { getRandomNumAndStr, useSvgWhiteLogo, XToast } from "@/utils";
 import {
+  computed,
   createVNode,
   defineComponent,
   h,
@@ -335,17 +333,26 @@ import {
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import XSvgIcon from "./XSvgIcon.vue";
-import { CloseOutlined, ArrowLeftOutlined } from "@ant-design/icons-vue";
+import {
+  CloseOutlined,
+  ArrowLeftOutlined,
+  DownOutlined,
+} from "@ant-design/icons-vue";
 import { message, Modal, notification } from "ant-design-vue";
 import { REG_OBJ } from "@/constants";
 
 type LoginType = "password" | "nMobile" | "webAuthn";
 type FormType = "signIn" | "signUp";
-
+const LOGINTYPE_MAP: { [key in LoginType]: string } = {
+  password: "登录",
+  nMobile: "nMobile",
+  webAuthn: "webAuthn",
+};
 export default defineComponent({
   components: {
     CloseOutlined,
     ArrowLeftOutlined,
+    DownOutlined,
     XSvgIcon,
   },
   props: {
@@ -370,9 +377,19 @@ export default defineComponent({
       };
     }
     const onModalCancel = () => {
+      console.log("onModalCancel");
+      // 重置 表单值 和 表单类型
+      formType.value = "signIn";
+      loginType.value = "password";
+      resetForm();
+      resetSignUpForm();
       updateVisible(false);
     };
     const loginType = ref<LoginType>("password");
+    const otherLoginType = computed(() => {
+     const all: LoginType[] = ["password", "nMobile", "webAuthn"];
+      return all.filter((i) => i !== loginType.value);
+    }); 
     const onChangeLoginType = (s: LoginType) => (loginType.value = s);
     const formType = ref<FormType>("signIn");
     const form = reactive({
@@ -524,9 +541,14 @@ export default defineComponent({
         resetForm();
         formType.value = "signIn";
       } else {
+        // XToast("输入邮箱，注册账号");
         resetSignUpForm();
         formType.value = "signUp";
       }
+    };
+    const onDropdownMenuItemClick = (item: LoginType) => {
+      onSwitchFormType("signIn");
+      onChangeLoginType(item);
     };
     const onClickForgetPwd = () => {
       // emit("update:visible", false);
@@ -541,6 +563,8 @@ export default defineComponent({
       onModalCancel,
       updateVisible,
       loginType,
+      otherLoginType,
+      LOGINTYPE_MAP,
       onChangeLoginType,
       formType,
       form,
@@ -553,6 +577,7 @@ export default defineComponent({
       onSubmit,
       onSignUpSubmit,
       onSwitchFormType,
+      onDropdownMenuItemClick,
       onClickForgetPwd,
     };
   },

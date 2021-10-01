@@ -25,19 +25,26 @@
           flex
           items-center
           justify-center
+          relative
         "
       >
         📅
         <span class="mx-1">{{ insertedAtText }}</span>
         ⏳
         {{ expiredText }}
+        <!-- 多语言icon -->
+        <div
+          class="absolute-center-y right-4"
+          :style="{
+            'font-size': '22px',
+          }"
+        >
+          <XLocaleSwither class="cursor-pointer text-gray-600 localeSwitcher" />
+        </div>
       </div>
       <div
         v-if="!isUserLoggedIn"
-        class="flex-center cursor-pointer"
-        :style="{
-          color: '#423d3d',
-        }"
+        class="flex-center cursor-pointer text-gray-600"
         @click="onClickUnLoggInUserIcon"
       >
         <XSvgIcon icon="user" :size="26" />
@@ -533,6 +540,7 @@ import {
   XModalDir,
   XUserAvatar,
   XMdParser,
+  XLocaleSwither,
 } from "../../components";
 import { useI18n } from "vue-i18n";
 import {
@@ -592,6 +600,7 @@ export default defineComponent({
     XModalDir,
     XUserAvatar,
     XMdParser,
+    XLocaleSwither,
     ExportOutlined,
     DownloadOutlined,
     HeartFilled,
@@ -717,20 +726,23 @@ export default defineComponent({
     };
     /** 点击logo */
     const onClickLogo = () => {
-      if (checkLoginStatusThenOpenModalSignIn()) {
-        return;
+      // 1. 用户未登录就导航到登录页
+      if (!isUserLoggedIn.value) {
+        router.push({
+          name: "Login",
+        });
+      } else {
+        // 2. 用户登录了就导航到文件tab页
+        const windowId = baseStore.getNewOpenWindowId();
+        // console.log(`左菜单栏点击的,获取的还未激活的windoId,${windowId}`);
+        router.push({
+          name: "MetanetFile",
+          query: {
+            id: windowId,
+            path: "~",
+          },
+        });
       }
-      // 导航到文件tab
-      // 要打开的窗口id
-      const windowId = baseStore.getNewOpenWindowId();
-      // console.log(`左菜单栏点击的,获取的还未激活的windoId,${windowId}`);
-      router.push({
-        name: "MetanetFile",
-        query: {
-          id: windowId,
-          path: "~",
-        },
-      });
     };
     /** 点击未登录状态下的usericon */
     const onClickUnLoggInUserIcon = () => {

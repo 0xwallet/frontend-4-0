@@ -17,7 +17,15 @@
           <div v-html="svgStr"></div>
         </div>
         <div
-          class="flex-1 text-center flex items-center justify-center font-14"
+          class="
+            flex-1
+            text-center
+            flex
+            items-center
+            justify-center
+            font-14
+            relative
+          "
         >
           <!-- <img
             class="w-4 h-4 mr-1"
@@ -33,8 +41,16 @@
           /> -->
           ⏳
           <span>{{ expiredText }}</span>
+          <div
+            class="absolute-center-y right-4"
+            :style="{
+              'font-size': '22px',
+            }"
+          >
+            <MLocaleSwither class="cursor-pointer font-20 text-white" />
+          </div>
         </div>
-        <div @click="onUserIconClick">
+        <div @click="onUserIconClick" class="flex-center">
           <!-- 头像 -->
           <div
             v-if="isUserLoggedIn"
@@ -598,7 +614,12 @@ import {
   watch,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { MFileTypeIcon, MSvgIcon, MMdParser } from "../../components";
+import {
+  MFileTypeIcon,
+  MSvgIcon,
+  MMdParser,
+  MLocaleSwither,
+} from "../../components";
 import { api as viewerApi } from "v-viewer";
 import { useBaseStore, useUserStore } from "@/store";
 import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
@@ -670,6 +691,7 @@ export default defineComponent({
     MFileTypeIcon,
     MSvgIcon,
     MMdParser,
+    MLocaleSwither,
   },
   setup() {
     // 登录和未登录的
@@ -754,11 +776,14 @@ export default defineComponent({
     });
     /** logo的点击 */
     const onClickLogo = () => {
-      if (checkLoginStatusThenOpenPopupLogin()) {
-        return;
+      if (!isUserLoggedIn.value) {
+        router.push({
+          name: "Login",
+        });
+      } else {
+        // 已经登录就跳转到account
+        router.push("/account");
       }
-      // 已经登录就跳转到account
-      router.push("/account");
     };
     /** header 右边头像的点击 */
     const onUserIconClick = () => {

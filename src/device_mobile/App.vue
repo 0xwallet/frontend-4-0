@@ -132,6 +132,22 @@ body {
 .font-12 {
   font-size: 0.75rem; //12px
 }
+.absolute-center-x {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.absolute-center-y {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.absolute-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
 .ant-blue {
   color: #1890ff;
 }

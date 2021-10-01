@@ -1,12 +1,17 @@
 <template>
   <div>
     <div @click="onShowActionsheet">
-      <img class="w-5 h-5" src="~@/assets/svg/mobile-translate.svg" alt="" />
+      <!-- <img class="w-5 h-5" src="~@/assets/svg/mobile-translate.svg" alt="" /> -->
+      <MSvgIcon icon="translate" :size="20" />
     </div>
-    <van-action-sheet close-on-click-action v-model:show="isShowActionsheet">
+    <van-action-sheet
+      teleport="body"
+      close-on-click-action
+      v-model:show="isShowActionsheet"
+    >
       <div class="content">
         <div
-          class="font-16 py-3"
+          class="font-16 py-3 text-center"
           v-for="item in actions"
           :class="{
             'ant-blue': item.selected,
@@ -25,8 +30,12 @@
 import { useLocalStorage } from "@vueuse/core";
 import { defineComponent, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import MSvgIcon from "./MSvgIcon.vue";
 
 export default defineComponent({
+  components: {
+    MSvgIcon,
+  },
   setup() {
     const globalComposer = useI18n();
     const isShowActionsheet = ref(false);

@@ -6,7 +6,7 @@
       'border-radius': '4px',
     }"
   >
-    <div class="w-screen pb-6 relative">
+    <div class="popupWidth pb-6 relative">
       <div
         class="
           text-center
@@ -25,15 +25,16 @@
       >
         {{ $t("pageLogin.welcomeUsage") }}
         {{ $t("pageLogin.productName") }}
-        <div
+        <a
+          href="javascript:;"
           class="absolute cursor-pointer"
-          @click="updateVisible(false)"
+          @click="onClosePopup"
           :style="{
             right: '14px',
           }"
         >
           <van-icon name="cross" />
-        </div>
+        </a>
       </div>
       <!-- LOGO -->
       <div
@@ -51,19 +52,18 @@
       </div>
       <!-- 登录模式 -->
       <div
-        class="flex items-center justify-center font-16 mb-5"
+        class="flex items-center justify-center font-16 mb-4"
         :style="{
           color: '#505050',
         }"
       >
         <div
-          class="w-24 cursor-pointer text-center"
-          :class="{
-            'ant-blue': loginType === 'password',
-          }"
-          @click="onChangeLoginType('password')"
+          class="w-28 cursor-pointer text-center"
+          :class="{ 'ant-blue': formType !== 'signUp' }"
+          @click="onShowLoginTypeActionSheet"
         >
-          密码登录
+          {{ LOGINTYPE_MAP[loginType] }}
+          <van-icon class="ml-1" name="arrow-down" size="12" />
         </div>
         <div
           class="mx-2"
@@ -74,36 +74,19 @@
           }"
         ></div>
         <div
-          class="w-24 cursor-pointer text-center"
+          class="w-28 cursor-pointer text-center"
           :class="{
-            'ant-blue': loginType === 'nMobile',
+            'ant-blue': formType === 'signUp',
           }"
-          @click="onChangeLoginType('nMobile')"
+          @click="onSwitchFormType('signUp')"
         >
-          nMobile
-        </div>
-        <div
-          class="mx-2"
-          :style="{
-            width: '1px',
-            height: '20px',
-            'background-color': '#e7e7e7',
-          }"
-        ></div>
-        <div
-          class="w-24 cursor-pointer text-center"
-          :class="{
-            'ant-blue': loginType === 'webAuthn',
-          }"
-          @click="onChangeLoginType('webAuthn')"
-        >
-          webAuthn
+          {{ $t("pageLogin.registerButton") }}
         </div>
       </div>
       <section
         class="mx-auto font-14"
         :style="{
-          width: '320px',
+          width: 'calc(100% - 48px)',
         }"
       >
         <!-- 表单区 -->
@@ -198,29 +181,14 @@
           </div>
         </div>
 
-        <div
-          v-if="formType === 'signIn'"
-          class="flex items-center justify-between mb-5"
-        >
+        <div v-if="formType === 'signIn'" class="mb-5">
           <van-button
-            class="rounded font-14"
-            @click.prevent="onSwitchFormType('signUp')"
-            :style="{
-              width: '150px',
-              'border-radius': '8px',
-              height: '40px',
-              'line-height': '40px',
-            }"
-          >
-            {{ $t("pageLogin.registerButton") }}</van-button
-          >
-          <van-button
+            block
             type="primary"
             class="rounded font-14"
             :loading="submitLoading"
             @click.prevent="onSubmit"
             :style="{
-              width: '150px',
               'border-radius': '8px',
               height: '40px',
               'line-height': '40px',
@@ -230,36 +198,19 @@
           >
         </div>
         <div v-else class="flex items-center justify-center mb-5 relative">
-          <a
-            class="absolute rounded-full cursor-pointer font-16 text-gray-400"
-            :style="{
-              left: '20px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-            }"
-            href="javascript:;"
-            @click="onSwitchFormType('signIn')"
-          >
-            <van-icon
-              name="down"
-              :style="{
-                transform: 'rotate(90deg)',
-              }"
-            />
-          </a>
           <van-button
+            block
             type="primary"
             class="rounded font-14"
             :loading="signUpSubmitLoading"
             @click.prevent="onSignUpSubmit"
             :style="{
-              width: '150px',
               'border-radius': '8px',
               height: '40px',
               'line-height': '40px',
             }"
           >
-            登录 / 注册
+            {{ $t("pageLogin.loginButton") }}
           </van-button>
         </div>
       </section>
@@ -307,9 +258,8 @@
           color: '#999',
         }"
       >
-        <div>未注册过比特网盘的邮箱，我们将自动帮你注册账号</div>
         <div>
-          登录或完成注册即代表你同意
+          未注册邮箱验证后自动登录，注册即代表同意
           <a class="ant-blue" href="javascript:;">用户协议</a>
           和
           <a class="ant-blue" href="javascript:;">隐私政策</a>
@@ -317,6 +267,11 @@
       </div>
     </div>
   </van-popup>
+  <van-action-sheet
+    v-model:show="isShowActionSheetLoginType"
+    :actions="actionsLoginType"
+    @select="onSelectActionSheetLoginType"
+  />
 </template>
 
 <script lang="ts">
@@ -329,14 +284,26 @@ import { REG_OBJ } from "@/constants";
 import { useBaseStore, useUserStore } from "@/store";
 import { getRandomNumAndStr, useSvgWhiteLogo } from "@/utils";
 import { Dialog, Toast } from "vant";
-import { defineComponent, onUnmounted, reactive, ref, toRaw, watch } from "vue";
+import {
+  computed,
+  defineComponent,
+  onUnmounted,
+  reactive,
+  ref,
+  toRaw,
+  watch,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import MSvgIcon from "./MSvgIcon.vue";
 
 type LoginType = "password" | "nMobile" | "webAuthn";
 type FormType = "signIn" | "signUp";
-
+const LOGINTYPE_MAP: { [key in LoginType]: string } = {
+  password: "登录",
+  nMobile: "nMobile",
+  webAuthn: "webAuthn",
+};
 export default defineComponent({
   components: {
     MSvgIcon,
@@ -363,7 +330,34 @@ export default defineComponent({
     }
     const [route, router] = [useRoute(), useRouter()];
     const loginType = ref<LoginType>("password");
+    const otherLoginType = computed(() => {
+      const all: LoginType[] = ["password", "nMobile", "webAuthn"];
+      return all.filter((i) => i !== loginType.value);
+    });
     const onChangeLoginType = (s: LoginType) => (loginType.value = s);
+    const isShowActionSheetLoginType = ref(false);
+    const actionsLoginType = computed(() => {
+      return otherLoginType.value.map((i) => ({
+        name: LOGINTYPE_MAP[i],
+        rawVal: i,
+      }));
+    });
+    const onSelectActionSheetLoginType = ({
+      rawVal,
+    }: {
+      rawVal: LoginType;
+    }) => {
+      loginType.value = rawVal;
+      isShowActionSheetLoginType.value = false;
+    };
+    const onShowLoginTypeActionSheet = () => {
+      // formType是 非登录 的就切换回来, 否则显示下拉菜单
+      if (formType.value !== "signIn") {
+        formType.value = "signIn";
+      } else {
+        isShowActionSheetLoginType.value = true;
+      }
+    };
     const formType = ref<FormType>("signIn");
     const form = reactive({
       email: "",
@@ -380,6 +374,14 @@ export default defineComponent({
     const resetSignUpForm = () => {
       signUpForm.email = "";
       signUpForm.code = "";
+    };
+    /** 关闭弹窗 */
+    const onClosePopup = () => {
+      updateVisible(false);
+      formType.value = "signIn";
+      loginType.value = "password";
+      resetForm();
+      resetSignUpForm();
     };
     const submitLoading = ref(false);
     const signUpSubmitLoading = ref(false);
@@ -524,8 +526,15 @@ export default defineComponent({
     return {
       ...useLogoSvgAndName(),
       updateVisible,
+      onClosePopup,
       loginType,
+      LOGINTYPE_MAP,
+      otherLoginType,
       onChangeLoginType,
+      isShowActionSheetLoginType,
+      actionsLoginType,
+      onSelectActionSheetLoginType,
+      onShowLoginTypeActionSheet,
       formType,
       form,
       signUpForm,
@@ -555,6 +564,17 @@ export default defineComponent({
     // background-color: #4b8ce1 !important;
     background-color: #40a9ff;
     border-color: #40a9ff;
+  }
+}
+</style>
+
+<style lang="less">
+.popupWidth {
+  width: 100vw;
+}
+@media screen and (min-width: 400px) {
+  .popupWidth {
+    width: 400px;
   }
 }
 </style>
