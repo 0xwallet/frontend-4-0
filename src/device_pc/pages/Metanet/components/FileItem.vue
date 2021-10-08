@@ -61,7 +61,7 @@
           class="inline-block mr-2 px-1"
           @click="onUpperLevel"
         >
-          <VerticalAlignTopOutlined />
+          <ArrowLeftOutlined />
         </a>
       </a-tooltip>
       <a-tooltip :title="$t('metanet.refresh')">
@@ -260,6 +260,7 @@
               size="small"
               :maxlength="200"
               v-model:value="currentRenameString"
+              @pressEnter="onRecordRenameConfirm(record)"
             />
             <CheckSquareOutlined
               class="ml-1 shortcutButton"
@@ -818,9 +819,7 @@
               v-if="record.rawDescription"
               :content="record.rawDescription"
             />
-            <div v-else class="text-gray-400 text-center">
-              暂无描述
-            </div>
+            <div v-else class="text-gray-400 text-center">暂无描述</div>
           </div>
           <div
             class="absolute ant-color-gray"
@@ -861,7 +860,7 @@ import {
   CloudUploadOutlined,
   DragOutlined,
   BarsOutlined,
-  VerticalAlignTopOutlined,
+  ArrowLeftOutlined,
   SyncOutlined,
   RocketOutlined,
   FolderAddOutlined,
@@ -1011,7 +1010,7 @@ export default defineComponent({
     CloudUploadOutlined,
     DragOutlined,
     BarsOutlined,
-    VerticalAlignTopOutlined,
+    ArrowLeftOutlined,
     SyncOutlined,
     RocketOutlined,
     FolderAddOutlined,
