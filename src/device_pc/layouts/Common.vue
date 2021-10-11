@@ -61,7 +61,7 @@
               <div class="flex items-center">
                 <FolderOpenOutlined />
                 {{ $t("metanet.file") }}
-                <i v-if="navFileTabCount > 0" class="navItemDot">{{
+                <i v-if="navFileTabCount > 0" class="fileItemDot">{{
                   navFileTabCount
                 }}</i>
               </div>
@@ -928,7 +928,7 @@ export default defineComponent({
       });
       const nknStatusCount = ref(0);
       const wifiPngIdx = computed(() => {
-        const e = nknStatusCount.value
+        const e = nknStatusCount.value;
         if (e === 0) return 0;
         else if (e <= 3.6) return 1;
         else if (e <= 7.2) return 2;
@@ -1158,6 +1158,21 @@ export default defineComponent({
     color: white;
     // #f2f2f2
   }
+}
+// 菜单旁边的小红点
+.fileItemDot {
+  margin-left: 8px;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  color: white;
+  border-radius: 2px;
+  border: 1px solid white;
+  font-size: 12px;
+  font-style: normal;
+  transform: scale(0.78);
 }
 // 菜单旁边的小红点
 .navItemDot {
