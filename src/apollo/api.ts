@@ -61,6 +61,24 @@ export const apiEmailLogin = async (
   }
 };
 
+type ResponseGetBsvExchangeRate = {
+  currency: string;
+  rate: string;
+};
+/** 获取bsv exchange rate,默认 currency 是 usd */
+export const apiGetBsvExchangeRate =
+  async (): TApiRes<ResponseGetBsvExchangeRate> => {
+    try {
+      const response = await fetch(
+        "https://api.whatsonchain.com/v1/bsv/main/exchangerate"
+      );
+      const data = await response.json();
+      return { data };
+    } catch (err) {
+      return { err: err as Error };
+    }
+  };
+
 type ResponseNknOnline = {
   nknOnline: string;
 };
