@@ -173,6 +173,12 @@ body,
   // table 里的hover
   color: @blue-1;
 }
+.ant-color-blue-4 {
+  color: @blue-4;
+}
+.ant-color-blue-5 {
+  color: @blue-5;
+}
 .ant-color-blue-6 {
   color: @blue-6;
 }
