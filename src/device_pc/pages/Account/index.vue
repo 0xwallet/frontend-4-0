@@ -10,7 +10,7 @@
     <section class="bg-white rounded-md mb-6">
       <div class="relative h-14 flex items-center justify-between px-6">
         <div class="font-semibold font-16">个人信息</div>
-        <a-button class="rounded" @click="onEditUserInfo">
+        <a-button @click="onEditUserInfo">
           <FormOutlined />
           编辑个人资料
         </a-button>
