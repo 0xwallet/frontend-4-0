@@ -107,7 +107,7 @@
             <div class="font-semibold font-16 mr-4">公钥</div>
             <div class="font-14">
               <a-tooltip title="nkn is ...">
-                <a href="">
+                <a href="javascript:;">
                   <InfoCircleOutlined />
                   How <span class="font-semibold">NKN</span> Works
                 </a>
@@ -283,7 +283,7 @@ export default defineComponent({
     };
     const bsvUsdExchangeRate = ref("");
     apiGetBsvExchangeRate().then(
-      (res) => (bsvUsdExchangeRate.value = res.data?.rate ?? "")
+      (res) => (bsvUsdExchangeRate.value = res.data?.rate.substring(0, 7) ?? "")
     );
     const userVerifyForm = reactive({
       email: {
