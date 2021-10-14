@@ -192,13 +192,13 @@
           </div>
           <div class="flex items-center">
             <van-button
-              class="mr-2"
               type="primary"
               @click="onRecharge"
               :style="{
                 width: '60px',
                 height: '32px',
                 'border-radius': '4px',
+                'margin-right': '8px',
               }"
               >充值</van-button
             >
