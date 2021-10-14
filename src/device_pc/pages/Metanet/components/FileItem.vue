@@ -2575,6 +2575,13 @@ export default defineComponent({
                 // 如果目标文件夹是根目录,注册当前目录的id为root
                 if (params.fullName?.length === 0) {
                   curFolderId.value = "root";
+                  historyDir.value[historyDir.value.length - 1].isShared =
+                    false;
+                  const curFileWindowId = exactUniqueTabId(route.fullPath);
+                  baseStore.setWindowIdItem(+curFileWindowId, {
+                    path: historyDir.value.map((i) => i.name).join("/"),
+                    desc: { tagArr: [], text: "" },
+                  });
                 }
                 // 如果是当前目录, 注册fileWindow的路径和描述信息,然后返回null , 下一步把它去除(为了填到表格)
                 if (
