@@ -233,15 +233,18 @@
           <div class="font-semibold font-16">资产</div>
           <a-button @click="onAddAsset">添加资产</a-button>
         </div>
-        <div class="p-6 flex">
+        <div class="p-6 flex items-center justify-between">
           <div
             class="rounded p-4"
             :style="{
+              width: 'calc((100% - 48px)/3)',
               'box-shadow': '0px 2px 8px rgba(0, 0, 0, 0.15)',
             }"
+            v-for="asset in assetList"
+            :key="asset.id"
           >
-            <div class="mb-4">姓名姓名</div>
-            <div>6222 **** **** 1245</div>
+            <div class="mb-4">{{ asset.name }}</div>
+            <div>{{ asset.card }}</div>
           </div>
         </div>
       </section>
@@ -285,6 +288,23 @@ export default defineComponent({
     apiGetBsvExchangeRate().then(
       (res) => (bsvUsdExchangeRate.value = res.data?.rate.substring(0, 7) ?? "")
     );
+    const assetList = reactive([
+      {
+        id: 0,
+        name: "姓名姓名0",
+        card: "6222 **** **** 1245",
+      },
+      {
+        id: 1,
+        name: "姓名姓名1",
+        card: "6222 **** **** 1245",
+      },
+      {
+        id: 2,
+        name: "姓名姓名2",
+        card: "6222 **** **** 1245",
+      },
+    ]);
     const userVerifyForm = reactive({
       email: {
         label: "Email",
@@ -326,6 +346,7 @@ export default defineComponent({
       userStore,
       onEditUserInfo,
       bsvUsdExchangeRate,
+      assetList,
       userVerifyForm,
       onCopyNknAddress,
       onShowNknAddressQrcode,
