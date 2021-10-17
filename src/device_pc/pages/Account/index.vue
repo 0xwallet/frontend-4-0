@@ -264,6 +264,8 @@ import { useUserStore } from "@/store";
 import { message } from "ant-design-vue";
 import { apiGetBsvExchangeRate } from "@/apollo/api";
 import { XStatusDot } from "../../components";
+import { useClipboard } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
 
 export default defineComponent({
   components: {
@@ -275,6 +277,7 @@ export default defineComponent({
     XStatusDot,
   },
   setup() {
+    const { t } = useI18n();
     const userStore = useUserStore();
     setTimeout(() => {
       console.log(userStore);
@@ -324,7 +327,11 @@ export default defineComponent({
     });
     /** 复制nkn地址 */
     const onCopyNknAddress = () => {
-      message.info("TODO");
+      // message.info("TODO");
+      const text = userStore.wallet?.address ?? "";
+      useClipboard()
+        .copy(text)
+        .then(() => message.success(t("metanet.copySuccess")));
     };
     /** 显示nkn地址二维码 */
     const onShowNknAddressQrcode = () => {
