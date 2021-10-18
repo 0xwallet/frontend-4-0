@@ -279,9 +279,6 @@ export default defineComponent({
   setup() {
     const { t } = useI18n();
     const userStore = useUserStore();
-    setTimeout(() => {
-      console.log(userStore);
-    }, 1000);
     /** 编辑个人资料 */
     const onEditUserInfo = () => {
       console.log("onEditUserInfo");

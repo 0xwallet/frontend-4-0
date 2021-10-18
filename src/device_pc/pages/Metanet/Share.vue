@@ -259,6 +259,7 @@
             :min="1"
             v-model:value="shareFileModelRef.expired"
           />
+          <span class="ml-1">天内</span>
         </a-form-item>
         <a-form-item
           :label="$t('metanet.createFileType')"
@@ -885,10 +886,7 @@ export default defineComponent({
       currentShareFile.name = lastOfArray(record.userFile.fullName);
       currentShareFile.id = record.id; // 分享的id , 并非userFile 里的id
       shareFileModelRef.type = record.code === "无" ? "PUBLIC" : "PRIVATE";
-      shareFileModelRef.expired = dayjs(record.expiredAt).diff(
-        dayjs(record.insertedAt),
-        "days"
-      );
+      shareFileModelRef.expired = dayjs(record.expiredAt).diff(dayjs(), "days") + 1;
       shareFileModelRef.code =
         record.code === "无" ? "" : (record.code as string);
       isShowShareFileModal.value = true;
