@@ -807,7 +807,8 @@
         </a-row>
       </template> -->
       <template #bottom="{ record }">
-        <div class="relative">
+        <!-- 不是网盘信息数据才显示描述底部栏 -->
+        <div class="relative" v-if="record.owner !=='Me'">
           <div
             class="p-4 mt-4"
             :style="{
