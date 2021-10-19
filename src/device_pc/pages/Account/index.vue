@@ -230,8 +230,8 @@
             'border-bottom': '1px solid #eff2f9',
           }"
         >
-          <div class="font-semibold font-16">资产</div>
-          <a-button @click="onAddAsset">添加资产</a-button>
+          <div class="font-semibold font-16">钱包</div>
+          <a-button @click="onAddAsset">添加</a-button>
         </div>
         <div class="p-6 flex items-center justify-between">
           <div
