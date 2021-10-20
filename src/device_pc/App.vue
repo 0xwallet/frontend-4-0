@@ -296,6 +296,10 @@ body,
   align-items: center;
   justify-items: center;
 }
+.flex-center-y {
+  .flex-center();
+  flex-direction: column;
+}
 .text-overflow-2 {
   overflow: hidden;
   text-overflow: ellipsis;
