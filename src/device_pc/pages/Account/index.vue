@@ -104,32 +104,39 @@
               'border-bottom': '1px solid #eff2f9',
             }"
           >
-            <div class="font-semibold font-16 mr-4">公钥</div>
+            <div class="font-semibold font-16 mr-4">nkn公钥</div>
             <div class="font-14">
-              <a-tooltip title="nkn is ...">
-                <a href="javascript:;">
-                  <InfoCircleOutlined />
-                  How <span class="font-semibold">NKN</span> Works
-                </a>
-              </a-tooltip>
+              <a href="https://nkn.org" target="_blank">
+                <InfoCircleOutlined />
+                How <span class="font-semibold">NKN</span> Works
+              </a>
             </div>
           </div>
           <div class="p-6 flex items-center justify-between">
             <div
               class="truncate inline-block text-gray-400"
               :style="{
-                width: 'calc(100% - 50px)',
+                width: 'calc(100% - 75px)',
               }"
             >
               <a-tooltip
-                :title="userStore.wallet ? userStore.wallet.address : ''"
+                :title="userStore.multiClient ? userStore.multiClient.addr : ''"
               >
                 <a href="javascript:;">
-                  {{ userStore.wallet ? userStore.wallet.address : "" }}
+                  {{ userStore.multiClient ? userStore.multiClient.addr : "" }}
                 </a>
               </a-tooltip>
             </div>
             <div class="flex items-center">
+              <a-tooltip title="临时地址">
+                <WarningFilled
+                  class="mr-2"
+                  :style="{
+                    'font-size': '16px',
+                    color: '#faad14',
+                  }"
+                />
+              </a-tooltip>
               <a
                 href="javascript:'"
                 class="font-16 mr-2 ant-color-blue-6"
@@ -156,12 +163,10 @@
           >
             <div class="font-semibold font-16 mr-4">0xID</div>
             <div class="font-14">
-              <a-tooltip title="0XWallet is ...">
-                <a href="javascript:;">
-                  <InfoCircleOutlined />
-                  How <span class="font-semibold">0XWallet</span> Works
-                </a>
-              </a-tooltip>
+              <a href="https://id.owaf.org" target="_blank">
+                <InfoCircleOutlined />
+                How <span class="font-semibold">0xWallet</span> Works
+              </a>
             </div>
           </div>
           <div class="p-6 pb-4 flex items-center justify-between">
@@ -171,26 +176,22 @@
                 width: 'calc(100% - 50px)',
               }"
             >
-              <a-tooltip
-                :title="userStore.wallet ? userStore.wallet.address : ''"
-              >
-                <a href="javascript:;">
-                  {{ userStore.wallet ? userStore.wallet.address : "" }}
-                </a>
+              <a-tooltip title="0xID">
+                <a href="javascript:;"> TODO-0xID..... </a>
               </a-tooltip>
             </div>
             <div class="flex items-center">
               <a
                 href="javascript:'"
                 class="font-16 mr-2 ant-color-blue-6"
-                @click="onCopyNknAddress"
+                @click="onCopy0xIDAddress"
               >
                 <CopyOutlined />
               </a>
               <a
                 href="javascript:'"
                 class="font-16 ant-color-blue-6"
-                @click="onShowNknAddressQrcode"
+                @click="onShow0xIDAddressQrcode"
               >
                 <QrcodeOutlined />
               </a>
@@ -231,7 +232,10 @@
           }"
         >
           <div class="font-semibold font-16">钱包</div>
-          <a-button @click="onAddAsset">添加</a-button>
+          <a-button @click="onAddAsset">
+            <PlusOutlined class="align-middle" />
+            添加
+          </a-button>
         </div>
         <div class="p-6 flex items-center justify-between">
           <div
@@ -249,6 +253,16 @@
         </div>
       </section>
     </div>
+    <!-- 二维码弹窗 -->
+    <a-modal
+      destroyOnClose
+      centered
+      v-model:visible="modalQrCodeVisible"
+      :footer="null"
+      :width="240"
+    >
+      <XQrCode :url="modalQrCodeAddr" :width="180" />
+    </a-modal>
   </div>
 </template>
 
@@ -259,11 +273,13 @@ import {
   InfoCircleOutlined,
   CopyOutlined,
   QrcodeOutlined,
+  PlusOutlined,
+  WarningFilled,
 } from "@ant-design/icons-vue";
 import { useUserStore } from "@/store";
 import { message } from "ant-design-vue";
 import { apiGetBsvExchangeRate } from "@/apollo/api";
-import { XStatusDot } from "../../components";
+import { XStatusDot, XQrCode } from "../../components";
 import { useClipboard } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 
@@ -273,8 +289,11 @@ export default defineComponent({
     InfoCircleOutlined,
     CopyOutlined,
     QrcodeOutlined,
+    PlusOutlined,
+    WarningFilled,
     //
     XStatusDot,
+    XQrCode,
   },
   setup() {
     const { t } = useI18n();
@@ -325,13 +344,22 @@ export default defineComponent({
     /** 复制nkn地址 */
     const onCopyNknAddress = () => {
       // message.info("TODO");
-      const text = userStore.wallet?.address ?? "";
+      const text = userStore.multiClient?.addr ?? "";
       useClipboard()
         .copy(text)
         .then(() => message.success(t("metanet.copySuccess")));
     };
     /** 显示nkn地址二维码 */
     const onShowNknAddressQrcode = () => {
+      modalQrCodeAddr.value = userStore.multiClient?.addr ?? "";
+      modalQrCodeVisible.value = true;
+    };
+    /** 复制 0xID 地址 */
+    const onCopy0xIDAddress = () => {
+      message.info("TODO");
+    };
+    /** 显示 0xID地址二维码 */
+    const onShow0xIDAddressQrcode = () => {
       message.info("TODO");
     };
     /** 充值 */
@@ -346,6 +374,15 @@ export default defineComponent({
     const onAddAsset = () => {
       message.info("TODO");
     };
+    const modalQrCodeAddr = ref("");
+    const modalQrCodeVisible = ref(false);
+    /** 二维码弹窗控制 */
+    function useModalQrCode() {
+      return {
+        modalQrCodeVisible,
+        modalQrCodeAddr,
+      };
+    }
     return {
       userStore,
       onEditUserInfo,
@@ -354,9 +391,12 @@ export default defineComponent({
       userVerifyForm,
       onCopyNknAddress,
       onShowNknAddressQrcode,
+      onCopy0xIDAddress,
+      onShow0xIDAddressQrcode,
       onRecharge,
       onWithDraw,
       onAddAsset,
+      ...useModalQrCode(),
     };
   },
 });

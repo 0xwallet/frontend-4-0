@@ -101,33 +101,41 @@
             'border-bottom': '1px solid #eff2f9',
           }"
         >
-          <div class="font-semibold font-16 mr-4">公钥</div>
-          <div class="font-12">
+          <div class="font-semibold font-16 mr-4">nkn公钥</div>
+          <a class="font-12" href="https://nkn.org" target="_blank">
             <van-icon name="info-o" size="14" />
             How <span class="font-semibold">NKN</span> Works
-          </div>
+          </a>
         </div>
         <div class="p-4 flex items-center justify-between">
           <div
             class="truncate inline-block text-gray-400"
             :style="{
-              width: 'calc(100% - 50px)',
+              width: 'calc(100% - 75px)',
             }"
           >
             <a href="javascript:;">
-              {{ userStore.wallet ? userStore.wallet.address : "" }}
+              {{ userStore.multiClient ? userStore.multiClient.addr : "" }}
             </a>
           </div>
           <div class="flex items-center">
+            <MSvgIcon
+              class="mr-2"
+              icon="warnTriangle"
+              :size="16"
+              :style="{
+                color: '#faad14',
+              }"
+            />
             <a
-              href="javascript:'"
+              href="javascript:;"
               class="font-16 mr-2 ant-color-blue-6"
               @click="onCopyNknAddress"
             >
               <MSvgIcon class="ant-blue" icon="copy" :size="16" />
             </a>
             <a
-              href="javascript:'"
+              href="javascript:;"
               class="font-16 ant-color-blue-6"
               @click="onShowNknAddressQrcode"
             >
@@ -144,10 +152,10 @@
           }"
         >
           <div class="font-semibold font-16 mr-4">0xID</div>
-          <div class="font-12">
+          <a class="font-12" href="https://id.owaf.org" target="_blank">
             <van-icon name="info-o" size="14" />
             How <span class="font-semibold">0XWallet</span> Works
-          </div>
+          </a>
         </div>
         <div class="p-4 flex items-center justify-between">
           <div
@@ -162,16 +170,16 @@
           </div>
           <div class="flex items-center">
             <a
-              href="javascript:'"
+              href="javascript:;"
               class="font-16 mr-2 ant-color-blue-6"
-              @click="onCopyNknAddress"
+              @click="onCopy0xIDAddress"
             >
               <MSvgIcon class="ant-blue" icon="copy" :size="16" />
             </a>
             <a
-              href="javascript:'"
+              href="javascript:;"
               class="font-16 ant-color-blue-6"
-              @click="onShowNknAddressQrcode"
+              @click="onShow0xIDAddressQrcode"
             >
               <MSvgIcon class="ant-blue" icon="qr" :size="16" />
             </a>
@@ -222,7 +230,7 @@
             'border-bottom': '1px solid #eff2f9',
           }"
         >
-          <div class="font-semibold font-16">资产</div>
+          <div class="font-semibold font-16">钱包</div>
           <van-button
             class="font-14"
             :style="{
@@ -231,7 +239,9 @@
               'border-radius': '4px',
             }"
             @click="onAddAsset"
-            >添加资产</van-button
+          >
+            <van-icon name="plus" />
+            添加</van-button
           >
         </div>
         <div class="p-4">
@@ -247,6 +257,10 @@
         </div>
       </section>
     </main>
+    <!-- 二维码弹窗 -->
+    <van-popup v-model:show="popupQrCodeVisible" round>
+      <MQrCode :url="popupQrCodeAddr" :width="180" />
+    </van-popup>
   </div>
 </template>
 
@@ -254,17 +268,22 @@
 import { apiGetBsvExchangeRate } from "@/apollo/api";
 import { useUserStore } from "@/store";
 import { useSvgWhiteLogo } from "@/utils";
+import { useClipboard } from "@vueuse/core";
 import { Toast } from "vant";
 import { defineComponent, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { MSvgIcon } from "../../components";
+import { MSvgIcon, MQrCode } from "../../components";
 
 export default defineComponent({
   components: {
     MSvgIcon,
+    MQrCode,
+    //
   },
   setup() {
     const router = useRouter();
+    const { t } = useI18n();
     const userStore = useUserStore();
     const svgStr = useSvgWhiteLogo();
     const bsvUsdExchangeRate = ref("");
@@ -275,10 +294,20 @@ export default defineComponent({
       Toast("TODO-clickLogo");
     };
     const onCopyNknAddress = () => {
-      Toast("TODO-onCopyNknAddress");
+      const text = userStore.multiClient?.addr ?? "";
+      useClipboard()
+        .copy(text)
+        .then(() => Toast(t("metanet.copySuccess")));
     };
     const onShowNknAddressQrcode = () => {
-      Toast("TODO-onShowNknAddressQrcode");
+      popupQrCodeAddr.value = userStore.multiClient?.addr ?? "";
+      popupQrCodeVisible.value = true;
+    };
+    const onCopy0xIDAddress = () => {
+      Toast("TODO-onCopy0xIDAddress");
+    };
+    const onShow0xIDAddressQrcode = () => {
+      Toast("TODO-onShow0xIDAddressQrcode");
     };
     const onRecharge = () => {
       Toast("TODO-onRecharge");
@@ -289,6 +318,15 @@ export default defineComponent({
     const onAddAsset = () => {
       Toast("TODO-onAddAsset");
     };
+    const popupQrCodeVisible = ref(false);
+    const popupQrCodeAddr = ref("");
+    /** 二维码弹窗 */
+    function usePopupQrCode() {
+      return {
+        popupQrCodeVisible,
+        popupQrCodeAddr,
+      };
+    }
     return {
       svgStr,
       onClickLogo,
@@ -296,9 +334,12 @@ export default defineComponent({
       bsvUsdExchangeRate,
       onCopyNknAddress,
       onShowNknAddressQrcode,
+      onCopy0xIDAddress,
+      onShow0xIDAddressQrcode,
       onRecharge,
       onWithDraw,
       onAddAsset,
+      ...usePopupQrCode(),
     };
   },
 });
