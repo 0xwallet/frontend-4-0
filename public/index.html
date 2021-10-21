@@ -239,7 +239,7 @@
         () => {
           // if(window.__isMobile__) {}
           // 生产环境才调用
-          if (location.protocol === "https") {
+          if (location.protocol.includes("https")) {
             var vConsole = new window.VConsole();
           }
         },
