@@ -139,6 +139,7 @@ export default defineStore({
       if (!this.wallet) {
         this.wallet = new Wallet({ password: this.email });
         console.log("[Ready wallet]", this);
+        (window as any).globalLoaderController.successStage(1);
       }
     },
     /** 初始化multiClient */
@@ -167,6 +168,14 @@ export default defineStore({
                   this.multiClient,
                   this.multiClient?.readyClientIDs().length
                 );
+                (window as any).globalLoaderController.successStage(2);
+                // [300 ~ 500) 的随机整数
+                const randomDelayTime = Math.floor(
+                  300 + (Math.random() * 500 - 300)
+                );
+                useDelay(randomDelayTime).then(() => {
+                  (window as any).globalLoaderController.successStage(3);
+                });
                 resolve(this.multiClient);
               }
             }, 1000);

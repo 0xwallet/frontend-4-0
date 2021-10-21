@@ -229,6 +229,9 @@ router.beforeEach((to, from) => {
       },
     };
   }
+  if (useUserStore().isLoggedIn) {
+    (window as any).globalLoaderController.show();
+  }
   if (to.name === "Login" && useUserStore().isLoggedIn) {
     return {
       path: "/",

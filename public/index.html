@@ -14,6 +14,13 @@
     <link rel="icon" href="<%= BASE_URL %>favicon.ico" />
     <link rel="preload" href="./js/nkn.min.js" as="script" />
     <style>
+      .hidden {
+        display: none;
+      }
+      .mx-auto {
+        margin-left: auto;
+        margin-right: auto;
+      }
       .logoSvgBoxWrap {
         position: fixed;
         background-color: #f0f2f5;
@@ -24,6 +31,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        z-index: 5556;
       }
       .logoSvgBox {
         transform: scale(3);
@@ -46,6 +54,71 @@
           transform: rotate(360deg);
         }
       }
+      #globalLoader {
+        position: fixed;
+        z-index: 5555;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #fff;
+        /* display: flex; */
+        /* 首次打开应该是不显示, 根据登录状态来判断 */
+        display: none;
+        align-items: center;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .stageTitle {
+        font-size: 24px;
+        margin-right: 12px;
+      }
+      .mb24 {
+        margin-bottom: 20px;
+      }
+      /* 媒体查询 手机版字体变小为 18px */
+      @media (max-width: 576px) {
+        .stageTitle {
+          font-size: 18px;
+        }
+      }
+      .mainLoader {
+        width: 72px;
+        height: 72px;
+        border-radius: 1000px;
+        margin-bottom: 60px;
+      }
+      .loaderStage {
+        display: flex;
+        align-items: center;
+      }
+      .loaderStage:nth-of-type(1) {
+        opacity: 1;
+      }
+      .loaderStage:nth-of-type(2) {
+        opacity: 0.75;
+      }
+      .loaderStage:nth-of-type(3) {
+        opacity: 0.5;
+      }
+      .loaderStage:nth-of-type(4) {
+        opacity: 0.25;
+      }
+      .loaderStage > img {
+        width: 16px;
+        height: 16px;
+      }
+      .stageLoading {
+        animation: rotate 0.8s linear infinite;
+      }
+      @keyframes rotate {
+        0% {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(1turn);
+        }
+      }
     </style>
     <title>BitDrive</title>
   </head>
@@ -56,6 +129,37 @@
         enabled. Please enable it to continue.</strong
       >
     </noscript>
+    <div id="globalLoader" class="">
+      <img class="mainLoader" src="./loader-dark.gif" />
+      <div class="loaderStage mb24">
+        <span class="stageTitle">解密</span>
+        <span>
+          <img class="stageLoading" src="./stage_loading.png" />
+          <img class="stageFinished hidden" src="./stage_finished.png" />
+        </span>
+      </div>
+      <div class="loaderStage mb24">
+        <span class="stageTitle">正在接收账户资料</span>
+        <span>
+          <img class="stageLoading" src="./stage_loading.png" />
+          <img class="stageFinished hidden" src="./stage_finished.png" />
+        </span>
+      </div>
+      <div class="loaderStage mb24">
+        <span class="stageTitle">自动生成临时NKN地址/自动获取NKN地址</span>
+        <span>
+          <img class="stageLoading" src="./stage_loading.png" />
+          <img class="stageFinished hidden" src="./stage_finished.png" />
+        </span>
+      </div>
+      <div class="loaderStage">
+        <span class="stageTitle">请求NKN网络连接</span>
+        <span>
+          <img class="stageLoading" src="./stage_loading.png" />
+          <img class="stageFinished hidden" src="./stage_finished.png" />
+        </span>
+      </div>
+    </div>
     <div id="app">
       <div class="logoSvgBoxWrap">
         <div class="logoSvgBox">
@@ -128,6 +232,7 @@
       src="https://cdn.jsdelivr.net/npm/vconsole@3.9.1/dist/vconsole.min.js"
     ></script>
     <script>
+      const useDelay = (t = 1000) => new Promise((r) => setTimeout(r, t));
       // VConsole will be exported to `window.VConsole` by default.
       window.addEventListener(
         "DOMContentLoaded",
@@ -140,6 +245,48 @@
         },
         { once: true }
       );
+      // global loader
+      // 比特网盘初始化流程提示（对用户）：
+      // 0.  解密（一直显示）
+      // 1.  正在接收账户资料 （完成打✅）
+      // 2.  自动生成临时NKN地址/ 自动获取NKN地址（完成打✅）
+      // 3.  请求NKN网络连接（完成打✅）
+      // dispose 控制不用每次路由都show - 关联 router.beforeEach
+      let dispose = false;
+      window.globalLoaderController = {
+        show() {
+          if (!dispose) {
+            document.getElementById("globalLoader").style.display = "flex";
+          }
+        },
+        hide() {
+          document.getElementById("globalLoader").style.display = "none";
+          dispose = true;
+        },
+        // status 0隐藏 / 1显示
+        toggleStageStatus(idx, status) {
+          const [elLoading, elFinished] = [
+            document.getElementsByClassName("stageLoading")[idx],
+            document.getElementsByClassName("stageFinished")[idx],
+          ];
+          if (status === 1) {
+            elLoading.classList.add("hidden");
+            elFinished.classList.remove("hidden");
+          } else {
+            elLoading.classList.remove("hidden");
+            elFinished.classList.add("hidden");
+          }
+        },
+        successStage(idx) {
+          const e = window.globalLoaderController;
+          e.toggleStageStatus(idx, 1);
+          // 如果是最后一个, 把前面的全部完成
+          if (idx === 3) {
+            [0, 1, 2].forEach((i) => e.toggleStageStatus(i, 1));
+            useDelay(300).then(e.hide);
+          }
+        },
+      };
     </script>
     <!-- built files will be auto injected -->
   </body>
