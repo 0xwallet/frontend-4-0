@@ -82,7 +82,7 @@ export default defineComponent({
   emits: ["update:visible"],
   setup(props, { emit }) {
     // 需要显示tooltip 的数组
-    const canShowToolTipKeys = ["shareLink", "shareHash"];
+    const canShowToolTipKeys = ["shareLink", "shareHash", "location"];
     // console.log("props", props.detail);
     /** 穿透v-model */
     const updateFromAModal = (v: boolean) => emit("update:visible", v);
