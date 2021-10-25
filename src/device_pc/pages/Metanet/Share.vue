@@ -437,6 +437,7 @@ export default defineComponent({
         sortDirections: ["descend", "ascend"],
         sorter: (a: TTableShareFileItem, b: TTableShareFileItem) => {
           // 文件夹的排在前面
+          // 文件夹/其他类型 分两种来排序
           if (a.userFile.isDir && !b.userFile.isDir) return 0;
           else if (!a.userFile.isDir && b.userFile.isDir) return 0;
           return dayjs(a.expiredAt).diff(dayjs(b.expiredAt));
@@ -467,6 +468,7 @@ export default defineComponent({
         sortDirections: ["descend", "ascend"],
         sorter: (a: TTableShareFileItem, b: TTableShareFileItem) => {
           // 文件夹的排在前面
+          // 文件夹/其他类型 分两种来排序
           if (a.userFile.isDir && !b.userFile.isDir) return 0;
           else if (!a.userFile.isDir && b.userFile.isDir) return 0;
           return a.collectedCount - b.collectedCount;
@@ -886,7 +888,8 @@ export default defineComponent({
       currentShareFile.name = lastOfArray(record.userFile.fullName);
       currentShareFile.id = record.id; // 分享的id , 并非userFile 里的id
       shareFileModelRef.type = record.code === "无" ? "PUBLIC" : "PRIVATE";
-      shareFileModelRef.expired = dayjs(record.expiredAt).diff(dayjs(), "days") + 1;
+      shareFileModelRef.expired =
+        dayjs(record.expiredAt).diff(dayjs(), "days") + 1;
       shareFileModelRef.code =
         record.code === "无" ? "" : (record.code as string);
       isShowShareFileModal.value = true;
