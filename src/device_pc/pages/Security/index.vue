@@ -10,7 +10,7 @@
     <section class="bg-white rounded-md mb-6">
       <div class="relative h-14 flex items-center justify-between px-6">
         <div class="font-semibold font-16">应用</div>
-        <a-button @click="onEditUserInfo">
+        <a-button @click="onAddApp">
           <PlusOutlined />
           添加应用
         </a-button>
@@ -34,37 +34,6 @@
           }"
         >
           <div class="font-semibold font-14 italic">default app</div>
-        </div>
-      </div>
-      <div
-        :style="{
-          height: '1px',
-          background: '#eff2f9',
-        }"
-      ></div>
-      <div class="px-6 py-6 flex items-center">
-        <div
-          v-for="(obj, key) in userVerifyForm"
-          :key="key"
-          class="flex-1 pl-5 relative"
-        >
-          <XStatusDot
-            :type="obj.isVerified ? 'success' : 'default'"
-            class="absolute"
-            :style="{
-              top: '8px',
-              left: '6px',
-            }"
-          />
-          <div class="mb-0.5">
-            <span class="mr-2">{{ obj.label }}</span>
-            <span v-if="key === 'email'">{{ obj.val }}</span>
-          </div>
-          <div>
-            <span v-if="obj.isVerified">已验证</span>
-            <span v-else class="text-gray-400">未验证</span>
-          </div>
-          <div></div>
         </div>
       </div>
     </section>
@@ -144,7 +113,7 @@
           }"
         >
           <div class="font-semibold font-16">权限</div>
-          <a-button @click="onAddAsset">
+          <a-button @click="onEditAuthority">
             <FormOutlined class="align-middle" />
             编辑
           </a-button>
@@ -190,14 +159,23 @@ export default defineComponent({
   setup() {
     const { t } = useI18n();
     const userStore = useUserStore();
-    //
+    /** 添加应用 */
+    const onAddApp = () => {
+      message.info("TODO");
+    };
     /** 添加设备 */
     const onAddSecurityDevice = () => {
       message.info("TODO");
     };
+    /** 编辑权限 */
+    const onEditAuthority = () => {
+      message.info("TODO");
+    };
     return {
       userStore,
+      onAddApp,
       onAddSecurityDevice,
+      onEditAuthority,
     };
   },
 });
