@@ -9,3 +9,4 @@ export { default as XSvgIcon } from "./XSvgIcon.vue";
 export { default as XUserAvatar } from "./XUserAvatar.vue";
 export { default as XMdParser } from "./XMdParser.vue";
 export { default as XStatusDot } from "./XStatusDot.vue";
+export { default as XLink } from "./XLink.vue";

@@ -3,9 +3,9 @@
     :style="{
       background: '#F0F2F5',
       height: '100%',
+      padding: 0,
     }"
   >
-    <!-- border: '1px solid blue', -->
     <!-- 这个为隐藏的作为选择文件用的 -->
     <input
       multiple
@@ -14,14 +14,194 @@
       id="transferFileInput"
       @change="onChangeMultipleUploadFile"
     />
-    <div v-if="isShowSendCard" class="send mb-4">
-      <!-- 未选择任何文件前 -->
-      <div v-if="tableSend.length === 0">
-        <div class="font-20 p-4 font-semibold">发送</div>
-        <!-- pb-12 -->
-        <!-- h-32 -->
+    <!-- send -->
+    <section class="p-4 mb-4 rounded-xl bg-white">
+      <!-- 功能区 height 32px-->
+      <div class="relative h-8 flex items-center mb-3">
+        <a-tooltip title="后退">
+          <XLink
+            class="inline-block px-1 mr-2"
+            :disabled="sendCode.length === 0"
+            @click="onSendBack"
+          >
+            <LeftCircleOutlined />
+          </XLink>
+        </a-tooltip>
+        <a-tooltip title="清空发送列表">
+          <XLink
+            class="inline-block px-1 mr-2"
+            :disabled="tableSendData.length === 0"
+            @click="onClearTableSendData"
+          >
+            <CloseCircleOutlined />
+          </XLink>
+        </a-tooltip>
         <div
-          class="px-4 relative flex items-center justify-center cursor-pointer"
+          class="
+            flex-1
+            mr-2
+            px-3
+            flex
+            items-center
+            h-address-bar
+            bg-address-bar
+            rounded-full
+            truncate
+          "
+        >
+          <a-tooltip title="接收链接">
+            <XLink
+              class="inline-block w-full truncate"
+              :title="sendLink"
+              @click="onCopySendLink"
+            >
+              {{ sendLink }}
+            </XLink>
+          </a-tooltip>
+        </div>
+        <div
+          class="
+            w-20
+            text-center
+            font-semibold
+            h-address-bar
+            rounded-full
+            px-2
+            bg-address-bar
+          "
+        >
+          <a-tooltip title="接收码">
+            <XLink @click="onCopySendCode">
+              {{ sendCode }}
+            </XLink>
+          </a-tooltip>
+        </div>
+        <!-- <div class="w-20 h-address-bar rounded-full px-2 bg-address-bar">
+          time
+        </div> -->
+      </div>
+      <!-- 表格区 -->
+      <XTableFiles
+        rowKey="uniqueId"
+        :columns="columnsSend"
+        :data="tableSendData"
+        v-model:selectedRows="tableSendSelectedRows"
+        v-model:selectedRowKeys="tableSendSelectedRowKeys"
+      >
+        <template #name="{ record }">
+          <!-- <div>55----{{ record }}</div> -->
+          <div :title="record.fileName">
+            <XFileTypeIcon class="w-6 h-6 mr-2" :type="record.fileType" />
+            <span>{{ record.fileName }}</span>
+          </div>
+        </template>
+        <template #fileSize="{ record }">
+          <!-- 处于ws等待状态的时候 已发送大小显示手动改为文件的全大小, 因为progress实际上还没到100(为了等待故意暂停的) -->
+          <div class="text-gray-400">
+            {{
+              record.status === "waiting"
+                ? formatBytes(record.fileSize)
+                : formatBytes(record.fileSize * (record.progress / 100))
+            }}
+            /
+            {{ formatBytes(record.fileSize) }}
+          </div>
+        </template>
+        <template #status="{ record }">
+          <div class="text-gray-400 trProgressBox">
+            <a-progress
+              :style="{
+                height: '10px',
+                'margin-top': '-2px',
+                'margin-down': '-2px',
+              }"
+              :percent="record.progress"
+              :showInfo="false"
+            ></a-progress>
+            <div
+              :style="{
+                'margin-top': '-4px',
+              }"
+            >
+              <!-- <template v-if="record.status === 'initSend'">
+                <span>等待中</span>
+              </template> -->
+              <template v-if="record.status === 'queueing'">
+                <span>等待中</span>
+              </template>
+              <template v-else-if="record.status === 'sending'">
+                <span class="ant-color-blue-6">
+                  <!-- {{ calcStatusText(record.status) }} -->
+                  {{ formatBytes(record.speed) }}/S
+                </span>
+                <span v-if="record.speed > 0">
+                  - {{ calcTimeLeftText(record) }}</span
+                >
+              </template>
+              <template v-else-if="record.status === 'waiting'">
+                <span>等待确认</span>
+              </template>
+              <template v-else-if="record.status === 'successSend'">
+                <span>发送成功</span>
+              </template>
+              <template v-else-if="record.status === 'failed'">
+                <span>任务失败</span>
+              </template>
+              <template v-else-if="record.status === 'pause'">
+                <span>暂停</span>
+              </template>
+              <template v-else-if="record.status === 'cancel'">
+                <span>取消</span>
+              </template>
+              <template v-else>
+                <span></span>
+              </template>
+            </div>
+          </div>
+        </template>
+        <template #action="{ record }">
+          <div class="flex items-center text-gray-600">
+            <!-- 开始 -->
+            <XLink
+              v-if="['pause', 'failed'].includes(record.status)"
+              class="flex-1"
+              @click="onSendRecordStart(record)"
+            >
+              <a-tooltip title="开始">
+                <RightCircleOutlined />
+              </a-tooltip>
+            </XLink>
+            <!-- 暂停 -->
+            <XLink
+              v-if="['queueing', 'sending'].includes(record.status)"
+              class="flex-1"
+              @click="onSendRecordPause(record)"
+            >
+              <a-tooltip title="暂停">
+                <PauseOutlined />
+              </a-tooltip>
+            </XLink>
+            <XLink class="flex-1" @click="onSendRecordCancel(record)">
+              <a-tooltip title="取消">
+                <CloseOutlined />
+              </a-tooltip>
+            </XLink>
+          </div>
+        </template>
+      </XTableFiles>
+      <!-- 拖拽添加文件区域 -->
+      <div class="pt-6 text-center">
+        <div
+          class="
+            mx-auto
+            px-4
+            w-80
+            relative
+            flex
+            items-center
+            justify-center
+            cursor-pointer
+          "
           @click="onSelectFiles"
         >
           <!-- 拖拽区域 -->
@@ -49,437 +229,242 @@
           </div>
         </div>
       </div>
-      <!-- 选有文件后 -->
-      <div v-else-if="receiveLink.length === 0 && sendReceiveCode.length === 0">
-        <div class="flex items-center p-4">
-          <div class="mr-2 cursor-pointer" @click="onSelectFiles">
-            <PlusOutlined
-              class="ant-color-blue-6"
-              :style="{
-                'font-size': '30px',
-              }"
-            />
-          </div>
-          <div class="flex-1">
-            <div class="font-semibold font-20 mb-1">添加文件</div>
-            <!-- <div class="text-gray-400">Total 1 files - 50mb</div> -->
-            <div class="text-gray-400 font-12">
-              {{
-                `总共 ${totalSendInfo.count}个文件  -  ${totalSendInfo.showSize}`
-              }}
-            </div>
-          </div>
-          <a
-            href="javascript:;"
-            class="block font-12 text-gray-400 self-end pr-1"
-            @click="onResetSend"
+    </section>
+    <!-- receive -->
+    <section class="p-4 rounded-xl bg-white">
+      <!-- 功能区 height 32px-->
+      <div class="relative h-8 flex items-center mb-3">
+        <!-- 开始/暂停 -->
+        <a-tooltip title="下载选中">
+          <XLink
+            class="inline-block px-1 mr-2"
+            :disabled="tableReceiveSelectedRows.length === 0"
+            @click="onDownloadAllReceiveFiles"
           >
-            重置
-          </a>
-        </div>
-        <!-- 发送文件表格 -->
-        <div class="px-4 mb-4">
-          <div
-            class="relative rounded"
-            :style="{
-              'background-color': '#fafafa',
-              height: '206px',
-              border: '1px solid rgba(0,0,0,.12)',
-              overflow: 'hidden',
-              'overflow-y': 'auto',
-            }"
+            <DownloadOutlined />
+          </XLink>
+        </a-tooltip>
+        <!-- 取消 -->
+        <a-tooltip title="清空接收列表">
+          <XLink
+            class="inline-block px-1 mr-2"
+            :disabled="tableReceiveData.length === 0"
+            @click="onClearTableReceiveData"
           >
-            <div class="py-1">
-              <div
-                v-for="item in tableSend"
-                :key="item.uniqueId"
-                class="
-                  tableSendItemBox
-                  flex
-                  items-center
-                  justify-between
-                  px-2
-                  h-6
-                  cursor-pointer
-                  hover:bg-white
-                "
-              >
-                <div class="font-12 truncate" :title="item.fileName">
-                  {{ item.fileName }}
-                </div>
-                <div
-                  class="
-                    tableSendItemSize
-                    font-12
-                    text-gray-400
-                    whitespace-nowrap
-                  "
-                >
-                  {{ formatBytes(item.fileSize) }}
-                </div>
-                <div
-                  class="
-                    tableSendItemDelete
-                    px-1
-                    rounded
-                    block
-                    hidden
-                    flex
-                    items-center
-                  "
-                  @click="onDeleteSendItem(item.uniqueId)"
-                >
-                  <DeleteOutlined class="text-gray-400 font-12" />
-                </div>
-              </div>
-            </div>
-            <!-- <XTableFiles
-              disableSelect
-              rowKey="uniqueId"
-              :showHeader="false"
-              :columns="columnsSend"
-              :data="tableSend"
-            >
-              <template #name="{ record }">
-                <div class="flex items-center justify-between">
-                  <div class="font-12">
-                    {{ record.fileName }}
-                  </div>
-                  <div class="font-12 text-gray-400">
-                    {{ formatBytes(record.fileSize) }}
-                  </div>
-                </div>
-              </template>
-            </XTableFiles> -->
-          </div>
-        </div>
-        <!-- 选择方式 -->
-        <div class="px-4 mb-4 flex items-center justify-between text-gray-400">
-          <a
-            @click="onSetCurrentSendType('link')"
-            href="javascript:;"
-            class="
-              btnSendType
-              cursor-pointer
-              rounded
-              flex-1
-              py-2
-              text-center
-              mr-6
-            "
-            :class="{
-              activeBtnSendType: currentSendType === 'link',
-            }"
-          >
-            <LinkOutlined class="mr-1" />
-            Link
-          </a>
-          <a
-            @click="onSetCurrentSendType('direct')"
-            href="javascript:;"
-            class="btnSendType cursor-pointer rounded flex-1 py-2 text-center"
-            :class="{
-              activeBtnSendType: currentSendType === 'direct',
-            }"
-          >
-            <SendOutlined class="mr-1" />
-            Direct
-          </a>
-        </div>
-        <!-- 发送按钮 -->
-        <div class="px-4 pb-6">
-          <a-button
-            block
-            size="large"
-            type="primary"
-            :loading="sendBtnLoading"
-            @click="onClickSendBtn"
-          >
-            发送
-          </a-button>
-        </div>
-      </div>
-      <!-- 生成有link 链接后 -->
-      <div
-        v-else-if="receiveLink.length > 0 || sendReceiveCode.length > 0"
-        class="pb-6"
-      >
-        <template v-if="totalSendProgess === 0 && receiveLink.length > 0">
-          <!-- 传输前 -->
-          <div class="p-4 flex items-start">
-            <a
-              href="javascript:;"
-              class="block BackIcon mt-1 mr-2 rounded px-1 py-0"
-              @click="onBackReceiveLink"
-            >
-              <ArrowLeftOutlined class="font-12" />
-            </a>
-            <div>
-              <div class="font-20 font-semibold mb-1">等待中...</div>
-              <div class="text-gray-400 font-12">
-                复制以下链接发送给对方,过期时间
-                <span :style="{ color: '#FF2D55' }">{{ countdownText }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="px-4 pt-2 pb-6 break-all">
-            <div class="text-center px-5">
-              <span :title="receiveLink"
-                >{{ receiveLink.slice(0, 50) }}...</span
-              >
-              <a-button class="mb-2" type="link" @click="onCopyReceiveLink"
-                >复制</a-button
-              >
-              <div>
-                <XQrCode :url="receiveLink" :width="120" />
-              </div>
-            </div>
-          </div>
-        </template>
-        <template v-if="totalSendProgess === 0 && sendReceiveCode.length > 0">
-          <!-- 传输前 -->
-          <div class="p-4 flex items-start">
-            <a
-              href="javascript:;"
-              class="block BackIcon mt-1 mr-2 rounded px-1 py-0"
-              @click="onBackReceiveCode"
-            >
-              <ArrowLeftOutlined class="font-12" />
-            </a>
-            <div>
-              <div class="font-20 font-semibold mb-1">等待中...</div>
-              <div class="text-gray-400 font-12">
-                复制接收码发送给对方,过期时间
-                <span :style="{ color: '#FF2D55' }">{{ countdownText }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="px-4 py-4 break-all">
-            <div class="flex items-center justify-center mb-2">
-              <div
-                v-for="num in sendReceiveCode"
-                :key="num"
-                class="bg-gray-100 mr-2 px-2 py-2 text-3xl"
-              >
-                {{ num }}
-              </div>
-            </div>
-            <div class="text-center">
-              <a-button type="link" @click="onCopyReceiveCode">复制</a-button>
-            </div>
-          </div>
-        </template>
-        <template v-else-if="totalSendProgess > 0 && totalSendProgess < 100">
-          <!-- 传输中 -->
-          <div class="p-4 flex items-start">
-            <div class="w-full">
-              <div class="font-20 font-semibold mb-5">发送中...</div>
-              <div class="flex-1 relative w-full mb-4">
-                <div
-                  class="absolute z-50 left-0 right-0 text-center text-white"
-                  :style="{
-                    color: isTotalSendProgressBarTextWhite
-                      ? '#FFF '
-                      : '#3C6889',
-                    height: '30px',
-                    'line-height': '30px',
-                  }"
-                >
-                  <span id="totalProgressBarText">
-                    总进度: {{ `${totalSendProgess}%` }}
-                  </span>
-                </div>
-                <a-progress
-                  class="peerTransferProgressBar"
-                  :showInfo="false"
-                  :percent="totalSendProgess"
-                />
-              </div>
-              <div
-                class="text-gray-400 font-12 flex items-center justify-between"
-              >
-                <div>总共{{ tableSend.length }}个文件</div>
-                <div>
-                  <span class="ant-color-blue-6 font-semibold">{{
-                    formatBytes(hadSendSize)
-                  }}</span>
-                  <span> / </span>
-                  <span>{{ formatBytes(totalSendSize) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-        <template v-else-if="totalSendProgess === 100">
-          <!-- 传输完成 -->
-          <div class="p-4 pb-0 flex items-start">
-            <div class="w-full">
-              <div class="font-20 font-semibold mb-5">传输完成</div>
-              <div class="text-gray-400 font-12 mb-4">
-                {{
-                  `总共 ${totalSendInfo.count}个文件  -  ${totalSendInfo.showSize}`
-                }}
-              </div>
-              <div>
-                <a-button size="large" type="primary" block @click="onSendOk"
-                  >OK</a-button
-                >
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <!-- 生成有接收码后 -->
-      <!-- <div v-else-if="sendReceiveCode.length > 0">有接收码的界面</div> -->
-    </div>
-    <div class="receive relative">
-      <!-- nkn 状态 -->
-      <div
-        v-if="!isUserLoggedIn"
-        class="absolute"
-        :style="{
-          top: '22px',
-          right: '20px',
-        }"
-      >
-        <img
-          class="inline-block"
-          :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
-          :style="{
-            width: '14px',
-            height: '14px',
-          }"
-        />
-      </div>
-      <template v-if="tableReceive.length === 0">
-        <div class="font-20 p-4 font-semibold">接收</div>
-        <div class="px-4 pb-6">
-          <a-input
-            placeholder="输入接收码"
-            :disabled="receiveInputLoading"
-            v-model:value="receiveInputCode"
-          >
-            <template #suffix>
-              <a href="javascript:;" @click="onClickReceive">
-                <!-- TODO loading -->
-                <LoadingOutlined v-if="receiveInputLoading" />
-                <DownloadOutlined v-else />
-              </a>
-            </template>
-          </a-input>
-        </div>
-      </template>
-      <template v-else-if="totalReceiveProgress < 100">
-        <div class="font-20 p-4 font-semibold">接收中...</div>
-        <div class="flex-1 relative w-full mb-4 px-4">
-          <div
-            class="absolute z-50 left-0 right-0 text-center text-white"
-            :style="{
-              color: isTotalReceiveProgressBarTextWhite ? '#FFF ' : '#3C6889',
-              height: '30px',
-              'line-height': '30px',
-            }"
-          >
-            <span id="totalProgressBarText">
-              总进度: {{ `${totalReceiveProgress}%` }}
-            </span>
-          </div>
-          <a-progress
-            class="peerTransferProgressBar"
-            :showInfo="false"
-            :percent="totalReceiveProgress"
-          />
-        </div>
+            <CloseCircleOutlined />
+          </XLink>
+        </a-tooltip>
         <div
           class="
-            text-gray-400
-            font-12
+            flex-1
+            px-3
             flex
             items-center
-            justify-between
-            pb-6
-            px-4
+            h-address-bar
+            bg-address-bar
+            rounded-full
+            truncate
           "
         >
-          <div>总共{{ totalReceiveCount }}个文件</div>
-          <div>
-            <span class="ant-color-blue-6 font-semibold">{{
-              formatBytes(hadReceiveSize)
-            }}</span>
-            <span> / </span>
-            <span>{{ formatBytes(totalReceiveSize) }}</span>
+          <template v-if="isTypeLink">
+            <XLink class="truncate" :title="receiveLink">
+              {{ receiveLink }}
+            </XLink>
+          </template>
+          <div
+            v-else
+            class="absolute-center-x flex items-center"
+            :style="{
+              height: '24px',
+              'border-bottom': '1px solid #d9d9d9',
+            }"
+          >
+            <a-input
+              class="receiveInputCode"
+              v-model:value="receiveInputCode"
+              :style="{
+                background: 'transparent',
+                height: '26px',
+                border: 'none',
+              }"
+            >
+            </a-input>
+            <XLink
+              :disabled="receiveInputCode.length === 0"
+              @click="onReceiveConfirmCode"
+            >
+              <LoadingOutlined v-if="receiveInputLoading" class="px-2" />
+              <RightCircleOutlined v-else class="px-2" />
+            </XLink>
           </div>
         </div>
-      </template>
-      <template v-else-if="totalReceiveProgress === 100">
-        <div class="font-20 p-4 font-semibold mb-5">接收完成</div>
-        <div class="px-4 text-gray-400 font-12 mb-4">
-          {{
-            `总共 ${totalReceiveCount}个文件  -  ${formatBytes(
-              totalReceiveSize
-            )}`
-          }}
-        </div>
-        <div class="px-4 pb-6">
-          <a-button size="large" type="primary" block @click="onReceiveOk"
-            >OK</a-button
-          >
-        </div>
-      </template>
-    </div>
+      </div>
+      <!-- 接收表格区 -->
+      <XTableFiles
+        rowKey="uniqueId"
+        :columns="columnsReceive"
+        :data="tableReceiveData"
+        v-model:selectedRows="tableReceiveSelectedRows"
+        v-model:selectedRowKeys="tableReceiveSelectedRowKeys"
+      >
+        <template #name="{ record }">
+          <!-- <div>55----{{ record }}</div> -->
+          <div :title="record.fileName">
+            <XFileTypeIcon class="w-6 h-6 mr-2" :type="record.fileType" />
+            <span>{{ record.fileName }}</span>
+          </div>
+        </template>
+        <template #fileSize="{ record }">
+          <!-- 处于ws等待状态的时候 已发送大小显示手动改为文件的全大小, 因为progress实际上还没到100(为了等待故意暂停的) -->
+          <div class="text-gray-400">
+            {{
+              record.status === "waiting"
+                ? formatBytes(record.fileSize)
+                : formatBytes(record.fileSize * (record.progress / 100))
+            }}
+            /
+            {{ formatBytes(record.fileSize) }}
+          </div>
+        </template>
+        <template #status="{ record }">
+          <div class="text-gray-400 trProgressBox">
+            <a-progress
+              :style="{
+                height: '10px',
+                'margin-top': '-2px',
+                'margin-down': '-2px',
+              }"
+              :percent="record.progress"
+              :showInfo="false"
+            ></a-progress>
+            <div
+              :style="{
+                'margin-top': '-4px',
+              }"
+            >
+              <!-- <template v-if="record.status === 'initSend'">
+                <span>等待中</span>
+              </template> -->
+              <template v-if="record.status === 'queueing'">
+                <span>等待中</span>
+              </template>
+              <template v-else-if="record.status === 'receiving'">
+                <span class="ant-color-blue-6">
+                  <!-- {{ calcStatusText(record.status) }} -->
+                  {{ formatBytes(record.speed) }}/S
+                </span>
+                <span v-if="record.speed > 0">
+                  - {{ calcTimeLeftText(record) }}</span
+                >
+              </template>
+              <template v-else-if="record.status === 'successReceive'">
+                <span>接收成功</span>
+              </template>
+              <template v-else-if="record.status === 'failed'">
+                <span>任务失败</span>
+              </template>
+              <template v-else-if="record.status === 'pause'">
+                <span>暂停</span>
+              </template>
+              <template v-else-if="record.status === 'cancel'">
+                <span>取消</span>
+              </template>
+              <template v-else>
+                <span></span>
+              </template>
+            </div>
+          </div>
+        </template>
+        <template #action="{ record }">
+          <div class="flex items-center text-gray-600">
+            <XLink
+              class="flex-1"
+              @click="onReceiveRecordDownload(record)"
+              :disabled="record.status !== 'successReceive'"
+            >
+              <a-tooltip title="下载">
+                <DownloadOutlined />
+              </a-tooltip>
+            </XLink>
+            <XLink class="flex-1" @click="onReceiveRecordCancel(record)">
+              <a-tooltip title="删除">
+                <CloseOutlined />
+              </a-tooltip>
+            </XLink>
+          </div>
+        </template>
+      </XTableFiles>
+    </section>
   </div>
 </template>
 
 <script lang="ts">
 import {
   computed,
+  createVNode,
   defineComponent,
   onMounted,
   onUnmounted,
   reactive,
   ref,
-  watch,
 } from "vue";
 import {
+  LeftCircleOutlined,
+  CloseCircleOutlined,
   DownloadOutlined,
-  LoadingOutlined,
   PlusOutlined,
   CloseOutlined,
-  DeleteOutlined,
-  SendOutlined,
-  LinkOutlined,
-  ArrowLeftOutlined,
+  ReloadOutlined,
+  LoadingOutlined,
+  RightCircleOutlined,
+  PauseOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
-import { message } from "ant-design-vue";
-import { XFileTypeIcon, XTableFiles, XQrCode } from "../../components";
+import { XTableFiles, XFileTypeIcon } from "../../components";
+import { useI18n } from "vue-i18n";
 import {
-  useDelay,
   downloadFileByBlob,
   formatBytes,
+  getFileSHA256,
   getFileType,
   getRandomNumStr,
   getRepeatlyClientDialFn,
   mergeUint8Array,
-  readHeaderInSession,
-  writeHeaderInSession,
   promiseChecker,
+  readHeaderInSession,
+  useDelay,
+  writeHeaderInSession,
 } from "@/utils";
-import { remove } from "lodash-es";
-import { useBaseStore, useTransportStore, useUserStore } from "@/store";
-import { useClipboard } from "@vueuse/core";
-import { Channel } from "phoenix";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { useClipboard, useLocalStorage } from "@vueuse/core";
+import { message, Modal } from "ant-design-vue";
+import { useTransportStore, useUserStore } from "@/store";
 import { classMultiClient, TMessageType, TSession } from "nkn";
 import { getAnonymousMultiClient } from "@/apollo/nknConfig";
+import pLimit from "p-limit";
+import { pick, remove, throttle } from "lodash-es";
 import { decode, encode } from "@msgpack/msgpack";
 import dayjs from "dayjs";
 import { MAX_MTU } from "@/constants";
-import pLimit from "p-limit";
+import {
+  get,
+  set,
+  update,
+  getMany,
+  setMany,
+  del,
+  delMany,
+  entries,
+  values,
+  clear,
+  keys,
+} from "idb-keyval";
+import { Channel } from "phoenix";
 
 type TransferFile = {
   file?: File;
   uniqueId: string;
+  fileHash: string; // 用来双方校验文件完整性
   fileName: string;
   fileSize: number;
   fileType: string;
@@ -489,37 +474,31 @@ type TransferFile = {
     | "queueing"
     | "sending"
     | "receiving"
+    | "pause" // 暂停
+    | "cancel" // 取消
     | "waiting" // 发送完后等待对方确认收到
     | "successSend"
     | "successReceive"
     | "failed";
 };
-type FileHeader = {
-  fileName: string;
-  fileSize: number;
-  MIMEType: string;
-};
 /** channel shakehand message type */
 type ChannelMsgType = {
   addr: string;
 };
-/** 根据文件名/大小 生成唯一key */
-const makeUniqueId = (name: string, size: number) => `${name}-${size}`;
-/** 创建-确认信息 */
-const makeConfirmMessage = (uniqueId: string) => `received-${uniqueId}`;
-/** map 状态对应的文字 */
-const calcStatusText = (status: TransferFile["status"]) => {
-  const mapText: { [key in TransferFile["status"]]: string } = {
-    queueing: "等待发送",
-    sending: "发送中",
-    receiving: "接收中",
-    waiting: "等待确认",
-    successSend: "发送成功",
-    successReceive: "接收成功",
-    failed: "发送失败",
-  };
-  return mapText[status];
+type FileHeader = {
+  fileName: string;
+  fileSize: number;
+  fileHash: string;
+  MIMEType: string;
 };
+/** channel 信息类型 */
+const CHANNEL_MSG = {
+  SHAKE_HAND: "shake_hand",
+  CONFIRM_CODE: "confirm_code",
+  PAUSE: "pause",
+  CANCEL: "cancel",
+};
+const RECEIVE_PREFIX = "totalReceive";
 /** 获取节点准备好的nkn client */
 const getReadyAnonymousMultiClient = () => {
   return new Promise<classMultiClient>((resolve, reject) => {
@@ -542,48 +521,73 @@ const getReadyAnonymousMultiClient = () => {
     }, 1000);
   });
 };
-/** nkn client握手消息 */
-const SHAKE_HAND = "shake_hand";
-const CONFIRM_SHAKE_HAND = "confirm_shake-hand";
-const RECEIVE_PREFIX = "totalReceive";
-/** 总大小信息格式 */
-const totalInfoGuard = {
-  _encode(totalSize: number, totalCount: number) {
-    return `${RECEIVE_PREFIX}:${totalCount}-${totalSize}`;
-  },
-  _decode(str: string) {
-    const a = str.split(":")[1];
-    const [count, size] = a.split("-");
-    return { count: +count, size: +size };
-  },
+/**计算剩余时间 */
+const calcTimeLeftTextFn = (record: TransferFile) => {
+  let { fileSize, progress, speed } = record;
+  // `剩余时间: 00:00:01` // speed /s
+  const leftSize = fileSize * ((100 - progress) / 100);
+
+  /** 不足两位数的,前面加个0 */
+  const preZero = (v: number) => {
+    if (v === Infinity) return "00";
+    return v.toString().length > 1 ? `${v}` : `0${v}`;
+  };
+  let seconds, mins, hours;
+  seconds = Math.floor(leftSize / speed);
+  if (record.progress === 0 || seconds === 0 || speed === 0 || isNaN(seconds)) {
+    return `剩余时间: 00:59:00`;
+  }
+  // 只有秒
+  if (seconds < 60) {
+    return `剩余时间: 00:00:${preZero(seconds)}`;
+    // 有秒 分
+  } else if ((mins = Math.floor(seconds / 60)) < 60) {
+    return `剩余时间: 00:${preZero(mins)}:${preZero(seconds % 60)}`;
+    // 有秒 分 时
+  } else {
+    hours = Math.floor(mins / 60);
+    return `剩余时间: ${preZero(hours)}:${preZero(mins % 60)}:${preZero(
+      seconds % 60
+    )}`;
+  }
 };
-type SendType = "direct" | "link";
+const calcTimeLeftText = throttle(calcTimeLeftTextFn, 1000);
+/** 根据文件名/大小 生成唯一key */
+const makeUniqueId = (name: string, size: number) => `${name}-${size}`;
+/** 创建-确认信息 */
+const makeConfirmMessage = (uniqueId: string) => `received-${uniqueId}`;
+/** 判断record传输状态 */
+const isStatus = (sArr: TransferFile["status"][], record: TransferFile) => {
+  return sArr.includes(record.status);
+};
 
 export default defineComponent({
   components: {
+    LeftCircleOutlined,
+    CloseCircleOutlined,
     DownloadOutlined,
-    LoadingOutlined,
     PlusOutlined,
     CloseOutlined,
-    DeleteOutlined,
-    SendOutlined,
-    LinkOutlined,
-    ArrowLeftOutlined,
-    XFileTypeIcon,
+    ReloadOutlined,
+    LoadingOutlined,
+    RightCircleOutlined,
+    PauseOutlined,
+    //
     XTableFiles,
-    XQrCode,
+    XFileTypeIcon,
   },
   setup() {
+    const { t } = useI18n();
+    const [route, router] = [useRoute(), useRouter()];
     const userStore = useUserStore();
-    const baseStore = useBaseStore();
     const transportStore = useTransportStore();
-    const route = useRoute();
     let nknClient: null | classMultiClient = null;
     const nknStatusCount = ref(0);
+    const isUserLoggedIn = computed(() => userStore.isLoggedIn);
     /** 统一的获取client 接口(区分登录/未登录) */
     const initMultiClient = async () => {
       if (nknClient) return nknClient;
-      if (userStore.isLoggedIn) {
+      if (isUserLoggedIn.value) {
         nknClient = await userStore.getStoreMultiClient();
       } else {
         nknClient = await getReadyAnonymousMultiClient();
@@ -593,181 +597,155 @@ export default defineComponent({
     const initClientStatus = initMultiClient().then((client) => {
       nknStatusCount.value = client?.readyClientIDs().length ?? 0;
     });
-    const isUserLoggedIn = computed(() => userStore.isLoggedIn);
-    /** 发送文件 */
+    /** 移除 nknClient 的message listener */
+    const removeNknClientMsgListener = (fn: (...args: any[]) => any) => {
+      remove(nknClient?.eventListeners.message ?? [], (v) => v === fn);
+    };
+    /** 是否双方正在连接中 */
+    let isBothConnected = false;
+    let sendChannel: Channel;
+    /** 当前的发送的目标地址 */
+    let currentReceiveRemoteAddr: string;
     function useSend() {
-      const currentSendType = ref<SendType>("link");
-      /** link 方式的url */
-      const receiveLink = ref("");
-      /** 生成的接收码 */
-      const sendReceiveCode = ref("");
-      const sendBtnLoading = ref(false);
-      /** 倒计时 */
-      const countdownText = ref("");
       const columnsSend = [
+        // 文件名/ 大小/ 状态/ 操作
         {
-          title: "name",
+          title: t("metanet.name"),
           slots: { customRender: "name" },
         },
+        {
+          title: t("metanet.size"),
+          dataIndex: "fileSize",
+          slots: { customRender: "fileSize" },
+          width: 180,
+        },
+        {
+          title: "状态",
+          slots: { customRender: "status" },
+          width: 250,
+        },
+        {
+          title: t("metanet.action"),
+          fixed: "right",
+          width: 100,
+          slots: { customRender: "action" },
+        },
       ];
-      const tableSend = ref<TransferFile[]>([]);
-      const totalSendInfo = computed(() => {
-        const count = tableSend.value.length;
-        if (count === 0) return { count, showSize: "0" };
-        const totalSize = tableSend.value.reduce(
-          (a, b) => (a += b.fileSize),
-          0
-        );
-        const showSize = formatBytes(totalSize);
-        return { count, showSize };
-      });
-      const totalSendProgessNoPercent = computed(() => {
-        if (tableSend.value.length === 0) return 0;
-        const list = tableSend.value;
-        return (
-          list.reduce((a, b) => (a += b.progress), 0) / (list.length * 100)
-        );
-      });
-      /** 发送总进度 */
-      const totalSendProgess = computed(() => {
-        return Math.floor(totalSendProgessNoPercent.value * 100);
-      });
-      /** 要发文件总大小 */
-      const totalSendSize = computed(() => {
-        const list = tableSend.value;
-        if (!list.length) return 0;
-        return list.reduce((a, b) => (a += b.fileSize), 0);
-      });
-      /** 已发文件大小 */
-      const hadSendSize = computed(() => {
-        return totalSendSize.value * (+totalSendProgess.value / 100);
-      });
-      const isTotalSendProgressBarTextWhite = ref(false);
-      // z总宽度-左右边距
-      const totalSendProgressBarWidth = 268;
-      watch(
-        () => totalSendProgess.value,
-        (newVal) => {
-          const currentPercentWidth =
-            totalSendProgressBarWidth * (newVal / 100);
-          isTotalSendProgressBarTextWhite.value = currentPercentWidth > 168;
-        }
-      );
-      /** 是否鼠标拖动文件到区域上方,是就显示边框 */
-      const isFileOverUploadZone = ref(false);
-      const onDragEnter = (event: DragEvent) => {
-        event.preventDefault();
-        isFileOverUploadZone.value = true;
-      };
-      const onDragLeave = (event: DragEvent) => {
-        event.preventDefault();
-        isFileOverUploadZone.value = false;
-      };
-      const onDragOver = (event: DragEvent) => {
-        event.preventDefault();
-      };
-      const onDrop = async (event: DragEvent) => {
-        event.preventDefault();
-        isFileOverUploadZone.value = false;
-        const files = event.dataTransfer?.files;
-        if (!files) return;
-        const fileArr: TransferFile[] = [...files].map((i) => ({
-          file: i,
-          fileName: i.name,
-          fileSize: i.size,
-          uniqueId: makeUniqueId(i.name, i.size),
-          fileType: getFileType({ isDir: false, fileName: i.name }),
-          progress: 0,
-          speed: 0,
-          status: "queueing",
-        }));
-        // 去掉已经加入的文件
-        const noSameFileArr = fileArr.filter(
-          (i) => !tableSend.value.some((e) => e.uniqueId === i.uniqueId)
-        );
-        tableSend.value.push(...noSameFileArr);
-      };
-      const onCopyReceiveLink = () => {
-        const text = receiveLink.value;
-        useClipboard({ read: false })
-          .copy(text)
-          .then(() => message.success("复制成功"));
-      };
-      const onBackReceiveLink = () => {
-        receiveLink.value = "";
-        sendReceiveCode.value = "";
-        resetClientListener.forEach((removeFn) => removeFn());
-      };
-      const onBackReceiveCode = () => {
-        sendReceiveCode.value = "";
-        receiveLink.value = "";
-        resetClientListener.forEach((removeFn) => removeFn());
-      };
-      const onCopyReceiveCode = () => {
-        const text = sendReceiveCode.value;
-        useClipboard({ read: false })
-          .copy(text)
-          .then(() => message.success("复制成功"));
-      };
-      /** 选择完文件点确认后生成的6位码 */
+      const tableSendData = reactive<TransferFile[]>([]);
+      const tableSendSelectedRows = ref<TransferFile[]>([]);
+      const tableSendSelectedRowKeys = ref([]);
+      const sendLink = ref("");
       const sendCode = ref("");
+      const onCopySendLink = () => {
+        const text = sendLink.value;
+        if (text.length) {
+          useClipboard({ read: false })
+            .copy(text)
+            .then(() => {
+              message.success(t("metanet.copySuccess"));
+            });
+        }
+      };
+      const onCopySendCode = () => {
+        const text = sendCode.value;
+        if (text.length) {
+          useClipboard({ read: false })
+            .copy(text)
+            .then(() => {
+              message.success(t("metanet.copySuccess"));
+            });
+        }
+      };
+      /** 重新发送单个 */
+      const onSendRecordResend = (record: TransferFile) => {
+        console.log("onSendRecordResend");
+      };
+      /** 开始单个 */
+      const onSendRecordStart = (record: TransferFile) => {
+        console.log("onSendRecordStart");
+        sendFileLimit(() => onSendOneFile(currentReceiveRemoteAddr, record));
+      };
+      /** 暂停单个 */
+      const onSendRecordPause = (record: TransferFile) => {
+        console.log("onSendRecordPause", record.status);
+        if (isStatus(["queueing", "sending"], record)) {
+          record.status = "pause";
+          console.log("设置暂停后的record.status", record.status);
+          // 这里设置为 pause ,发送那边会根据这个去关闭session
+        }
+      };
+      /** 取消单个 */
+      const onSendRecordCancel = (record: TransferFile) => {
+        console.log("onSendRecordCancel");
+        // 1 如果正在传输过程,提示
+        // waiting?
+        if (isStatus(["sending"], record)) {
+          Modal.confirm({
+            icon: createVNode(ExclamationCircleOutlined),
+            title: "任务正在传输中，是否取消?",
+            onOk: () => {
+              return new Promise<void>((resolve) => {
+                // 设置为取消状态,发送暂停信息给接收端
+                record.status = "cancel";
+                remove(tableSendData, (v) => v.uniqueId === record.uniqueId);
+                resolve();
+              });
+            },
+          });
+        } else {
+          // 2 直接取消
+          remove(tableSendData, (v) => v.uniqueId === record.uniqueId);
+        }
+      };
+      /** 清空发送文件列表 */
+      const onClearTableSendData = () => {
+        // 1. 如果有传输中的任务
+        if (tableSendData.some((i) => i.status === "sending")) {
+          message.warning("有任务正在接收中");
+        } else {
+          // 2.
+          tableSendData.forEach(onSendRecordCancel);
+          tableSendData.length = 0;
+        }
+      };
       const onSelectFiles = () => {
+        if (!nknClient) {
+          message.warning("请等待nkn节点就绪");
+          return;
+        }
         // 这个去触发 onChangeMultipleUploadFile
         document.getElementById("transferFileInput")?.click();
       };
-      const onChangeMultipleUploadFile = (e: Event) => {
-        const input = e.target as HTMLInputElement;
-        if (!input.files?.length) return;
-        const fileArr: TransferFile[] = [...input.files].map((i) => ({
-          file: i,
-          fileName: i.name,
-          fileSize: i.size,
-          uniqueId: makeUniqueId(i.name, i.size),
-          fileType: getFileType({ isDir: false, fileName: i.name }),
-          progress: 0,
-          speed: 0,
-          status: "queueing",
-        }));
-        // 去掉已经加入的文件
-        const noSameFileArr = fileArr.filter(
-          (i) => !tableSend.value.some((e) => e.uniqueId === i.uniqueId)
-        );
-        tableSend.value.push(...noSameFileArr);
-        // 清空input 的缓存
-        input.value = "";
-      };
-      /** 发送成功的ok点击 */
-      const onSendOk = () => {
-        onResetSend();
-      };
-      /** 重置 */
-      const onResetSend = () => {
-        console.log("click-onResetSend");
-        // TODO如果正在发送中,提示是否取消发送
-        tableSend.value.length = 0;
-        currentSendType.value = "link";
-        receiveLink.value = "";
-        sendReceiveCode.value = "";
-        resetClientListener.forEach((removeFn) => removeFn());
-        resetClientListener.length = 0;
-        // 再清空下message 的listener数组
-        if (nknClient) nknClient.eventListeners.message.length = 0;
-        const elInput = document.getElementById(
-          "transferFileInput"
-        ) as HTMLInputElement;
-        if (elInput) elInput.value = "";
-      };
-      const onDeleteSendItem = (uniqueId: string) => {
-        remove(tableSend.value, (v) => v.uniqueId === uniqueId);
-      };
-      const onSetCurrentSendType = (type: SendType) => {
-        if (type === "direct" && !userStore.isLoggedIn) {
-          baseStore.changeIsShowLoginModal(true);
-          return;
-        }
-        currentSendType.value = type;
-      };
+      /** 倒计时 */
+      const countdownText = ref("");
       const resetClientListener: (() => void)[] = [];
+      /** 后退,取消表格中的任务 和 清除生成的链接和接收码 */
+      const onSendBack = () => {
+        const clearSendReadyStatus = () => {
+          sendLink.value = "";
+          sendCode.value = "";
+          sendChannel?.leave();
+        };
+        //1.有任务
+        if (tableSendData.length) {
+          Modal.confirm({
+            icon: createVNode(ExclamationCircleOutlined),
+            title: "表格中有任务，是否返回默认状态?",
+            onOk: async () => {
+              // 取消表格中的每一项
+              tableSendData.map((i) => {
+                i.status = "cancel";
+              });
+              await useDelay(1000);
+              tableSendData.length = 0;
+              clearSendReadyStatus();
+            },
+          });
+        } else {
+          //2.没任务
+          clearSendReadyStatus();
+        }
+      };
       /** 发送一个文件 */
       const onSendOneFile = async (remotAddr: string, item: TransferFile) => {
         if (!item.file) return;
@@ -787,16 +765,61 @@ export default defineComponent({
         const header: FileHeader = {
           fileName: item.file.name,
           fileSize: item.file.size,
+          fileHash: item.fileHash,
           MIMEType: item.file.type,
         };
         const uniqueId = makeUniqueId(item.file.name, item.file.size);
         await writeHeaderInSession(session, encode(header));
         // while fileSize MAX_MTU
         let startLen = 0;
+        // 读取接收方的offset --start 10 秒后会超时
+        const readOffsetFromMessage = (waitTime = 10_000) => {
+          // console.time("[性能] 接收offset时间");
+          return new Promise<number>((resolve) => {
+            const timer = setTimeout(() => {
+              // 相当于一个错误
+              console.log("等待offset 信息超时");
+              removeNknClientMsgListener(handleConfirmOffset);
+              resolve(0);
+            }, waitTime);
+            const handleConfirmOffset = (msgObj: TMessageType) => {
+              // hash 和 offset
+              // console.log("msgObj", msgObj);
+              const [fileHash, offset] = msgObj.payload.split("-");
+              if (fileHash === item.fileHash) {
+                console.log("收到接收方offset消息推送", offset);
+                resolve(+offset);
+                // console.timeEnd("[性能] 接收offset时间");
+                clearTimeout(timer);
+                removeNknClientMsgListener(handleConfirmOffset);
+              }
+            };
+            nknClient?.onMessage(handleConfirmOffset);
+          });
+        };
+        const offsetRes = await readOffsetFromMessage();
+        startLen = offsetRes;
+
+        // 读取接收方的offset --end
         const startTime = dayjs();
         let diffSeconds = 0;
         let toSetBytesPerSecond = 0;
         const fileBuffer = await item.file.arrayBuffer();
+        const errorLenMessageHandler = (msgObj: TMessageType) => {
+          console.log("errorLenMessageHandler-msg", msgObj);
+          if (msgObj.payload.startsWith("errorReadlen")) {
+            const [e, start, end] = msgObj.payload.split("-");
+            console.log(
+              "发送端收到接收端发的errorLen信息-回应buffer",
+              msgObj.payload,
+              start,
+              end,
+              fileBuffer.slice(+start, +end)
+            );
+            return new Uint8Array(fileBuffer.slice(+start, +end));
+          }
+        };
+        nknClient.onMessage(errorLenMessageHandler);
         // console.log("fileBuffer", fileBuffer);
         const maxSendLength = fileBuffer.byteLength;
         const setItemProgressSpeedStatus = (
@@ -804,11 +827,36 @@ export default defineComponent({
           speed: number,
           status: TransferFile["status"]
         ) => {
-          item.progress = progress;
-          item.speed = speed;
-          item.status = status;
+          // 防止push 的过程idx 变了, 所以得重新查找
+          const idx = tableSendData.findIndex((i) => i.uniqueId === uniqueId);
+          if (idx !== -1) {
+            tableSendData[idx].progress = progress;
+            tableSendData[idx].speed = speed;
+            tableSendData[idx].status = status;
+          }
         };
+        const getItemCurSendStatus = () => item.status;
         while (startLen <= maxSendLength) {
+          // console.log("getItemCurSendStatus", getItemCurSendStatus);
+          // 检测取消状态
+          if (getItemCurSendStatus() === "cancel") {
+            await session.close();
+            // 发送取消信息
+            // 登录状态下用 channel 发
+            sendChannel.push(CHANNEL_MSG.CANCEL, { uniqueId: item.uniqueId });
+            // 非登录状态下用 nkn 发
+            nknClient.send(remotAddr, `cancel/${item.uniqueId}`);
+          }
+          // 检测暂停状态
+          if (getItemCurSendStatus() === "pause") {
+            await session.close();
+            // 发送暂停信息
+            // 登录状态下用 channel 发
+            sendChannel.push(CHANNEL_MSG.PAUSE, { uniqueId: item.uniqueId });
+            // 非登录状态下用 nkn 发
+            nknClient.send(remotAddr, `pause/${item.uniqueId}`);
+          }
+
           if (session.isClosed) {
             console.error("session closed");
             return;
@@ -831,13 +879,16 @@ export default defineComponent({
                 startLen / dayjs().diff(startTime, "second");
               diffSeconds = curDiffSeconds;
             }
-            setItemProgressSpeedStatus(
-              toSetProgressVal,
-              toSetBytesPerSecond,
-              "sending"
-            );
+            // 如果不是暂停/取消 状态,继续设置进度和发送状态
+            if (!["pause", "cancel"].includes(getItemCurSendStatus())) {
+              setItemProgressSpeedStatus(
+                toSetProgressVal,
+                toSetBytesPerSecond,
+                "sending"
+              );
+            }
           } else {
-            setItemProgressSpeedStatus(98, 0, "waiting");
+            setItemProgressSpeedStatus(99, 0, "waiting");
           }
           // 设置进度 end
         }
@@ -855,26 +906,24 @@ export default defineComponent({
               );
             // 清空文件节省内存
             item.file = undefined;
-            if (nknClient) {
-              remove(
-                nknClient.eventListeners.message,
-                (v) => v === confirmMessage
-              );
-            }
+            removeNknClientMsgListener(handleConfirmMessage);
           }
         };
         nknClient.onMessage(handleConfirmMessage);
+        removeNknClientMsgListener(errorLenMessageHandler);
       };
+      const sendFileLimit = pLimit(2);
+
       const onClickSendBtn = async () => {
+        console.log("call-onClickSendBtn");
         if (!nknClient) {
           message.warning("请等待nkn节点就绪");
           return;
         }
         let lock = false;
-        sendBtnLoading.value = true;
-        await useDelay(300);
-        sendBtnLoading.value = false;
-        const limit = pLimit(2);
+        // sendBtnLoading.value = true;
+        // await useDelay(300);
+        // sendBtnLoading.value = false;
         // countdown -start
         countdownText.value = "10:00";
         let duration = 60 * 10 - 1; // 10mins - 1s
@@ -900,114 +949,616 @@ export default defineComponent({
           payload: string;
           src: string;
         }) => {
-          console.log("payload---", payload, src);
           if (lock) {
             // 因为没有off 方法, 这里设置了防止重复接收message , 只能用一次
             return;
           }
-          if (payload === SHAKE_HAND) {
+          // 注册 当前的接收端目标地址
+          currentReceiveRemoteAddr = src;
+          if (payload === CHANNEL_MSG.SHAKE_HAND) {
             clearInterval(timerCountdown);
             console.log("收到接收方发来的消息,即将发送文件总大小消息", payload);
-            await nknClient?.send(
-              src,
-              totalInfoGuard._encode(
-                totalSendSize.value,
-                tableSend.value.length
-              ),
-              {
-                noReply: true,
-              }
-            );
+            // await nknClient?.send(
+            //   src,
+            //   totalInfoGuard._encode(
+            //     totalSendSize.value,
+            //     tableSend.value.length
+            //   ),
+            //   {
+            //     noReply: true,
+            //   }
+            // );
             lock = true;
             Promise.all(
-              tableSend.value.map((item) => {
-                limit(() => onSendOneFile(src, item));
+              tableSendData.map((item) => {
+                // 注册该文件的目标远程地址, 方便单文件操作-开始 的调用
+                sendFileLimit(() => onSendOneFile(src, item));
               })
             ).finally(() => {
-              remove(
-                nknClient?.eventListeners.message ?? [],
-                (v) => v === handleShakeHandMessage
-              );
+              removeNknClientMsgListener(handleShakeHandMessage);
             });
           }
         };
         nknClient.onMessage(handleShakeHandMessage);
         resetClientListener.push(() => {
-          if (nknClient) {
-            remove(
-              nknClient.eventListeners.message,
-              (v) => v === handleShakeHandMessage
-            );
-          }
+          removeNknClientMsgListener(handleShakeHandMessage);
         });
         //
-        if (currentSendType.value === "link") {
-          const transferUrl = location.href.match(/^.*peerTransfer/g)?.[0];
-          const myAddr = nknClient.addr;
-          receiveLink.value = `${transferUrl}?addr=${myAddr}`;
-        } else {
-          const { socket } = userStore;
-          if (!socket) return;
-          sendReceiveCode.value = getRandomNumStr(6);
-          const sendChannel = socket.channel(
-            `airdrop:${sendReceiveCode.value}`
-          );
-          sendChannel.join();
-          const ref1 = sendChannel.on(
-            SHAKE_HAND,
-            async (data: ChannelMsgType) => {
-              console.log("channel-shakehand", data);
-              sendChannel.push(CONFIRM_SHAKE_HAND, { msg: "code is ok" });
-              await useDelay(1000);
-              handleShakeHandMessage({
-                payload: SHAKE_HAND,
-                src: data.addr,
-              });
-              sendChannel.off(SHAKE_HAND, ref1);
-              sendChannel.leave();
-            }
-          );
+        const transferUrl = location.href.match(/^.*peerTransfer/g)?.[0];
+        const myAddr = nknClient.addr;
+        sendLink.value = `${transferUrl}?addr=${myAddr}`;
+        const { socket } = userStore;
+        if (!socket) return;
+        sendCode.value = getRandomNumStr(6);
+        sendChannel = socket.channel(`airdrop:${sendCode.value}`);
+        sendChannel.join();
+        const ref1 = sendChannel.on(
+          CHANNEL_MSG.SHAKE_HAND,
+          async (data: ChannelMsgType) => {
+            console.log("channel-shakehand", data);
+            sendChannel.push(CHANNEL_MSG.CONFIRM_CODE, {
+              msg: "code is ok",
+            });
+            await useDelay(1000);
+            handleShakeHandMessage({
+              payload: CHANNEL_MSG.SHAKE_HAND,
+              src: data.addr,
+            });
+            sendChannel.off(CHANNEL_MSG.SHAKE_HAND, ref1);
+            // sendChannel.leave();
+          }
+        );
+      };
+      const onChangeMultipleUploadFile = async (e: Event) => {
+        const input = e.target as HTMLInputElement;
+        if (!input.files?.length) return;
+        const fileArr: TransferFile[] = await Promise.all(
+          [...input.files].map(async (i) => ({
+            file: i,
+            fileHash: await getFileSHA256(i),
+            fileName: i.name,
+            fileSize: i.size,
+            uniqueId: makeUniqueId(i.name, i.size),
+            fileType: getFileType({ isDir: false, fileName: i.name }),
+            progress: 0,
+            speed: 0,
+            status: "queueing" as TransferFile["status"], // 首次加入文件设置为等待中
+          }))
+        );
+        // 去掉已经加入的文件
+        const noSameFileArr = fileArr.filter(
+          (i) => !tableSendData.some((e) => e.uniqueId === i.uniqueId)
+        );
+        // 如果是第一次的添加文件 如果还未生成 接收链接 和 接收码
+        if (tableSendData.length === 0 && sendCode.value.length === 0) {
+          onClickSendBtn();
+        }
+        tableSendData.push(...noSameFileArr);
+        // 清空input 的缓存
+        input.value = "";
+        // 如果有 当前接收端地址的, 立刻开始发送新加入的文件
+        if (currentReceiveRemoteAddr) {
+          noSameFileArr.forEach((item) => {
+            sendFileLimit(() => onSendOneFile(currentReceiveRemoteAddr, item));
+          });
+        }
+      };
+      /** 是否鼠标拖动文件到区域上方,是就显示边框 */
+      const isFileOverUploadZone = ref(false);
+      const onDragEnter = (event: DragEvent) => {
+        event.preventDefault();
+        isFileOverUploadZone.value = true;
+      };
+      const onDragLeave = (event: DragEvent) => {
+        event.preventDefault();
+        isFileOverUploadZone.value = false;
+      };
+      const onDragOver = (event: DragEvent) => {
+        event.preventDefault();
+      };
+      const onDrop = async (event: DragEvent) => {
+        event.preventDefault();
+        isFileOverUploadZone.value = false;
+        const files = event.dataTransfer?.files;
+        if (!files) return;
+        const fileArr: TransferFile[] = await Promise.all(
+          [...files].map(async (i) => ({
+            file: i,
+            fileName: i.name,
+            fileSize: i.size,
+            fileHash: await getFileSHA256(i),
+            uniqueId: makeUniqueId(i.name, i.size),
+            fileType: getFileType({ isDir: false, fileName: i.name }),
+            progress: 0,
+            speed: 0,
+            status: "queueing" as TransferFile["status"],
+          }))
+        );
+        // 去掉已经加入的文件
+        const noSameFileArr = fileArr.filter(
+          (i) => !tableSendData.some((e) => e.uniqueId === i.uniqueId)
+        );
+        // 如果是第一次的添加文件, 直接生成link 和码
+        if (tableSendData.length === 0 && sendCode.value.length === 0) {
+          onClickSendBtn();
+        }
+        tableSendData.push(...noSameFileArr);
+        // 如果有文件正在发送, 立刻开始发送新加入的文件
+        if (currentReceiveRemoteAddr) {
+          noSameFileArr.forEach((item) => {
+            sendFileLimit(() => onSendOneFile(currentReceiveRemoteAddr, item));
+          });
         }
       };
       return {
-        currentSendType,
-        receiveLink,
-        sendReceiveCode,
-        countdownText,
-        sendBtnLoading,
         columnsSend,
-        tableSend,
-        totalSendInfo,
+        tableSendData,
+        tableSendSelectedRows,
+        tableSendSelectedRowKeys,
+        sendLink,
         sendCode,
-        totalSendProgess,
-        totalSendSize,
-        hadSendSize,
-        isTotalSendProgressBarTextWhite,
+        onSendBack,
+        onCopySendLink,
+        onCopySendCode,
+        onSendRecordResend,
+        onSendRecordStart,
+        onSendRecordPause,
+        onSendRecordCancel,
+        onClearTableSendData,
+        onSelectFiles,
+        onChangeMultipleUploadFile,
         isFileOverUploadZone,
         onDragEnter,
         onDragLeave,
         onDragOver,
         onDrop,
-        onCopyReceiveLink,
-        onBackReceiveLink,
-        onBackReceiveCode,
-        onCopyReceiveCode,
-        onSelectFiles,
-        onChangeMultipleUploadFile,
-        onSendOk,
-        onResetSend,
-        onDeleteSendItem,
-        onSetCurrentSendType,
-        onClickSendBtn,
       };
     }
-    /** 接收文件 */
     function useReceive() {
-      const tableReceive = ref<TransferFile[]>([]);
-      const receiveInputLoading = ref(false);
+      const columnsReceive = [
+        // 文件名/ 大小/ 状态/ 操作
+        {
+          title: t("metanet.name"),
+          slots: { customRender: "name" },
+        },
+        {
+          title: t("metanet.size"),
+          dataIndex: "fileSize",
+          slots: { customRender: "fileSize" },
+          width: 180,
+        },
+        {
+          title: "状态",
+          slots: { customRender: "status" },
+          width: 250,
+        },
+        {
+          title: t("metanet.action"),
+          fixed: "right",
+          width: 100,
+          slots: { customRender: "action" },
+        },
+      ];
+      const receiveLink = ref("");
+      const tableReceiveData = reactive<TransferFile[]>([]);
+      const storegeReceiveData = useLocalStorage(
+        "tableReceiveData",
+        [] as unknown as Omit<
+          TransferFile,
+          "file" | "progress" | "speed" | "status"
+        >[]
+      );
+      const getStorageItemProgress = async (fileHash: string) => {
+        const found = await get(fileHash);
+        return found?.length ?? 0;
+      };
+      // 如果有indexDB数据的文件缓存
+      if (storegeReceiveData.value.length) {
+        keys().then((fileHashList) => {
+          const hasDataList = storegeReceiveData.value.filter((item) =>
+            fileHashList.includes(item.fileHash)
+          );
+          if (hasDataList.length) {
+            storegeReceiveData.value = hasDataList;
+            Promise.all(
+              storegeReceiveData.value.map<Promise<TransferFile>>(
+                async (item) => {
+                  const storageItemLen = await getStorageItemProgress(
+                    item.fileHash
+                  );
+                  const progress = Math.floor(
+                    (storageItemLen / item.fileSize) * 100
+                  );
+                  // console.log(
+                  //   "progress",
+                  //   progress,
+                  //   storageItemLen,
+                  //   item.fileSize
+                  // );
+                  return {
+                    ...item,
+                    file: new File(["0"], item.fileName),
+                    progress,
+                    speed: 0,
+                    status: progress === 100 ? "successReceive" : "queueing",
+                  };
+                }
+              )
+            ).then((list) => tableReceiveData.push(...list));
+          }
+        });
+      }
+      const tableReceiveSelectedRows = ref<TransferFile[]>([]);
+      const tableReceiveSelectedRowKeys = ref([]);
+      /** 下载全部接收文件 */
+      const onDownloadAllReceiveFiles = () => {
+        // 找出全部接收完的
+        const canDownLoadData = tableReceiveSelectedRows.value.filter(
+          (i) => i.status === "successReceive"
+        );
+        if (canDownLoadData.length) {
+          canDownLoadData.forEach(onReceiveRecordDownload);
+        }
+      };
+      const onClearTableReceiveData = () => {
+        console.log("onClearTableReceiveData");
+        // 1. 如果有传输中的任务
+        if (tableReceiveData.some((i) => i.status === "receiving")) {
+          message.warning("有任务正在接收中");
+        } else {
+          // 2.
+          tableReceiveData.forEach(onReceiveRecordCancel);
+          tableReceiveData.length = 0;
+        }
+      };
+      const onReceiveRecordDownload = async (record: TransferFile) => {
+        console.log("onReceiveRecordDownload");
+        if (record.progress !== 100) {
+          message.warning("文件未接收完整");
+          return;
+        }
+        const fileHash = record.fileHash;
+        const fileBuffer = await get(fileHash);
+        if (fileBuffer) {
+          downloadFileByBlob(
+            new File([fileBuffer], record.fileName, {
+              type: record.file?.type,
+            }),
+            record.fileName
+          );
+        }
+      };
+      const onReceiveRecordCancel = (record: TransferFile) => {
+        console.log("onReceiveRecordCancel");
+        if (
+          isStatus(
+            ["successReceive", "failed", "queueing", "cancel", "pause"],
+            record
+          )
+        ) {
+          const fileHash = record.fileHash;
+          del(fileHash);
+          remove(tableReceiveData, (v) => v.uniqueId === record.uniqueId);
+        }
+      };
+      /** link 模式还是输入码模式 */
+      const isTypeLink = ref(false);
+      const remoteAddr = route.query.addr as string;
+      isTypeLink.value = !!remoteAddr;
       const receiveInputCode = ref("");
-      const isShowSendCard = ref(true);
-      const onClickReceive = () => {
+      const receiveInputLoading = ref(false);
+      const handleReceiveFile = async (
+        type: "link" | "code",
+        remoteAddr?: string
+      ) => {
+        receiveInputLoading.value = true;
+        if (type === "link") await initClientStatus;
+        if (!nknClient) return;
+        // console.log("client-listen");
+        // 发送回去消息,告诉接收方准备好了
+        if (type === "link" && remoteAddr) {
+          console.log("sendmsg-to-sendclient");
+          await nknClient.send(remoteAddr, CHANNEL_MSG.SHAKE_HAND, {
+            noReply: true,
+          });
+        }
+        // 必须要listen 才能onSession
+        nknClient.listen();
+        await useDelay(500);
+        // const session = await nknClient.dial(remoteAddr);
+        // console.log("session---------", session);
+        // 一个session 只用来发送一个文件
+        const handleSession = async (session: TSession) => {
+          console.log("handleSession was called");
+          if (!nknClient) {
+            console.log("handleSession-error-noNknClient", nknClient);
+            return;
+          }
+          const headerUint8Array = await readHeaderInSession(session);
+          const headerObj = decode(headerUint8Array) as FileHeader;
+          let toDownloadFile: File | null = null;
+          console.log("读取文件头部信息", headerObj);
+          const uniqueId = makeUniqueId(headerObj.fileName, headerObj.fileSize);
+          const itemToPush: TransferFile = reactive({
+            file: new File(["0"], headerObj.fileName, {
+              type: headerObj.MIMEType,
+            }),
+            fileName: headerObj.fileName,
+            fileSize: headerObj.fileSize,
+            fileHash: headerObj.fileHash,
+            uniqueId,
+            fileType: getFileType({
+              isDir: false,
+              fileName: headerObj.fileName,
+            }),
+            progress: 0,
+            speed: 0,
+            status: "queueing",
+          });
+          // 如果列表中已经有了就替换, 否则就push
+          const foundIdx = tableReceiveData.findIndex(
+            (i) => i.fileHash === itemToPush.fileHash
+          );
+          if (foundIdx !== -1) {
+            // 更新未缓存的进度
+            itemToPush.progress = tableReceiveData[foundIdx].progress;
+            tableReceiveData[foundIdx] = itemToPush;
+          } else {
+            tableReceiveData.push(itemToPush);
+          }
+          // 保存这次列表到 storage 中
+          storegeReceiveData.value = tableReceiveData.map((item) =>
+            pick(item, [
+              "uniqueId",
+              "fileHash",
+              "fileName",
+              "fileSize",
+              "fileType",
+            ])
+          );
+          // console.log(headerObj);
+          const maxReceiveLength = headerObj.fileSize;
+          const fileHash = headerObj.fileHash;
+          const dbKeys = await keys();
+          let startLen = 0;
+          if (!dbKeys.includes(fileHash)) {
+            set(fileHash, new Uint8Array(0));
+          } else {
+            // 如果有缓存, 取出上一次的长度
+            startLen = (await get(fileHash)).length;
+          }
+          console.log("startLen", startLen);
+          // 发送offset信息
+          await nknClient.send(session.remoteAddr, `${fileHash}-${startLen}`);
+          const dbLimit = pLimit(1);
+          const LIMIT_SIZE = 5 * 1024 * 1024;
+          let bufBox = new Uint8Array(0);
+          const updateFileDb = async (buf: Uint8Array) => {
+            bufBox = mergeUint8Array(bufBox, buf); // pass
+            if (bufBox.length >= LIMIT_SIZE) {
+              await update(fileHash, (val) => mergeUint8Array(val, bufBox));
+              bufBox = new Uint8Array(0);
+            }
+          };
+          // const cacheMergeRoundedBuf = async (r: Uint8Array) => {
+          //   dbLimit(() => updateFileDb(r));
+          // };
+          const startTime = dayjs();
+          let diffSeconds = 0;
+          let toSetBytesPerSecond = 0;
+          /** 未读取正确长度的buffer */
+          // const unFullyReadObj: { [key: string]: Uint8Array } = {
+          // '0-100':new Uint8Array(0)
+          // };
+          // const errorReadLenPromiseArr = [];
+          const getItemCurReceiveStatus = () => itemToPush.status;
+          while (startLen < maxReceiveLength) {
+            // pause cancel 状态检测?
+            if (session.isClosed) {
+              console.error("session closed");
+              return;
+            }
+            // 这次循环要读取的长度
+            const toReadLength =
+              startLen + MAX_MTU <= maxReceiveLength
+                ? MAX_MTU
+                : maxReceiveLength - startLen;
+            try {
+              let roundRead = await session.read(toReadLength);
+              // 如果长度不一致, 取已经读取的长度
+              // if (toReadLength !== roundRead.length) {
+              // console.error(
+              //   "读取后的长度与预计长度不一致!",
+              //   toReadLength,
+              //   roundRead.length,
+              //   roundRead
+              // );
+              // 本次读取的buf的长度与预计的不一致
+              // 要求message 重发
+              // const key = `${startLen}-${startLen + toReadLength}`;
+              // unFullyReadObj[key] = new Uint8Array(0);
+              // roundRead = new Uint8Array(toReadLength);
+              // const p = nknClient
+              //   .send(session.remoteAddr, `errorReadlen-${key}`, {
+              //     responseTimeout: 10_000,
+              //     noReply: false,
+              //   })
+              //   .then((replyMsg) => {
+              //     console.log(
+              //       "发送长度错误的信息后,收到的回应信息",
+              //       replyMsg
+              //     );
+              //     unFullyReadObj[key] = replyMsg as unknown as Uint8Array;
+              //   });
+              // errorReadLenPromiseArr.push(p);
+              // }
+              // console.log("roundRead", roundRead);
+              // cacheMergeRoundedBuf(roundRead);
+              dbLimit(() => updateFileDb(roundRead));
+              startLen += roundRead.length;
+              if (startLen > maxReceiveLength) {
+                startLen = maxReceiveLength;
+              }
+            } catch (error) {
+              // session 读取出错的时候先保存
+              console.error("session-read-error,save file db first", error);
+              dbLimit(() => {
+                if (bufBox.length) {
+                  return update(fileHash, (val) =>
+                    mergeUint8Array(val, bufBox)
+                  );
+                }
+              });
+            }
+
+            // fileBuffer = mergeUint8Array(fileBuffer, roundRead);
+            // console.log(
+            //   "已经写入的array-正在接收的chunk长度",
+            //   fileBuffer,
+            //   roundRead
+            // );
+            // startLen += MAX_MTU;
+            // startLen += roundRead.length;
+            // if (startLen > maxReceiveLength) {
+            //   startLen = maxReceiveLength;
+            // }
+            // 设置进度 start
+            const setItemProgressSpeedStatus = (
+              progress: number,
+              speed: number,
+              status: TransferFile["status"]
+            ) => {
+              // 防止push 的过程idx 变了, 所以得重新查找
+              const idx = tableReceiveData.findIndex(
+                (i) => i.uniqueId === uniqueId
+              );
+              if (idx !== -1) {
+                tableReceiveData[idx].progress = progress;
+                tableReceiveData[idx].speed = speed;
+                tableReceiveData[idx].status = status;
+              }
+            };
+            const toSetProgressVal = Math.floor(
+              (startLen / maxReceiveLength) * 100
+            );
+            // console.log("toSetProgressVal", toSetProgressVal);
+            if (toSetProgressVal < 100) {
+              const curDiffSeconds = dayjs().diff(startTime, "second");
+              if (curDiffSeconds > diffSeconds) {
+                toSetBytesPerSecond =
+                  startLen / dayjs().diff(startTime, "second");
+                diffSeconds = curDiffSeconds;
+              }
+              // 如果不是暂停/取消 状态,继续设置进度和接收状态
+              if (!["pause", "cancel"].includes(getItemCurReceiveStatus())) {
+                setItemProgressSpeedStatus(
+                  toSetProgressVal,
+                  toSetBytesPerSecond,
+                  "receiving"
+                );
+              }
+            } else {
+              await dbLimit(() => null);
+              setItemProgressSpeedStatus(100, 0, "successReceive");
+              if (userStore.isLoggedIn)
+                transportStore.makePeerTransferSuccessItem(
+                  "receive",
+                  headerObj.fileName,
+                  headerObj.fileSize
+                );
+            }
+          }
+          // 这里要等待上一个dblimit tick
+          await dbLimit(() => null);
+          // 等待处理错误长度的promise
+          // await Promise.allSettled(errorReadLenPromiseArr);
+          // const unkeys = Object.keys(unFullyReadObj);
+          // 合并不完整接收的部分
+          // console.log("unFullyReadObj", unFullyReadObj);
+          // if (unkeys.length) {
+          // const hasValKeys = Object.keys(unFullyReadObj).filter(
+          //   (k) => unFullyReadObj[k]
+          // );
+          // console.log("hasValKeys", hasValKeys);
+          // for (const key of hasValKeys) {
+          //   const [start, end] = key.split("-");
+          //   const uint8 = unFullyReadObj[key];
+          //   dbLimit(() =>
+          //     update(fileHash, (v) => {
+          //       v.set(uint8, +start);
+          //       return v;
+          //     })
+          //   );
+          // }
+          // // 这里要等待上一个dblimit tick
+          // await dbLimit(() => null);
+          // await update<Uint8Array>(fileHash, (val) => {
+          //   if (val) {
+          //     unkeys.forEach((key) => {
+          //       const [e, start, end] = key.split("-");
+          //       console.log("val-start-end", val, unFullyReadObj[key], start);
+          //       // val.set(unFullyReadObj[key], +start);
+          //       // TODO 这里不应该?+start应该肯定有值+start +
+          //       const uint8 = unFullyReadObj[key];
+          //       if (uint8) {
+          //         val.set(uint8, +start);
+          //       }
+          //     });
+          //   }
+          //   return val || new Uint8Array(0);
+          // });
+          // }
+          // 接收完毕 再检查一次有没有未合并的
+          if (bufBox.length) {
+            // console.log("还剩的buf", bufBox);
+            console.time("last-update");
+            const beforeLastUpdate = await get(fileHash);
+            await dbLimit(() =>
+              update(fileHash, (val) => mergeUint8Array(val, bufBox))
+            );
+            const afterLastUpdate = await get(fileHash);
+            console.timeEnd("last-update");
+          }
+          // TODO 发回去校验hash
+          // 发送-确认信息
+          await nknClient.send(
+            session.remoteAddr,
+            makeConfirmMessage(uniqueId)
+          );
+          receiveInputLoading.value = false;
+          // toDownloadFile = new File([fileBuffer], headerObj.fileName, {
+          //   type: headerObj.MIMEType,
+          // });
+          // downloadFileByBlob(toDownloadFile, headerObj.fileName);
+          // toDownloadFile = null;
+        };
+        nknClient.onSession(handleSession);
+      };
+      if (remoteAddr) {
+        // 如果是链接模式
+        receiveLink.value = window.location.href;
+        initClientStatus.then(() => {
+          handleReceiveFile("link", remoteAddr);
+          // 开启nkn对 暂停/取消 的监听
+          const handlePauseOrCancelMessage = (msgObj: TMessageType) => {
+            console.log("接收 nknMessage 中对暂停的监听:", msgObj);
+            const [status, uniqueId] = msgObj.payload.split("/");
+            if (["pause", "cancel"].includes(status)) {
+              const found = tableReceiveData.find(
+                (i) => i.uniqueId === uniqueId
+              );
+              if (found) found.status = status as TransferFile["status"];
+            }
+          };
+          nknClient?.onMessage(handlePauseOrCancelMessage);
+          console.log("nknClient", nknClient?.eventListeners);
+        });
+      }
+      const onReceiveConfirmCode = () => {
+        if (!userStore.isLoggedIn) {
+          message.warning("请登录再使用接收码功能");
+          return;
+        }
         if (!receiveInputCode.value.length) {
           message.warning("请输入接收码");
           return;
@@ -1028,19 +1579,38 @@ export default defineComponent({
         );
         receiveChannel.join();
         const addrMsg: ChannelMsgType = { addr: nknClient.addr };
-        receiveChannel.push(SHAKE_HAND, addrMsg);
+        receiveChannel.push(CHANNEL_MSG.SHAKE_HAND, addrMsg);
         // 对方发送消息过来就确认接收码没问题, 否则是错误的接收码
         const [isCodeOkPromise, wrapper] = promiseChecker();
         const ref2 = receiveChannel.on(
-          CONFIRM_SHAKE_HAND,
+          CHANNEL_MSG.CONFIRM_CODE,
           (data: ChannelMsgType) => {
             // console.log(data, "receiveCode is valid");
             handleReceiveFile("code");
             wrapper.isOk = true;
-            receiveChannel.off(CONFIRM_SHAKE_HAND, ref2);
-            receiveChannel.leave();
+            receiveChannel.off(CHANNEL_MSG.CONFIRM_CODE, ref2);
+            // receiveChannel.leave();
           }
         );
+        // 监听取消
+        const refCancel = receiveChannel.on(
+          CHANNEL_MSG.CANCEL,
+          ({ uniqueId }: { uniqueId: string }) => {
+            console.log("接收 channel 中对取消的监听:", uniqueId);
+            const found = tableReceiveData.find((i) => i.uniqueId === uniqueId);
+            if (found) found.status = "cancel";
+          }
+        );
+        // 监听暂停
+        const refPause = receiveChannel.on(
+          CHANNEL_MSG.PAUSE,
+          ({ uniqueId }: { uniqueId: string }) => {
+            console.log("接收 channel 中对暂停的监听:", uniqueId);
+            const found = tableReceiveData.find((i) => i.uniqueId === uniqueId);
+            if (found) found.status = "pause";
+          }
+        );
+        // TODO clear 监听,防止内存泄漏
         isCodeOkPromise
           .then(() => {
             console.log("code is ok, receiving");
@@ -1051,298 +1621,43 @@ export default defineComponent({
             message.warning("接收码错误");
           });
       };
-      /** 接收总大小 */
-      const totalReceiveSize = ref(0);
-      /** 接收总多少个文件 */
-      const totalReceiveCount = ref(0);
-      /** 接收总进度 */
-      const totalReceiveProgressNoPercent = computed(() => {
-        const list = tableReceive.value;
-        if (!list.length) return 0;
-        return (
-          list.reduce((a, b) => (a += b.progress), 0) /
-          (totalReceiveCount.value * 100)
-        );
-      });
-      const totalReceiveProgress = computed(() => {
-        return Math.floor(totalReceiveProgressNoPercent.value * 100);
-      });
-
-      /** 总共接收了多少数据 */
-      const hadReceiveSize = computed(() => {
-        return totalReceiveSize.value * totalReceiveProgressNoPercent.value;
-      });
-      const isTotalReceiveProgressBarTextWhite = ref(false);
-      // z总宽度-左右边距
-      const totalReceiveProgressBarWidth = 268;
-      watch(
-        () => totalReceiveProgress.value,
-        (newVal) => {
-          const currentPercentWidth =
-            totalReceiveProgressBarWidth * (newVal / 100);
-          isTotalReceiveProgressBarTextWhite.value = currentPercentWidth > 168;
-        }
-      );
-      const onReceiveOk = () => {
-        tableReceive.value.length = 0;
-        totalReceiveSize.value = 0;
-        totalReceiveCount.value = 0;
-        receiveInputLoading.value = false;
-        receiveInputCode.value = "";
-        // 再清空下session监听的数组
-        if (nknClient) nknClient.eventListeners.session.length = 0;
-      };
-      // 如果当前是未登录的, 自动nkn  ?
-      // 未登录状态 -start
-      const handleReceiveFile = async (
-        type: "link" | "code",
-        remoteAddr?: string
-      ) => {
-        receiveInputLoading.value = true;
-        if (type === "link") await initClientStatus;
-        if (!nknClient) return;
-        // console.log("client-listen");
-        // 发送回去消息,告诉接收方准备好了
-        if (type === "link" && remoteAddr) {
-          await nknClient.send(remoteAddr, SHAKE_HAND, { noReply: true });
-        }
-        const handleFileTotalMsg = (msgObj: TMessageType) => {
-          if (msgObj.payload.includes(RECEIVE_PREFIX)) {
-            const { count, size } = totalInfoGuard._decode(msgObj.payload);
-            totalReceiveSize.value = size;
-            totalReceiveCount.value = count;
-            console.log(`收到文件总量信息:总共${count}个文件,${size}`);
-            if (nknClient) {
-              remove(
-                nknClient.eventListeners.message,
-                (v) => v === handleFileTotalMsg
-              );
-            }
-          }
-        };
-        nknClient.onMessage(handleFileTotalMsg);
-        // 必须要listen 才能onSession
-        nknClient.listen();
-        await useDelay(500);
-        // const session = await nknClient.dial(remoteAddr);
-        // console.log("session---------", session);
-        // 一个session 只用来发送一个文件
-        const handleSession = async (session: TSession) => {
-          if (!nknClient) {
-            console.log("handleSession-error-noNknClient", nknClient);
-            return;
-          }
-          const headerUint8Array = await readHeaderInSession(session);
-          const headerObj = decode(headerUint8Array) as FileHeader;
-          let toDownloadFile: File | null = null;
-          console.log("读取文件头部信息", headerObj);
-          const uniqueId = makeUniqueId(headerObj.fileName, headerObj.fileSize);
-          const itemToPush: TransferFile = reactive({
-            file: new File(["0"], headerObj.fileName, {
-              type: headerObj.MIMEType,
-            }),
-            fileName: headerObj.fileName,
-            fileSize: headerObj.fileSize,
-            uniqueId,
-            fileType: getFileType({
-              isDir: false,
-              fileName: headerObj.fileName,
-            }),
-            progress: 0,
-            speed: 0,
-            status: "queueing",
-          });
-          tableReceive.value.push(itemToPush);
-          // console.log(headerObj);
-          const maxReceiveLength = headerObj.fileSize;
-          let fileBuffer = new Uint8Array(0);
-          let startLen = 0;
-          const startTime = dayjs();
-          let diffSeconds = 0;
-          let toSetBytesPerSecond = 0;
-          while (startLen <= maxReceiveLength) {
-            if (session.isClosed) {
-              console.error("session closed");
-              return;
-            }
-            const toReadLength =
-              startLen < maxReceiveLength
-                ? MAX_MTU
-                : startLen - maxReceiveLength;
-            const roundRead = await session.read(toReadLength);
-            fileBuffer = mergeUint8Array(fileBuffer, roundRead);
-            // console.log(
-            //   "已经写入的array-正在接收的chunk长度",
-            //   fileBuffer,
-            //   roundRead
-            // );
-            startLen += MAX_MTU;
-            // 设置进度 start
-            const setItemProgressSpeedStatus = (
-              progress: number,
-              speed: number,
-              status: TransferFile["status"]
-            ) => {
-              // 防止push 的过程idx 变了, 所以得重新查找
-              const idx = tableReceive.value.findIndex(
-                (i) => i.uniqueId === uniqueId
-              );
-              if (idx !== -1) {
-                tableReceive.value[idx].progress = progress;
-                tableReceive.value[idx].speed = speed;
-                tableReceive.value[idx].status = status;
-              }
-            };
-            const toSetProgressVal = Math.floor(
-              (startLen / maxReceiveLength) * 100
-            );
-            if (toSetProgressVal < 100) {
-              const curDiffSeconds = dayjs().diff(startTime, "second");
-              if (curDiffSeconds > diffSeconds) {
-                toSetBytesPerSecond =
-                  startLen / dayjs().diff(startTime, "second");
-                diffSeconds = curDiffSeconds;
-              }
-              setItemProgressSpeedStatus(
-                toSetProgressVal,
-                toSetBytesPerSecond,
-                "receiving"
-              );
-            } else {
-              setItemProgressSpeedStatus(100, 0, "successReceive");
-              if (userStore.isLoggedIn)
-                transportStore.makePeerTransferSuccessItem(
-                  "receive",
-                  headerObj.fileName,
-                  headerObj.fileSize
-                );
-            }
-          }
-          // 发送-确认信息
-          await nknClient.send(
-            session.remoteAddr,
-            makeConfirmMessage(uniqueId),
-            {
-              noReply: true,
-            }
-          );
-          receiveInputLoading.value = false;
-          toDownloadFile = new File([fileBuffer], headerObj.fileName, {
-            type: headerObj.MIMEType,
-          });
-          downloadFileByBlob(toDownloadFile, headerObj.fileName);
-          toDownloadFile = null;
-          remove(nknClient.eventListeners.session, (v) => v === handleSession);
-        };
-        nknClient.onSession(handleSession);
-        // client.onMessage((message) => {
-        //   console.log("message", message);
-        // });
-      };
-      const remoteAddr = route.query.addr as string;
-      if (remoteAddr) {
-        console.log("检测到路由有link, 开始监听文件接收");
-        // link 模式不显示发送卡
-        isShowSendCard.value = false;
-        const hideLoadingMsg = message.loading("连接nkn网络中...", 0);
-        initClientStatus.then(() => {
-          hideLoadingMsg();
-          message.success("连接nkn网络成功");
-        });
-        handleReceiveFile("link", remoteAddr);
-      }
       return {
-        tableReceive,
-        receiveInputLoading,
+        columnsReceive,
+        tableReceiveData,
+        tableReceiveSelectedRows,
+        tableReceiveSelectedRowKeys,
+        onDownloadAllReceiveFiles,
+        onClearTableReceiveData,
+        onReceiveRecordDownload,
+        onReceiveRecordCancel,
+        isTypeLink,
+        receiveLink,
         receiveInputCode,
-        isShowSendCard,
-        onClickReceive,
-        totalReceiveCount,
-        totalReceiveSize,
-        totalReceiveProgress,
-        hadReceiveSize,
-        onReceiveOk,
-        isTotalReceiveProgressBarTextWhite,
+        receiveInputLoading,
+        onReceiveConfirmCode,
       };
     }
+
     return {
-      isUserLoggedIn,
-      nknStatusCount,
       ...useSend(),
       ...useReceive(),
-      calcStatusText,
       formatBytes,
+      calcTimeLeftText,
     };
   },
 });
 </script>
 
 <style lang="less" scoped>
-.send,
-.receive {
-  width: 300px;
-  border-radius: 4px;
-  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.08),
-    0 44px 32px 0 rgba(0, 0, 0, 0.25);
-  background-color: #fff;
-  transition: all 0.2s ease-in-out;
+.bg-address-bar {
+  background-color: #f7f7f8;
 }
-::-webkit-scrollbar {
-  width: 6px;
-  height: 166px;
+.h-address-bar {
+  height: 28px;
+  line-height: 28px;
 }
-/*定义滚动条轨道
- 内阴影+圆角*/
-::-webkit-scrollbar-track {
-  display: none;
-}
-/*定义滑块
- 内阴影+圆角*/
-::-webkit-scrollbar-thumb {
-  border-radius: 3px;
-  background-color: rgba(0, 0, 0, 0.2);
-}
-.BackIcon {
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-}
-.btnSendType {
-  &:hover {
-    background: #fafafa;
-  }
-}
-.activeBtnSendType {
-  color: #1890ff;
-  background: #fafafa;
-}
-.tableSendItemDelete {
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-}
-.tableSendItemBox {
-  &:hover {
-    .tableSendItemSize {
-      display: none;
-      color: blue;
-    }
-    .tableSendItemDelete {
-      display: block;
-    }
-  }
-}
-.peerTransferProgressBar {
-  :deep(.ant-progress-inner) {
-    height: 30px;
-    line-height: 30px;
-  }
-  :deep(.ant-progress-bg) {
-    height: 30px !important;
-    line-height: 30px !important;
-  }
-}
-.dashedBorder {
-  border: 1px dashed #1890ff !important;
+.receiveInputCode:focus {
+  border-bottom: 1px solid blue;
+  box-shadow: none;
 }
 </style>
