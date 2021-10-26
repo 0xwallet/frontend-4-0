@@ -808,7 +808,7 @@
       </template> -->
       <template #bottom="{ record }">
         <!-- 不是网盘信息数据才显示描述底部栏 -->
-        <div class="relative" v-if="record.owner !=='Me'">
+        <div class="relative" v-if="record.owner !== 'Me'">
           <div
             class="p-4 mt-4"
             :style="{
@@ -1082,9 +1082,13 @@ export default defineComponent({
         }
         Modal.confirm({
           // title: "Do you Want to delete these items?",
-          title: `${t("metanet.delContent1")} ${len} ${t("metanet.items")} ${t(
-            "metanet.delContent2"
-          )}?`,
+          // title: `${t("metanet.delContent1")} ${len} ${t("metanet.items")} ${t(
+          //   "metanet.delContent2"
+          // )}?`,
+          title: `是否删除以下文件?`,
+          content: selectedRows.value
+            .map((i) => lastOfArray(i.fullName))
+            .join(" , "),
           icon: createVNode(ExclamationCircleOutlined),
           // content: createVNode(
           //   "div",
@@ -2185,8 +2189,10 @@ export default defineComponent({
       // 下载
       const currentRenameId = ref("");
       const currentRenameString = ref("");
-      const renameInput =
-        ref<{ focus: () => void; input: HTMLInputElement } | null>(null);
+      const renameInput = ref<{
+        focus: () => void;
+        input: HTMLInputElement;
+      } | null>(null);
       /** 重命名 */
       const onRecordRename = (record: TFileItem) => {
         // console.log("onRecordRename", record);
@@ -2229,7 +2235,8 @@ export default defineComponent({
       const onRecordDelete = (record: TFileItem) => {
         const fileName = lastOfArray(record.fullName);
         Modal.confirm({
-          title: `是否删除${fileName}`,
+          title: `是否删除以下文件?`,
+          content: fileName,
           icon: createVNode(ExclamationCircleOutlined),
           onOk: async () => {
             const resultSingleDelete = await apiSingleDelete({

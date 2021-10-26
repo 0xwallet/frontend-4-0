@@ -332,7 +332,7 @@ export default defineComponent({
     };
     /** 批量删除 */
     const onBatchDelete = () => {
-      console.log("onBatchDelete");
+      // console.log("onBatchDelete");
       const len = selectedRows.value.length;
       if (!len) {
         message.warning(t("metanet.errorPleaseSelect"));
@@ -340,7 +340,10 @@ export default defineComponent({
       }
       Modal.confirm({
         // title: "Do you Want to delete these items?",
-        title: `是否删除${len}个发布?`,
+        title: `是否删除以下发布?`,
+        content: selectedRows.value
+          .map((i) => lastOfArray(i.current.userFile.fullName))
+          .join(" , "),
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
           const resList = await Promise.all(
@@ -395,10 +398,11 @@ export default defineComponent({
     };
     /** shortcut-删除 */
     const onRecordDelete = (record: QueryPublishItem) => {
-      console.log("onRecordDelete", record);
+      // console.log("onRecordDelete", record);
       const fileName = record.current.userFile.fullName[0];
       Modal.confirm({
-        title: `是否删除发布:${fileName}`,
+        title: `是否删除以下发布?`,
+        content: fileName,
         icon: createVNode(ExclamationCircleOutlined),
         onOk: async () => {
           const resultPublishDelete = await apiPublishDelete({
