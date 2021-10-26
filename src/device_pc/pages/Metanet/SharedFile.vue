@@ -978,6 +978,15 @@ export default defineComponent({
       {
         title: t("metanet.name"),
         slots: { customRender: "name" },
+        sortDirections: ["descend", "ascend"],
+        sorter: (a: QueryShareFileItem, b: QueryShareFileItem) => {
+          // 文件夹的排在前面
+          if (a.userFile?.isDir && !b.userFile?.isDir) return 0;
+          else if (!a.userFile?.isDir && b.userFile?.isDir) return 0;
+          return lastOfArray(a.userFile?.fullName ?? []).localeCompare(
+            lastOfArray(b.userFile?.fullName ?? [])
+          );
+        },
       },
       {
         title: t("metanet.size"),
@@ -991,6 +1000,15 @@ export default defineComponent({
           text: string;
         }) => {
           return record.userFile?.isDir ? "" : formatBytes(+text);
+        },
+        sortDirections: ["descend", "ascend"],
+        sorter: (a: QueryShareFileItem, b: QueryShareFileItem) => {
+          // 文件夹的排在前面
+          if (a.userFile?.isDir && !b.userFile?.isDir) return 0;
+          else if (!a.userFile?.isDir && b.userFile?.isDir) return 0;
+          const aSize = a.userFile?.info.size ?? 0;
+          const bSize = b.userFile?.info.size ?? 0;
+          return +aSize - +bSize;
         },
       },
       {
@@ -1008,6 +1026,15 @@ export default defineComponent({
             : "";
         },
         width: 180,
+        sortDirections: ["descend", "ascend"],
+        sorter: (a: QueryShareFileItem, b: QueryShareFileItem) => {
+          // 文件夹的排在前面
+          if (a.userFile?.isDir && !b.userFile?.isDir) return 0;
+          else if (!a.userFile?.isDir && b.userFile?.isDir) return 0;
+          return dayjs(a.userFile?.updatedAt).diff(
+            dayjs(b.userFile?.updatedAt)
+          );
+        },
       },
       {
         title: "回馈",
