@@ -136,7 +136,7 @@ import { XTableFiles, XFileTypeIcon } from "../../components";
 import { formatBytes, lastOfArray } from "@/utils";
 import { UploadItem } from "@/store/transport";
 import { useRouter } from "vue-router";
-import { apiQueryFileByDir } from "@/apollo/api";
+import { apiLoopQueryFileByDir } from "@/apollo/api";
 import { THistoryDirItem } from "../Metanet/components/FileItem.vue";
 import { useLocalStorage } from "@vueuse/core";
 import { Modal } from "ant-design-vue";
@@ -214,7 +214,7 @@ export default defineComponent({
     /** 根据目录数组返回包含id 的对象 */
     async function checkFileFullNameIsExist(nameArr: string[]) {
       // console.log("checkFileFullNameIsExist", nameArr);
-      const res = await apiQueryFileByDir({ fullName: nameArr.slice(0, -1) });
+      const res = await apiLoopQueryFileByDir({ fullName: nameArr.slice(0, -1) });
       if (res.err || !res.data) {
         return false;
       }

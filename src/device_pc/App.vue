@@ -63,7 +63,7 @@ export default defineComponent({
           result.data.username
         }`,
       });
-      console.log("[从本地存储中登录成功] : ", result.data);
+      // console.log("[从本地存储中登录成功] : ", result.data);
     }
     trySignInWithLocalStorageAndRedirect();
     /** 获取本地储存的语言配置 */

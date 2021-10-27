@@ -2,8 +2,20 @@ import gql from "graphql-tag";
 
 /** 文件列表 */
 export const driveListFiles = gql`
-  query ($dirId: String, $fullName: [String], $token: String) {
-    driveListFiles(dirId: $dirId, dirFullName: $fullName, token: $token) {
+  query (
+    $dirId: String
+    $fullName: [String]
+    $token: String
+    $pageNumber: Int
+    $pageSize: Int
+  ) {
+    driveListFiles(
+      dirId: $dirId
+      dirFullName: $fullName
+      token: $token
+      pageNumber: $pageNumber
+      pageSize: $pageSize
+    ) {
       fullName
       hash
       id

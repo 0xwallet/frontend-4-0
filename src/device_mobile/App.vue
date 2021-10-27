@@ -9,6 +9,10 @@
       :visible="isShowLoginPopup"
       @update:visible="onUpdateVisible"
     />
+    <MPopupLeftMenu
+      :visible="isShowMobileLeftMenuPopup"
+      @update:visible="onUpdateLeftMenuVisible"
+    />
   </div>
 </template>
 
@@ -18,11 +22,12 @@ import { addHead } from "@/utils";
 import { Toast } from "vant";
 import { computed, defineComponent, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { MPopupLogin } from "./components";
+import { MPopupLogin, MPopupLeftMenu } from "./components";
 
 export default defineComponent({
   components: {
     MPopupLogin,
+    MPopupLeftMenu,
   },
   setup() {
     // document
@@ -52,6 +57,22 @@ export default defineComponent({
         onUpdateVisible,
       };
     }
+    /** 全局的左侧菜单弹层 */
+    function useLeftMenuPopup() {
+      const isShowMobileLeftMenuPopup = computed(
+        () => baseStore.isShowMobileLeftMenuPopup
+      );
+      const onUpdateLeftMenuVisible = (v: boolean) =>
+        baseStore.changeMobileLeftPopupVisible(v);
+      // TODO del
+      // setTimeout(() => {
+      //   onUpdateLeftMenuVisible(true);
+      // }, 1_000);
+      return {
+        isShowMobileLeftMenuPopup,
+        onUpdateLeftMenuVisible,
+      };
+    }
 
     async function trySignInWithLocalStorageAndRedirect() {
       const { signInWithLocalStorage } = userStore;
@@ -63,16 +84,17 @@ export default defineComponent({
       }
       // pdf 预览页不需要登录提示
       // Toast(`登录成功，欢迎回来 : ${result.data.username}`);
-      console.log("route", route);
+      // console.log("route", route);
       if (route.name === "Login") {
         // TODO 这里暂时跳转到账户页
         router.replace({ name: "Account" });
       }
-      console.log("[从本地存储中登录成功] : ", result.data);
+      // console.log("[从本地存储中登录成功] : ", result.data);
     }
     trySignInWithLocalStorageAndRedirect();
     return {
       ...useLoginModal(),
+      ...useLeftMenuPopup(),
     };
   },
 });

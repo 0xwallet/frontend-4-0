@@ -895,6 +895,7 @@ import {
   apiCopyFileToDir,
   apiEditFileDescption,
   apiGetPreviewToken,
+  apiLoopQueryFileByDir,
   apiMakeDirByPath,
   apiMakeDirByRoot,
   apiMoveFileToDir,
@@ -909,6 +910,7 @@ import {
   apiShareCreate,
   apiSingleDelete,
   apiUploadSingle,
+  ParamsLoopQueryFileByDir,
   ParamsQueryFileByDir,
   TFileItem,
   TFileList,
@@ -1333,7 +1335,7 @@ export default defineComponent({
       const getAndSetCopyMoveModalTableData = () => {
         copyMoveModalTableLoading.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
+        apiLoopQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
           if (resultQueryFile.err) {
             // console.log("err", err);
             copyMoveModalTableLoading.value = false;
@@ -1343,7 +1345,7 @@ export default defineComponent({
           const getAndSetDirChildren = async (item: TDir) => {
             const parentId = item.parent?.dirId;
             // const [resItem, errItem] = await apiQueryFileByDir({
-            const resultQueryFileItem = await apiQueryFileByDir({
+            const resultQueryFileItem = await apiLoopQueryFileByDir({
               dirId: item.dirId,
             });
             // console.log("目录res", item.dirId, item.dirName, resItem);
@@ -1553,7 +1555,7 @@ export default defineComponent({
       fullName: string[]
     ) => {
       return new Promise<void>((resolve, reject) => {
-        apiQueryFileByDir({ fullName }).then((resultQueryFile) => {
+        apiLoopQueryFileByDir({ fullName }).then((resultQueryFile) => {
           if (resultQueryFile.err) {
             reject();
             return;
@@ -2266,7 +2268,7 @@ export default defineComponent({
       };
     }
     let getAndSetTableDataFn: (
-      params: ParamsQueryFileByDir
+      params: ParamsLoopQueryFileByDir
     ) => Promise<TFileList>;
 
     // 记录目录
@@ -2557,7 +2559,7 @@ export default defineComponent({
       const tableLoading = ref(false);
       const tableData = ref<TFileList>([]);
       // 提供一个函数给外部
-      getAndSetTableDataFn = (params: ParamsQueryFileByDir) => {
+      getAndSetTableDataFn = (params: ParamsLoopQueryFileByDir) => {
         return new Promise((resolve, reject) => {
           // 重置选中项目
           selectedRows.value.length = 0;
@@ -2565,7 +2567,7 @@ export default defineComponent({
           // 重置当前点击表格项
           resetCurrentClickItem();
           tableLoading.value = true;
-          apiQueryFileByDir(params).then((resultQueryFile) => {
+          apiLoopQueryFileByDir(params).then((resultQueryFile) => {
             if (resultQueryFile.err || !resultQueryFile.data.driveListFiles) {
               reject("result-no-list");
               return;

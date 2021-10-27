@@ -581,7 +581,7 @@ import {
   apiGetPreviewToken,
   apiPriviewSharedFile,
   apiQueryCollectList,
-  apiQueryFileByDir,
+  apiLoopQueryFileByDir,
   apiQuerySharedFile,
   apiSecondUpload,
   QueryShareFileItem,
@@ -893,7 +893,7 @@ export default defineComponent({
         dirData.value.length = 0;
         isLoadingDirData.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
+        apiLoopQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
           if (resultQueryFile.err) {
             // console.log("err", err);
             isLoadingDirData.value = false;
@@ -902,8 +902,8 @@ export default defineComponent({
           /** 根据目录id, 父目录id 去递归获取children */
           const getAndSetDirChildren = async (item: TDir) => {
             const parentId = item.parent?.dirId;
-            // const [resItem, errItem] = await apiQueryFileByDir({
-            const resultQueryFileItem = await apiQueryFileByDir({
+            // const [resItem, errItem] = await apiLoopQueryFileByDir({
+            const resultQueryFileItem = await apiLoopQueryFileByDir({
               dirId: item.dirId,
             });
             // console.log("目录res", item.dirId, item.dirName, resItem);
@@ -1230,7 +1230,7 @@ export default defineComponent({
     const getSetDriveList = (dirId: string) => {
       const token = currentShareToken.value;
       isLoadingListData.value = true;
-      apiQueryFileByDir({
+      apiLoopQueryFileByDir({
         dirId,
         token,
       }).then((res) => {

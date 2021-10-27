@@ -165,8 +165,8 @@ export default defineStore({
                 clearTimeout(timerCheckMultiClient);
                 console.log(
                   "setInterval-nkn节点数满足,退出检测定时器",
-                  this.multiClient,
-                  this.multiClient?.readyClientIDs().length
+                  // this.multiClient,
+                  // this.multiClient?.readyClientIDs().length
                 );
                 (window as any).globalLoaderController.successStage(2);
                 // [300 ~ 500) 的随机整数

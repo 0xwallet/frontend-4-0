@@ -7,6 +7,8 @@ type FileWindowItem = {
   desc: DescObj;
 };
 type BaseState = {
+  /** 是否显示移动端左侧菜单栏弹层 */
+  isShowMobileLeftMenuPopup: boolean;
   isShowLoginModal: boolean;
   /** 文件窗口 */
   fileWindow: {
@@ -17,6 +19,7 @@ type BaseState = {
 export default defineStore({
   id: "base",
   state: (): BaseState => ({
+    isShowMobileLeftMenuPopup: false,
     isShowLoginModal: false,
     fileWindow: {},
   }),
@@ -63,6 +66,10 @@ export default defineStore({
       // console.log("怎么算的", i);
       this.setWindowIdItem(i, "default");
       return i;
+    },
+    /** 切换移动端左侧菜单栏弹层 */
+    changeMobileLeftPopupVisible(v: boolean) {
+      this.isShowMobileLeftMenuPopup = v;
     },
   },
 });

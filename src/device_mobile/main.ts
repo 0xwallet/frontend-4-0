@@ -35,6 +35,7 @@ import {
   ActionSheet,
   DropdownMenu,
   DropdownItem,
+  Progress,
   Loading,
 } from "vant";
 mobileApp
@@ -53,6 +54,7 @@ mobileApp
   .use(ActionSheet)
   .use(DropdownMenu)
   .use(DropdownItem)
+  .use(Progress)
   .use(Loading);
 
 mobileApp.use(createPinia()).use(router).mount("#app");

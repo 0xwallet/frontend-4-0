@@ -173,10 +173,16 @@ export default {
     walletSend: "Send",
     edit: "Edit",
   },
+  transport: {
+    uploading: "upload",
+    uploadHistory: "uploadHistory",
+    peerTransfer: "peerTransfer",
+  },
   metanet: {
     sharedFile: "shared files",
     metanet: "Metanet",
     dashboard: "Dashboard",
+    transport: "Transport",
     files: "My Files",
     share: "My Share",
     recycle: "Recycle",

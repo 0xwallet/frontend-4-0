@@ -284,6 +284,8 @@ export type ParamsQueryFileByDir = {
   dirId?: string;
   fullName?: string[];
   token?: string;
+  pageNumber: number;
+  pageSize: number;
 };
 export type TFileItem = {
   fullName: string[];
@@ -321,6 +323,40 @@ export const apiQueryFileByDir = async (
       variables: params,
     });
     return { data };
+  } catch (err) {
+    return { err: err as Error };
+  }
+};
+
+export type ParamsLoopQueryFileByDir = {
+  dirId?: string;
+  fullName?: string[];
+  token?: string;
+};
+type ResponseLoopQueryFileByDir = {
+  driveListFiles: TFileList;
+};
+/** 网盘-递归查询我的文件,直到返回空数组 */
+export const apiLoopQueryFileByDir = async (
+  params: ParamsLoopQueryFileByDir
+): TApiRes<ResponseQueryFileByDir> => {
+  try {
+    const driveListFiles: TFileList = [];
+    let pageNumber = 1;
+    const pageSize = 20;
+    const fn = () =>
+      useApollo<ResponseLoopQueryFileByDir>({
+        mode: "query",
+        gql: NetFile_Basic.driveListFiles,
+        variables: { ...params, pageNumber, pageSize },
+      });
+    let data = await fn();
+    while (data.driveListFiles.length !== 0) {
+      driveListFiles.push(...data.driveListFiles);
+      pageNumber++;
+      data = await fn();
+    }
+    return { data: { driveListFiles } };
   } catch (err) {
     return { err: err as Error };
   }

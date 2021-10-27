@@ -10,6 +10,7 @@ import Register from "../pages/Register/index.vue";
 import ResetPwd from "../pages/ResetPwd/index.vue";
 import Account from "../pages/Account/index.vue";
 import MetanetSharedFile from "../pages/Metanet/SharedFile.vue";
+import MetanetFile from "../pages/Metanet/File.vue";
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -52,6 +53,15 @@ const router = createRouter({
         title: "common.account",
       },
       component: Account,
+    },
+    {
+      path: "/metanet/file",
+      name: "MetanetFile",
+      meta: {
+        needAuth: true,
+        title: "metanet.file",
+      },
+      component: MetanetFile,
     },
     {
       // 登录状态的分享链接跳转到这里
