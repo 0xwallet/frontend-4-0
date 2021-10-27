@@ -1311,3 +1311,31 @@ export const apiCollectDelete = async (
     return { err: err as Error };
   }
 };
+
+type ParamsDriveSaveShareFile = {
+  code: string;
+  /** 要保存的文件的id */
+  fromUserFileId: string;
+  /** 要保存的文件所在的分享的id */
+  id: string;
+  /** 目标目录的id */
+  toUserFileId: string;
+};
+type ResponseDriveSaveShareFile = {
+  driveSaveShareFile: number; // 返回状态码
+};
+/** 保存分享文件 */
+export const apiDriveSaveShareFile = async (
+  params: ParamsDriveSaveShareFile
+): TApiRes<ResponseDriveSaveShareFile> => {
+  try {
+    const data = await useApollo<ResponseDriveSaveShareFile>({
+      mode: "mutate",
+      gql: NetFile_Share.driveSaveShareFile,
+      variables: params,
+    });
+    return { data };
+  } catch (err) {
+    return { err: err as Error };
+  }
+};

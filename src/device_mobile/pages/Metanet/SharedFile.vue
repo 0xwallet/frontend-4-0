@@ -378,10 +378,7 @@
                       <span>66</span>
                     </div>
                   </div>
-                  <div
-                    class="w-8 flex justify-end"
-                    v-if="!record.userFile.isDir"
-                  >
+                  <div class="w-8 flex justify-end">
                     <div
                       v-if="!record.checked"
                       class="bg-gray-300 rounded-full w-2 h-2 mr-1.5"
@@ -393,7 +390,6 @@
                       v-model="record.checked"
                     />
                   </div>
-                  <div v-else class="w-8"></div>
                 </div>
               </template>
             </div>
@@ -581,6 +577,7 @@
 import {
   apiCollectCreateByShare,
   apiCollectDelete,
+  apiDriveSaveShareFile,
   apiGetPreviewToken,
   apiPriviewSharedFile,
   apiQueryCollectList,
@@ -1000,14 +997,20 @@ export default defineComponent({
               Promise.all(
                 selectedRows.value.map((i) => {
                   if (!i.userFile) return;
-                  return apiSecondUpload({
-                    // 包含要保存的路径的文件全名数组
-                    fullName: [
-                      ...folderFullName,
-                      lastOfArray(i.userFile.fullName),
-                    ],
-                    description: i.userFile.info.description || "",
-                    fileHash: i.userFile.hash || "",
+                  // return apiSecondUpload({
+                  //   // 包含要保存的路径的文件全名数组
+                  //   fullName: [
+                  //     ...folderFullName,
+                  //     lastOfArray(i.userFile.fullName),
+                  //   ],
+                  //   description: i.userFile.info.description || "",
+                  //   fileHash: i.userFile.hash || "",
+                  // });
+                  return apiDriveSaveShareFile({
+                    code: inputCode.value,
+                    fromUserFileId: i.userFile.id,
+                    id: currentShareId.value,
+                    toUserFileId: popupState.dirId,
                   });
                 })
               ).finally(() => {

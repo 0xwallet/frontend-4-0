@@ -119,3 +119,20 @@ export const driveEditShare = gql`
     }
   }
 `;
+
+// 保存分享文件
+export const driveSaveShareFile = gql`
+  mutation (
+    $code: String
+    $fromUserFileId: String!
+    $id: ID!
+    $toUserFileId: String!
+  ) {
+    driveSaveShareFile(
+      code: $code
+      fromUserFileId: $fromUserFileId
+      id: $id
+      toUserFileId: $toUserFileId
+    )
+  }
+`;

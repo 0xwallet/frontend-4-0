@@ -530,7 +530,7 @@ const getReadyAnonymousMultiClient = () => {
       counter += 1;
       if (client.readyClientIDs().length >= 2) {
         counter = 0;
-        console.log("匿名client节点满足", client);
+        console.log("匿名client节点满足");
         resolve(client);
         clearInterval(id);
         // 超过10s 还未ready 的话就重置client

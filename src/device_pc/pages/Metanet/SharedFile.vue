@@ -519,6 +519,7 @@ import {
 } from "vue";
 import {
   apiCollectCreateByShare,
+  apiDriveSaveShareFile,
   apiGetPreviewToken,
   apiPriviewSharedFile,
   apiQueryCollectList,
@@ -1292,6 +1293,7 @@ export default defineComponent({
           message.warning("目标文件夹已包含要保存的文件!");
           return;
         }
+        const targetDirId = saveToMetanetModalSelectedDir.value.dirId;
         let dir = saveToMetanetModalSelectedDir.value;
         const folderFullName = [dir.dirName];
         while (dir.parent) {
@@ -1300,13 +1302,19 @@ export default defineComponent({
         }
         // 根目录不用传
         if (folderFullName[0] === "全部文件") folderFullName.shift();
-        await Promise.all(
+        await Promise.allSettled(
           saveToMetanetModalSelectedFileList.value.map((i) =>
-            apiSecondUpload({
-              // 包含要保存的路径的文件全名数组
-              fullName: [...folderFullName, lastOfArray(i.fullName)],
-              description: i.info.description || "",
-              fileHash: i.hash,
+            // apiSecondUpload({
+            //   // 包含要保存的路径的文件全名数组
+            //   fullName: [...folderFullName, lastOfArray(i.fullName)],
+            //   description: i.info.description || "",
+            //   fileHash: i.hash,
+            // })
+            apiDriveSaveShareFile({
+              code: inputCode.value,
+              fromUserFileId: i.id,
+              id: currentShareId.value,
+              toUserFileId: targetDirId,
             })
           )
         ).finally(() => {
