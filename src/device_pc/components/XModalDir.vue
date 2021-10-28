@@ -8,6 +8,7 @@
     @ok="onOk"
     :footer="footer"
     :bodyStyle="{ padding: '18px 12px', border: '1px solid #f2f2f2' }"
+    :confirmLoading="confirmLoading"
   >
     <!-- padding: '18px 12px', -->
     <a-table
@@ -23,7 +24,7 @@
       :columns="columns"
       :dataSource="dataSource"
       :customRow="customRow"
-      :loading="loading"
+      :loading="tableLoading"
       @expandedChange="onExpandedChange"
     >
       <!-- <template #name="{ record }"> -->
@@ -67,9 +68,6 @@ export default defineComponent({
       type: Array,
       required: true,
     },
-    loading: {
-      type: Boolean,
-    },
     rowClassName: {
       type: Function,
       required: true,
@@ -82,6 +80,13 @@ export default defineComponent({
       type: [String, Object],
       // 源码中 undefined 才会显示默认的按钮
       default: () => undefined,
+    },
+    tableLoading: {
+      type: Boolean,
+    },
+    confirmLoading: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ["update:visible", "ok"],

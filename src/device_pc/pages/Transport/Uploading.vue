@@ -250,7 +250,7 @@
       :columns="defaultPathModalTableColumns"
       :dataSource="defaultPathModalTableData"
       :customRow="defaultPathModalTableCustomRow"
-      :loading="defaultPathModalTableLoading"
+      :tableLoading="defaultPathModalTableLoading"
     />
   </div>
 </template>

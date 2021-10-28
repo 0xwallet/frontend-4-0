@@ -465,7 +465,8 @@
                     :columns="saveToMetanetTableColumns"
                     :dataSource="saveToMetanetModalTableData"
                     :customRow="saveToMetanetModalTableCustomRow"
-                    :loading="saveToMetanetModalTableLoading"
+                    :tableLoading="saveToMetanetModalTableLoading"
+                    :confirmLoading="saveToMetanetModalConfirmLoading"
                   />
                 </div>
               </template>
@@ -1300,6 +1301,7 @@ export default defineComponent({
           dir = dir.parent;
           folderFullName.unshift(dir.dirName);
         }
+        saveToMetanetModalConfirmLoading.value = true;
         // 根目录不用传
         if (folderFullName[0] === "全部文件") folderFullName.shift();
         await Promise.allSettled(
@@ -1319,6 +1321,7 @@ export default defineComponent({
           )
         ).finally(() => {
           message.success("保存成功");
+          saveToMetanetModalConfirmLoading.value = false;
           isShowSaveToMetanetModal.value = false;
         });
       };
@@ -1349,6 +1352,7 @@ export default defineComponent({
         },
       ];
       const saveToMetanetModalTableLoading = ref(false);
+      const saveToMetanetModalConfirmLoading = ref(false);
       const saveToMetanetModalTableData = reactive<TDir[]>([]);
       const saveToMetanetModalSelectedDir = ref<TDir>({
         dirId: "root",
@@ -1360,75 +1364,77 @@ export default defineComponent({
       const getAndSetSaveToMetanetModalTableData = () => {
         saveToMetanetModalTableLoading.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiLoopQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
-          if (resultQueryFile.err) {
-            // console.log("err", err);
-            saveToMetanetModalTableLoading.value = false;
-            return;
-          }
-          /** 根据目录id, 父目录id 去递归获取children */
-          const getAndSetDirChildren = async (item: TDir) => {
-            const parentId = item.parent?.dirId;
-            // const [resItem, errItem] = await apiLoopQueryFileByDir({
-            const resultQueryFileItem = await apiLoopQueryFileByDir({
-              dirId: item.dirId,
-            });
-            // console.log("目录res", item.dirId, item.dirName, resItem);
-            if (resultQueryFileItem.err) return item;
-            // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
-            const afterFilterList =
-              resultQueryFileItem.data.driveListFiles.filter(
-                (i): i is TFileItem =>
-                  i !== null &&
-                  i.isDir &&
-                  !["root", item.dirId, parentId].includes(i.id)
+        apiLoopQueryFileByDir({ dirId: "root" }).then(
+          async (resultQueryFile) => {
+            if (resultQueryFile.err) {
+              // console.log("err", err);
+              saveToMetanetModalTableLoading.value = false;
+              return;
+            }
+            /** 根据目录id, 父目录id 去递归获取children */
+            const getAndSetDirChildren = async (item: TDir) => {
+              const parentId = item.parent?.dirId;
+              // const [resItem, errItem] = await apiLoopQueryFileByDir({
+              const resultQueryFileItem = await apiLoopQueryFileByDir({
+                dirId: item.dirId,
+              });
+              // console.log("目录res", item.dirId, item.dirName, resItem);
+              if (resultQueryFileItem.err) return item;
+              // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
+              const afterFilterList =
+                resultQueryFileItem.data.driveListFiles.filter(
+                  (i): i is TFileItem =>
+                    i !== null &&
+                    i.isDir &&
+                    !["root", item.dirId, parentId].includes(i.id)
+                );
+              // console.log("afterFilterList", afterFilterList);
+              if (!afterFilterList.length) return item;
+              item.children = await Promise.all(
+                afterFilterList.map((i) =>
+                  getAndSetDirChildren({
+                    dirId: i.id,
+                    dirName: lastOfArray(i.fullName),
+                    parent: item,
+                    isExpend: false,
+                  })
+                )
               );
-            // console.log("afterFilterList", afterFilterList);
-            if (!afterFilterList.length) return item;
-            item.children = await Promise.all(
-              afterFilterList.map((i) =>
+              return item;
+            };
+            // res.data.driveListFiles 提取文件夹的出来
+            const resIsDirList = resultQueryFile.data.driveListFiles.filter(
+              (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
+            );
+            const withChildrensDirList = await Promise.all(
+              resIsDirList.map((i) =>
                 getAndSetDirChildren({
                   dirId: i.id,
                   dirName: lastOfArray(i.fullName),
-                  parent: item,
                   isExpend: false,
+                  parent: {
+                    dirId: "root",
+                    dirName: "全部文件",
+                    isExpend: true,
+                    parent: null,
+                  },
                 })
               )
             );
-            return item;
-          };
-          // res.data.driveListFiles 提取文件夹的出来
-          const resIsDirList = resultQueryFile.data.driveListFiles.filter(
-            (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
-          );
-          const withChildrensDirList = await Promise.all(
-            resIsDirList.map((i) =>
-              getAndSetDirChildren({
-                dirId: i.id,
-                dirName: lastOfArray(i.fullName),
-                isExpend: false,
-                parent: {
-                  dirId: "root",
-                  dirName: "全部文件",
-                  isExpend: true,
-                  parent: null,
-                },
-              })
-            )
-          );
-          const rootDir: TDir = {
-            dirId: "root",
-            dirName: "全部文件",
-            isExpend: true,
-            parent: null,
-            children: withChildrensDirList,
-          };
-          saveToMetanetModalTableData.push(rootDir);
-          saveToMetanetModalTableLoading.value = false;
-        });
+            const rootDir: TDir = {
+              dirId: "root",
+              dirName: "全部文件",
+              isExpend: true,
+              parent: null,
+              children: withChildrensDirList,
+            };
+            saveToMetanetModalTableData.push(rootDir);
+            saveToMetanetModalTableLoading.value = false;
+          }
+        );
       };
       /** 设置要移动的idList,操作类型 */
-      const saveToMetanetModalPreAction = (item: TFileItem[]) => {
+      const saveToMetanetModalPreAction = (itemList: TFileItem[]) => {
         if (checkLoginStatusThenOpenModalSignIn()) {
           return;
         }
@@ -1441,7 +1447,9 @@ export default defineComponent({
         };
         // 如果保存的目标文件夹 用户又保存到他自己的相同目录下
         saveToMetanetModalSelectedFileList.value.length = 0;
-        saveToMetanetModalSelectedFileList.value.push(...item);
+        // saveToMetanetModalSelectedFileList.value.push(...itemList);
+        saveToMetanetModalSelectedFileList.value =
+          saveToMetanetModalSelectedFileList.value.concat(itemList);
         isShowSaveToMetanetModal.value = true;
         // 每次打开弹窗都获取最新的文件夹数据
         saveToMetanetModalTableData.length = 0;
@@ -1454,6 +1462,7 @@ export default defineComponent({
         saveToMetanetModalTableCustomRow,
         saveToMetanetTableColumns,
         saveToMetanetModalTableLoading,
+        saveToMetanetModalConfirmLoading,
         saveToMetanetModalTableData,
         saveToMetanetModalPreAction,
       };

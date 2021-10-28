@@ -341,7 +341,7 @@ export const apiLoopQueryFileByDir = async (
   params: ParamsLoopQueryFileByDir
 ): TApiRes<ResponseQueryFileByDir> => {
   try {
-    const driveListFiles: TFileList = [];
+    let driveListFiles: TFileList = [];
     let pageNumber = 1;
     const pageSize = 20;
     const fn = () =>
@@ -352,7 +352,7 @@ export const apiLoopQueryFileByDir = async (
       });
     let data = await fn();
     while (data.driveListFiles.length !== 0) {
-      driveListFiles.push(...data.driveListFiles);
+      driveListFiles = driveListFiles.concat(data.driveListFiles);
       pageNumber++;
       data = await fn();
     }
