@@ -1933,6 +1933,7 @@ export default defineComponent({
       const createFolderModalConfirmLoading = ref(false);
       const onCreateFolderModalConfirm = async () => {
         const onFinishedAndCloseModal = () => {
+          createFolderModalConfirmLoading.value = false;
           isShowCreateFolderModal.value = false;
           onResetCreateFolderModalForm();
           message.success(t("metanet.successCreateFolder"));
@@ -1941,6 +1942,7 @@ export default defineComponent({
         try {
           await validate();
           // 结构不需要toRaw
+          createFolderModalConfirmLoading.value = true;
           const { folderPrefix, folderName, folderDesc } = createFolderModelRef;
           const isMakeDirByRoot = folderPrefix === "2";
           // console.log("folderPrefix", folderPrefix, isMakeDirByRoot);
