@@ -525,7 +525,8 @@ export const apiUploadSingle = async (
   // const clientSession = await multiClient?.dial(REMOTE_ADDR);
   // 尝试重拨dial 的次数, 防止爆栈
   let dialTryTimes = 0;
-  const maxDialTimes = 10;
+  const maxDialTimes = 2_0000;
+  // TODO 如果用户点了取消, 这里也要取消重试
   /** 如果是dial 超时就重新dial */
   const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
