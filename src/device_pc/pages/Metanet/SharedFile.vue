@@ -939,6 +939,7 @@ export default defineComponent({
       apiLoopQueryFileByDir({
         dirId,
         token,
+        startPage: 1,
       }).then((res) => {
         isLoadingListData.value = false;
         if (res.err || !res.data) {
@@ -1364,7 +1365,7 @@ export default defineComponent({
       const getAndSetSaveToMetanetModalTableData = () => {
         saveToMetanetModalTableLoading.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiLoopQueryFileByDir({ dirId: "root" }).then(
+        apiLoopQueryFileByDir({ dirId: "root", startPage: 1 }).then(
           async (resultQueryFile) => {
             if (resultQueryFile.err) {
               // console.log("err", err);
@@ -1377,6 +1378,7 @@ export default defineComponent({
               // const [resItem, errItem] = await apiLoopQueryFileByDir({
               const resultQueryFileItem = await apiLoopQueryFileByDir({
                 dirId: item.dirId,
+                startPage: 1,
               });
               // console.log("目录res", item.dirId, item.dirName, resItem);
               if (resultQueryFileItem.err) return item;

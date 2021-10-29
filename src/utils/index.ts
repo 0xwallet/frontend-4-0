@@ -1,5 +1,9 @@
 import { classMultiClient, TSession } from "nkn";
-import { LEN_OF_HEADER_U8_LENGTH, PRODUCT_NAME } from "@/constants";
+import {
+  FILE_TYPE_MAP,
+  LEN_OF_HEADER_U8_LENGTH,
+  PRODUCT_NAME,
+} from "@/constants";
 /** 延迟函数,默认1000毫秒(1秒) */
 export const useDelay = (t = 1000): Promise<void> => {
   return new Promise<void>((r) => setTimeout(r, t));
@@ -69,6 +73,24 @@ export const getFileType = (obj: {
   const arr = obj.fileName.split(".");
   if (arr.length <= 1) return "file";
   return arr.pop()?.toLowerCase() || "file";
+};
+
+// TODO 英语
+/** 获取文件通用的显示类型 */
+export const getCommonFileType = (e: string) => {
+  if (!e || e === "file") return "文件";
+  if (/folder$/g.test(e)) return "文件夹";
+  if (/\docx?$/g.test(e)) return "WORD文档";
+  if (/xlsx?$/g.test(e)) return "EXCEL表格";
+  if (/pdf$/g.test(e)) return "PDF文件";
+  if (/ppt$/g.test(e)) return "PPT幻灯片";
+  if (/psd$/g.test(e)) return "PSD文档";
+  if (FILE_TYPE_MAP.image.includes(e)) return "图像";
+  if (FILE_TYPE_MAP.text.includes(e)) return "文本";
+  if (FILE_TYPE_MAP.archive.includes(e)) return "压缩文件";
+  if (FILE_TYPE_MAP.audio.includes(e)) return "音频";
+  if (FILE_TYPE_MAP.video.includes(e)) return "视频";
+  else return "文件";
 };
 
 /** 根据后端返回的fullName(未处理过的) 计算出所在位置 */

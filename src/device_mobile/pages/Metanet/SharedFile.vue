@@ -893,69 +893,72 @@ export default defineComponent({
         dirData.value.length = 0;
         isLoadingDirData.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiLoopQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
-          if (resultQueryFile.err) {
-            // console.log("err", err);
-            isLoadingDirData.value = false;
-            return;
-          }
-          /** 根据目录id, 父目录id 去递归获取children */
-          const getAndSetDirChildren = async (item: TDir) => {
-            const parentId = item.parent?.dirId;
-            // const [resItem, errItem] = await apiLoopQueryFileByDir({
-            const resultQueryFileItem = await apiLoopQueryFileByDir({
-              dirId: item.dirId,
-            });
-            // console.log("目录res", item.dirId, item.dirName, resItem);
-            if (resultQueryFileItem.err) return item;
-            // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
-            const afterFilterList =
-              resultQueryFileItem.data.driveListFiles.filter(
-                (i): i is TFileItem =>
-                  i !== null &&
-                  i.isDir &&
-                  !["root", item.dirId, parentId].includes(i.id)
+        apiLoopQueryFileByDir({ dirId: "root", startPage: 1 }).then(
+          async (resultQueryFile) => {
+            if (resultQueryFile.err) {
+              // console.log("err", err);
+              isLoadingDirData.value = false;
+              return;
+            }
+            /** 根据目录id, 父目录id 去递归获取children */
+            const getAndSetDirChildren = async (item: TDir) => {
+              const parentId = item.parent?.dirId;
+              // const [resItem, errItem] = await apiLoopQueryFileByDir({
+              const resultQueryFileItem = await apiLoopQueryFileByDir({
+                dirId: item.dirId,
+                startPage: 1,
+              });
+              // console.log("目录res", item.dirId, item.dirName, resItem);
+              if (resultQueryFileItem.err) return item;
+              // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
+              const afterFilterList =
+                resultQueryFileItem.data.driveListFiles.filter(
+                  (i): i is TFileItem =>
+                    i !== null &&
+                    i.isDir &&
+                    !["root", item.dirId, parentId].includes(i.id)
+                );
+              // console.log("afterFilterList", afterFilterList);
+              if (!afterFilterList.length) return item;
+              item.children = await Promise.all(
+                afterFilterList.map((i) =>
+                  getAndSetDirChildren({
+                    dirId: i.id,
+                    dirName: lastOfArray(i.fullName),
+                    parent: item,
+                  })
+                )
               );
-            // console.log("afterFilterList", afterFilterList);
-            if (!afterFilterList.length) return item;
-            item.children = await Promise.all(
-              afterFilterList.map((i) =>
+              return item;
+            };
+            // res.data.driveListFiles 提取文件夹的出来
+            const resIsDirList = resultQueryFile.data.driveListFiles.filter(
+              (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
+            );
+            const withChildrensDirList = await Promise.all(
+              resIsDirList.map((i) =>
                 getAndSetDirChildren({
                   dirId: i.id,
                   dirName: lastOfArray(i.fullName),
-                  parent: item,
+                  parent: {
+                    dirId: "root",
+                    dirName: "root",
+                    parent: null,
+                  },
                 })
               )
             );
-            return item;
-          };
-          // res.data.driveListFiles 提取文件夹的出来
-          const resIsDirList = resultQueryFile.data.driveListFiles.filter(
-            (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
-          );
-          const withChildrensDirList = await Promise.all(
-            resIsDirList.map((i) =>
-              getAndSetDirChildren({
-                dirId: i.id,
-                dirName: lastOfArray(i.fullName),
-                parent: {
-                  dirId: "root",
-                  dirName: "root",
-                  parent: null,
-                },
-              })
-            )
-          );
-          const rootDir: TDir = {
-            dirId: "root",
-            dirName: "全部文件",
-            parent: null,
-            children: withChildrensDirList,
-          };
-          dirData.value.push(rootDir);
-          isLoadingDirData.value = false;
-          resolve();
-        });
+            const rootDir: TDir = {
+              dirId: "root",
+              dirName: "全部文件",
+              parent: null,
+              children: withChildrensDirList,
+            };
+            dirData.value.push(rootDir);
+            isLoadingDirData.value = false;
+            resolve();
+          }
+        );
       });
     };
     const popupState = reactive<{
@@ -1233,6 +1236,7 @@ export default defineComponent({
       apiLoopQueryFileByDir({
         dirId,
         token,
+        startPage: 1,
       }).then((res) => {
         isLoadingListData.value = false;
         if (res.err || !res.data) {

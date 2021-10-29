@@ -214,7 +214,10 @@ export default defineComponent({
     /** 根据目录数组返回包含id 的对象 */
     async function checkFileFullNameIsExist(nameArr: string[]) {
       // console.log("checkFileFullNameIsExist", nameArr);
-      const res = await apiLoopQueryFileByDir({ fullName: nameArr.slice(0, -1) });
+      const res = await apiLoopQueryFileByDir({
+        fullName: nameArr.slice(0, -1),
+        startPage: 1,
+      });
       if (res.err || !res.data) {
         return false;
       }

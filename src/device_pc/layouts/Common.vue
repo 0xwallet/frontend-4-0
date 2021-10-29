@@ -233,12 +233,13 @@
               <template #overlay>
                 <a-menu class="py-0 rounded-full overflow-hidden">
                   <a-menu-item class="text-center">
-                    <a
+                    nkn节点数: {{ nknStatusCount }}
+                    <!-- <a
                       class="px-4"
                       href="javascript:;"
                       @click="onShowSetDefaultNknCountModal"
                       >设置nkn最小节点数</a
-                    >
+                    > -->
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -642,8 +643,11 @@ export default defineComponent({
           // console.log("route-newVal", newRoute.fullPath);
           const pathStr = newRoute.path;
           const fullPath = newRoute.fullPath;
-          // 分享链接页 不进入tab栏
-          if (fullPath.includes("metanet/sharedFile")) {
+          // 分享链接页 / error页(403/4/500) 不进入tab栏
+          if (
+            fullPath.includes("metanet/sharedFile") ||
+            fullPath.includes("error")
+          ) {
             return;
           }
           // console.log("routeNewVal", pathStr, openKeys.value);
@@ -929,11 +933,15 @@ export default defineComponent({
       const nknStatusCount = ref(0);
       const wifiPngIdx = computed(() => {
         const e = nknStatusCount.value;
-        if (e === 0) return 0;
-        else if (e <= 3.6) return 1;
-        else if (e <= 7.2) return 2;
-        else if (e < 12) return 3;
-        else return 4;
+        // 12 个节点的判断
+        // if (e === 0) return 0;
+        // else if (e <= 3.6) return 1;
+        // else if (e <= 7.2) return 2;
+        // else if (e < 12) return 3;
+        // else return 4;
+        // 大于4个节点就显示满了, 否则显示对应的格子图
+        if (e >= 4) return 4;
+        return e;
       });
       let readClientCounter: number;
       watch(

@@ -430,6 +430,12 @@
         </a-dropdown>
       </template>
     </XTableFiles>
+    <div
+      v-if="!tableLoading && isLoadingAllTableData"
+      class="h-10 flex items-center justify-center"
+    >
+      <a-spin :spinning="isLoadingAllTableData"> </a-spin>
+    </div>
     <!-- 弹窗 分享文件 -->
     <a-modal
       :destroyOnClose="true"
@@ -931,6 +937,7 @@ import {
   getFileType,
   lastOfArray,
   makeShareUrlByUri,
+  getCommonFileType,
 } from "@/utils";
 import { FILE_TYPE_MAP, PRODUCT_NAME } from "@/constants";
 import { useForm } from "@ant-design-vue/use";
@@ -1337,78 +1344,82 @@ export default defineComponent({
       const getAndSetCopyMoveModalTableData = () => {
         copyMoveModalTableLoading.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiLoopQueryFileByDir({ dirId: "root" }).then(
-          async (resultQueryFile) => {
-            if (resultQueryFile.err) {
-              // console.log("err", err);
-              copyMoveModalTableLoading.value = false;
-              return;
-            }
-            /** 根据目录id, 父目录id 去递归获取children */
-            const getAndSetDirChildren = async (item: TDir) => {
-              const parentId = item.parent?.dirId;
-              // const [resItem, errItem] = await apiQueryFileByDir({
-              const resultQueryFileItem = await apiLoopQueryFileByDir({
-                dirId: item.dirId,
-              });
-              // console.log("目录res", item.dirId, item.dirName, resItem);
-              if (resultQueryFileItem.err) return item;
-              // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
-              const afterFilterList =
-                resultQueryFileItem.data.driveListFiles.filter(
-                  (i): i is TFileItem =>
-                    i !== null &&
-                    i.isDir &&
-                    !["root", item.dirId, parentId].includes(i.id)
-                );
-              // console.log("afterFilterList", afterFilterList);
-              if (!afterFilterList.length) return item;
-              item.children = await Promise.all(
-                afterFilterList.map((i) =>
-                  getAndSetDirChildren({
-                    dirId: i.id,
-                    dirName: lastOfArray(i.fullName),
-                    parent: item,
-                    isExpend: false,
-                  })
-                )
+        apiLoopQueryFileByDir({
+          is_only_dir: true,
+          dirId: "root",
+          startPage: 1,
+        }).then(async (resultQueryFile) => {
+          if (resultQueryFile.err) {
+            // console.log("err", err);
+            copyMoveModalTableLoading.value = false;
+            return;
+          }
+          /** 根据目录id, 父目录id 去递归获取children */
+          const getAndSetDirChildren = async (item: TDir) => {
+            const parentId = item.parent?.dirId;
+            // const [resItem, errItem] = await apiQueryFileByDir({
+            const resultQueryFileItem = await apiLoopQueryFileByDir({
+              is_only_dir: true,
+              dirId: item.dirId,
+              startPage: 1,
+            });
+            // console.log("目录res", item.dirId, item.dirName, resItem);
+            if (resultQueryFileItem.err) return item;
+            // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
+            const afterFilterList =
+              resultQueryFileItem.data.driveListFiles.filter(
+                (i): i is TFileItem =>
+                  i !== null &&
+                  i.isDir &&
+                  !["root", item.dirId, parentId].includes(i.id)
               );
-              return item;
-            };
-            // res.data.driveListFiles 提取文件夹的出来
-            const resIsDirList = resultQueryFile.data.driveListFiles.filter(
-              (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
-            );
-            const withChildrensDirList = await Promise.all(
-              resIsDirList.map((i) =>
+            // console.log("afterFilterList", afterFilterList);
+            if (!afterFilterList.length) return item;
+            item.children = await Promise.all(
+              afterFilterList.map((i) =>
                 getAndSetDirChildren({
                   dirId: i.id,
                   dirName: lastOfArray(i.fullName),
+                  parent: item,
                   isExpend: false,
-                  parent: {
-                    dirId: "root",
-                    dirName: "root",
-                    parent: null,
-                    isExpend: true,
-                  },
                 })
               )
             );
-            const rootDir: TDir = {
-              dirId: "root",
-              dirName: t("metanet.allFiles"),
-              isExpend: true,
-              parent: null,
-              children: withChildrensDirList,
-            };
-            copyMoveModalTableData.push(rootDir);
-            // console.log(
-            //   "获取api后的copyMoveModalTableData",
-            //   copyMoveModalTableData
-            // );
-            copyMoveModalTableLoading.value = false;
-          }
-        );
+            return item;
+          };
+          // res.data.driveListFiles 提取文件夹的出来
+          const resIsDirList = resultQueryFile.data.driveListFiles.filter(
+            (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
+          );
+          const withChildrensDirList = await Promise.all(
+            resIsDirList.map((i) =>
+              getAndSetDirChildren({
+                dirId: i.id,
+                dirName: lastOfArray(i.fullName),
+                isExpend: false,
+                parent: {
+                  dirId: "root",
+                  dirName: "root",
+                  parent: null,
+                  isExpend: true,
+                },
+              })
+            )
+          );
+          const rootDir: TDir = {
+            dirId: "root",
+            dirName: t("metanet.allFiles"),
+            isExpend: true,
+            parent: null,
+            children: withChildrensDirList,
+          };
+          copyMoveModalTableData.push(rootDir);
+          // console.log(
+          //   "获取api后的copyMoveModalTableData",
+          //   copyMoveModalTableData
+          // );
+          copyMoveModalTableLoading.value = false;
+        });
       };
       // getAndSetCopyMoveModalTableData();
       /** 确认按钮点击 */
@@ -1563,28 +1574,29 @@ export default defineComponent({
       fileOrFolderName: string,
       fullName: string[]
     ) => {
-      return new Promise<void>((resolve, reject) => {
-        apiLoopQueryFileByDir({ fullName }).then((resultQueryFile) => {
-          if (resultQueryFile.err) {
-            reject();
-            return;
-          }
-          if (
-            resultQueryFile.data.driveListFiles.some(
-              (i) => i && lastOfArray(i.fullName) === fileOrFolderName
-            )
-          ) {
-            message.warning(
-              type === "file"
-                ? "对应位置已经存在同名文件"
-                : "对应位置已经存在同名文件夹"
-            );
-            reject();
-          } else {
-            resolve();
-          }
-        });
-      });
+      return new Promise<void>((resolve) => resolve());
+      // return new Promise<void>((resolve, reject) => {
+      //   apiLoopQueryFileByDir({ fullName }).then((resultQueryFile) => {
+      //     if (resultQueryFile.err) {
+      //       reject();
+      //       return;
+      //     }
+      //     if (
+      //       resultQueryFile.data.driveListFiles.some(
+      //         (i) => i && lastOfArray(i.fullName) === fileOrFolderName
+      //       )
+      //     ) {
+      //       message.warning(
+      //         type === "file"
+      //           ? "对应位置已经存在同名文件"
+      //           : "对应位置已经存在同名文件夹"
+      //       );
+      //       reject();
+      //     } else {
+      //       resolve();
+      //     }
+      //   });
+      // });
     };
     const isShowShareFileModal = ref(false);
     /** 正在分享的文件 */
@@ -2279,7 +2291,7 @@ export default defineComponent({
       };
     }
     let getAndSetTableDataFn: (
-      params: ParamsLoopQueryFileByDir
+      params: Omit<ParamsQueryFileByDir, "pageNumber" | "pageSize">
     ) => Promise<TFileList>;
 
     // 记录目录
@@ -2540,6 +2552,22 @@ export default defineComponent({
           },
         },
         {
+          title: "类型",
+          sortDirections: ["descend", "ascend"],
+          sorter: (a: TFileItem, b: TFileItem) => {
+            // 文件夹的排在前面
+            if (a.isDir && !b.isDir) return 1;
+            if (!a.isDir && b.isDir) return -1;
+            const aCommonType = getCommonFileType(a.fileType ?? "");
+            const bCommonType = getCommonFileType(b.fileType ?? "");
+            return aCommonType.localeCompare(bCommonType);
+          },
+          customRender: ({ record }: { record: TFileItem }) => {
+            return getCommonFileType(record.fileType ?? "");
+          },
+          width: 100,
+        },
+        {
           title: "Hash",
           dataIndex: "hash",
           slots: { customRender: "hash" },
@@ -2569,8 +2597,12 @@ export default defineComponent({
       ];
       const tableLoading = ref(false);
       const tableData = ref<TFileList>([]);
+      /** 是否正在加载所有的分页数据 */
+      const isLoadingAllTableData = ref(false);
       // 提供一个函数给外部
-      getAndSetTableDataFn = (params: ParamsLoopQueryFileByDir) => {
+      getAndSetTableDataFn = (
+        params: Omit<ParamsQueryFileByDir, "pageNumber" | "pageSize">
+      ) => {
         return new Promise((resolve, reject) => {
           // 重置选中项目
           selectedRows.value.length = 0;
@@ -2578,96 +2610,122 @@ export default defineComponent({
           // 重置当前点击表格项
           resetCurrentClickItem();
           tableLoading.value = true;
-          apiLoopQueryFileByDir(params).then((resultQueryFile) => {
-            if (resultQueryFile.err || !resultQueryFile.data.driveListFiles) {
-              reject("result-no-list");
-              return;
-            }
-            // 如果返回的 fullName 是空数组的话 代表是根目录
-            // 排除null 和 fullName是当前目录的数据(当前目录若不是root , 要加...返回上一级)
-            // console.log("网盘文件获取", res);
-            tableData.value = resultQueryFile.data.driveListFiles
-              // 排序 文件夹在前
-              // 加上类型
-              .map((i) => {
-                if (!i) return i;
-                if (!i.fullName.length) return null;
-                const obj = { ...i };
-                // 如果目标文件夹是根目录,注册当前目录的id为root
-                if (params.fullName?.length === 0) {
-                  curFolderId.value = "root";
-                  historyDir.value[historyDir.value.length - 1].isShared =
-                    false;
-                  const curFileWindowId = exactUniqueTabId(route.fullPath);
-                  baseStore.setWindowIdItem(+curFileWindowId, {
-                    path: historyDir.value.map((i) => i.name).join("/"),
-                    desc: { tagArr: [], text: "" },
-                  });
-                }
-                // 如果是当前目录, 注册fileWindow的路径和描述信息,然后返回null , 下一步把它去除(为了填到表格)
-                if (
-                  obj.id === params.dirId ||
-                  (obj.fullName.length === params.fullName?.length &&
-                    obj.fullName.every(
-                      (item, idx) => item === params.fullName?.[idx]
-                    ))
-                ) {
-                  // 注册当前目录的id
-                  curFolderId.value = obj.id;
-                  // 注册当前目录是否已分享
-                  historyDir.value[historyDir.value.length - 1].isShared =
-                    obj.isShared;
-                  const curFileWindowId = exactUniqueTabId(route.fullPath);
-                  // console.log("why this can", curFileWindowId, {
-                  //   path: historyDir.value.map((i) => i.name).join("/"),
-                  //   desc: formatDescription(obj.info.description),
-                  // });
-                  baseStore.setWindowIdItem(+curFileWindowId, {
-                    path: historyDir.value.map((i) => i.name).join("/"),
-                    desc: cacheFormatDescription(obj.info.description || ""),
-                  });
-                  return null;
-                }
-                // 如果是父级目录, 返回null , 下一步把它去除
-                const hArr = historyDir.value;
-                if (
-                  hArr.length > 1 &&
-                  lastOfArray(obj.fullName) === hArr[hArr.length - 2].name
-                ) {
-                  // obj.fullName = ["..."];
-                  return null;
-                } else {
-                  // 等于名字最后一项, 因为返回的是 [父级目录,item文件夹名] 所以取最后一个
-                  obj.fullName = [lastOfArray(obj.fullName)];
-                }
-                obj.fileType = getFileType({
-                  isDir: obj.isDir,
-                  fileName: obj.fullName[0],
-                });
-                return obj;
-              })
-              // filter 里用类型守卫去除null
-              .filter((i): i is TFileItem => i !== null)
-              // 排序文件夹,上级目录... 到表格最前面
-              .sort(sortByDirType);
-            // console.log("tabledData", tableData);
-            // 如果路由里有参数
-            if (paramsFileName.value) {
-              const found = tableData.value.find(
-                (item) =>
-                  item && lastOfArray(item.fullName) === paramsFileName.value
-              );
-              if (found) {
-                selectedRows.value.push(found);
-                selectedRowKeys.value.push(found.id);
-                // currentClickItem.id = found.id;
-                // currentClickItem.name = lastOfArray(found.fullName);
+          // apiLoopQueryFileByDir
+          // 先请求第一页
+          isLoadingAllTableData.value = true;
+          apiQueryFileByDir({ ...params, pageNumber: 1, pageSize: 20 }).then(
+            (resultQueryFile) => {
+              if (resultQueryFile.err || !resultQueryFile.data.driveListFiles) {
+                reject("result-no-list");
+                return;
               }
-              paramsFileName.value = "";
+              // 如果返回的 fullName 是空数组的话 代表是根目录
+              // 排除null 和 fullName是当前目录的数据(当前目录若不是root , 要加...返回上一级)
+              // console.log("网盘文件获取", res);
+              const filterDriveListFiles = (dataList: TFileList) =>
+                dataList
+                  // 排序 文件夹在前
+                  // 加上类型
+                  .map((i) => {
+                    if (!i) return i;
+                    if (!i.fullName.length) return null;
+                    const obj = { ...i };
+                    // 如果目标文件夹是根目录,注册当前目录的id为root
+                    if (params.fullName?.length === 0) {
+                      curFolderId.value = "root";
+                      historyDir.value[historyDir.value.length - 1].isShared =
+                        false;
+                      const curFileWindowId = exactUniqueTabId(route.fullPath);
+                      baseStore.setWindowIdItem(+curFileWindowId, {
+                        path: historyDir.value.map((i) => i.name).join("/"),
+                        desc: { tagArr: [], text: "" },
+                      });
+                    }
+                    // 如果是当前目录, 注册fileWindow的路径和描述信息,然后返回null , 下一步把它去除(为了填到表格)
+                    if (
+                      obj.id === params.dirId ||
+                      (obj.fullName.length === params.fullName?.length &&
+                        obj.fullName.every(
+                          (item, idx) => item === params.fullName?.[idx]
+                        ))
+                    ) {
+                      // 注册当前目录的id
+                      curFolderId.value = obj.id;
+                      // 注册当前目录是否已分享
+                      historyDir.value[historyDir.value.length - 1].isShared =
+                        obj.isShared;
+                      const curFileWindowId = exactUniqueTabId(route.fullPath);
+                      // console.log("why this can", curFileWindowId, {
+                      //   path: historyDir.value.map((i) => i.name).join("/"),
+                      //   desc: formatDescription(obj.info.description),
+                      // });
+                      baseStore.setWindowIdItem(+curFileWindowId, {
+                        path: historyDir.value.map((i) => i.name).join("/"),
+                        desc: cacheFormatDescription(
+                          obj.info.description || ""
+                        ),
+                      });
+                      return null;
+                    }
+                    // 如果是父级目录, 返回null , 下一步把它去除
+                    const hArr = historyDir.value;
+                    if (
+                      hArr.length > 1 &&
+                      lastOfArray(obj.fullName) === hArr[hArr.length - 2].name
+                    ) {
+                      // obj.fullName = ["..."];
+                      return null;
+                    } else {
+                      // 等于名字最后一项, 因为返回的是 [父级目录,item文件夹名] 所以取最后一个
+                      obj.fullName = [lastOfArray(obj.fullName)];
+                    }
+                    obj.fileType = getFileType({
+                      isDir: obj.isDir,
+                      fileName: obj.fullName[0],
+                    });
+                    return obj;
+                  })
+                  // filter 里用类型守卫去除null
+                  .filter((i): i is TFileItem => i !== null);
+              // 排序文件夹,上级目录... 到表格最前面
+              // .sort(sortByDirType);
+              tableData.value = filterDriveListFiles(
+                resultQueryFile.data.driveListFiles
+              );
+              if (resultQueryFile.data.driveListFiles.length) {
+                // 这里从第二页开始, 因为上面请求了第一页
+                apiLoopQueryFileByDir({ ...params, startPage: 2 }).then(
+                  (loopRes) => {
+                    tableData.value.push(
+                      ...filterDriveListFiles(
+                        loopRes.data?.driveListFiles ?? []
+                      )
+                    );
+                    isLoadingAllTableData.value = false;
+                  }
+                );
+              } else {
+                isLoadingAllTableData.value = false;
+              }
+              // console.log("tabledData", tableData);
+              // 如果路由里有参数
+              if (paramsFileName.value) {
+                const found = tableData.value.find(
+                  (item) =>
+                    item && lastOfArray(item.fullName) === paramsFileName.value
+                );
+                if (found) {
+                  selectedRows.value.push(found);
+                  selectedRowKeys.value.push(found.id);
+                  // currentClickItem.id = found.id;
+                  // currentClickItem.name = lastOfArray(found.fullName);
+                }
+                paramsFileName.value = "";
+              }
+              tableLoading.value = false;
+              resolve(resultQueryFile.data.driveListFiles);
             }
-            tableLoading.value = false;
-            resolve(resultQueryFile.data.driveListFiles);
-          });
+          );
         });
       };
       /** 路由params里的name */
@@ -2786,6 +2844,7 @@ export default defineComponent({
         columns,
         tableData,
         tableLoading,
+        isLoadingAllTableData,
       };
     }
 

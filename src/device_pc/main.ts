@@ -58,6 +58,7 @@ import {
   Tree,
   Radio,
   Spin,
+  Result,
   Layout,
 } from "ant-design-vue";
 app
@@ -86,6 +87,7 @@ app
   .use(Tree)
   .use(Radio)
   .use(Spin)
+  .use(Result)
   .use(Layout);
 // ant-design-vue --end
 

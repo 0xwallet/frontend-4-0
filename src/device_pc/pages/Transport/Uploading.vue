@@ -295,7 +295,11 @@ import {
 } from "@/utils";
 import { throttle } from "lodash-es";
 import { Empty, message } from "ant-design-vue";
-import { apiLoopQueryFileByDir, apiQueryMeSpace, TFileItem } from "@/apollo/api";
+import {
+  apiLoopQueryFileByDir,
+  apiQueryMeSpace,
+  TFileItem,
+} from "@/apollo/api";
 import { useRouter } from "vue-router";
 import { TDir } from "../Metanet/components/FileItem.vue";
 
@@ -443,76 +447,79 @@ export default defineComponent({
       const getSetDefaultPathModalTableData = () => {
         defaultPathModalTableLoading.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
-        apiLoopQueryFileByDir({ dirId: "root" }).then(async (resultQueryFile) => {
-          if (resultQueryFile.err) {
-            // console.log("err", err);
-            defaultPathModalTableLoading.value = false;
-            return;
-          }
-          /** 根据目录id, 父目录id 去递归获取children */
-          const getAndSetDirChildren = async (item: TDir) => {
-            const parentId = item.parent?.dirId;
-            // const [resItem, errItem] = await apiLoopQueryFileByDir({
-            const resultQueryFileItem = await apiLoopQueryFileByDir({
-              dirId: item.dirId,
-            });
-            // console.log("目录res", item.dirId, item.dirName, resItem);
-            if (resultQueryFileItem.err) return item;
-            // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
-            const afterFilterList =
-              resultQueryFileItem.data.driveListFiles.filter(
-                (i): i is TFileItem =>
-                  i !== null &&
-                  i.isDir &&
-                  !["root", item.dirId, parentId].includes(i.id)
+        apiLoopQueryFileByDir({ dirId: "root", startPage: 1 }).then(
+          async (resultQueryFile) => {
+            if (resultQueryFile.err) {
+              // console.log("err", err);
+              defaultPathModalTableLoading.value = false;
+              return;
+            }
+            /** 根据目录id, 父目录id 去递归获取children */
+            const getAndSetDirChildren = async (item: TDir) => {
+              const parentId = item.parent?.dirId;
+              // const [resItem, errItem] = await apiLoopQueryFileByDir({
+              const resultQueryFileItem = await apiLoopQueryFileByDir({
+                dirId: item.dirId,
+                startPage: 1,
+              });
+              // console.log("目录res", item.dirId, item.dirName, resItem);
+              if (resultQueryFileItem.err) return item;
+              // 排除 非目录文件/ 根目录/ 自身/ 父目录(上一级)
+              const afterFilterList =
+                resultQueryFileItem.data.driveListFiles.filter(
+                  (i): i is TFileItem =>
+                    i !== null &&
+                    i.isDir &&
+                    !["root", item.dirId, parentId].includes(i.id)
+                );
+              // console.log("afterFilterList", afterFilterList);
+              if (!afterFilterList.length) return item;
+              item.children = await Promise.all(
+                afterFilterList.map((i) =>
+                  getAndSetDirChildren({
+                    dirId: i.id,
+                    dirName: lastOfArray(i.fullName),
+                    parent: item,
+                    isExpend: false,
+                  })
+                )
               );
-            // console.log("afterFilterList", afterFilterList);
-            if (!afterFilterList.length) return item;
-            item.children = await Promise.all(
-              afterFilterList.map((i) =>
+              return item;
+            };
+            // res.data.driveListFiles 提取文件夹的出来
+            const resIsDirList = resultQueryFile.data.driveListFiles.filter(
+              (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
+            );
+            const withChildrensDirList = await Promise.all(
+              resIsDirList.map((i) =>
                 getAndSetDirChildren({
                   dirId: i.id,
                   dirName: lastOfArray(i.fullName),
-                  parent: item,
                   isExpend: false,
+                  parent: {
+                    dirId: "root",
+                    dirName: "root",
+                    parent: null,
+                    isExpend: true,
+                  },
                 })
               )
             );
-            return item;
-          };
-          // res.data.driveListFiles 提取文件夹的出来
-          const resIsDirList = resultQueryFile.data.driveListFiles.filter(
-            (i): i is TFileItem => i !== null && i.isDir && i.id !== "root"
-          );
-          const withChildrensDirList = await Promise.all(
-            resIsDirList.map((i) =>
-              getAndSetDirChildren({
-                dirId: i.id,
-                dirName: lastOfArray(i.fullName),
-                isExpend: false,
-                parent: {
-                  dirId: "root",
-                  dirName: "root",
-                  parent: null,
-                  isExpend: true,
-                },
-              })
-            )
-          );
-          const rootDir: TDir = {
-            dirId: "root",
-            dirName: t("metanet.allFiles"),
-            isExpend: true,
-            parent: null,
-            children: withChildrensDirList,
-          };
-          defaultPathModalTableData.push(rootDir);
-          // console.log(
-          //   "获取api后的defaultPathModalTableData",
-          //   defaultPathModalTableData
-          // );
-          defaultPathModalTableLoading.value = false;
-        });
+            const rootDir: TDir = {
+              dirId: "root",
+              dirName: t("metanet.allFiles"),
+              isExpend: true,
+              parent: null,
+              children: withChildrensDirList,
+            };
+            defaultPathModalTableData.push(rootDir);
+            // console.log(
+            //   "获取api后的defaultPathModalTableData",
+            //   defaultPathModalTableData
+            // );
+            defaultPathModalTableLoading.value = false;
+          }
+        );
       };
       /** 设置自定义行onClick 事件 */
       const defaultPathModalTableCustomRow = (record: TDir, index: number) => ({

@@ -23,6 +23,9 @@ import MetanetRecycle from "../pages/Metanet/Recycle.vue";
 import TransportUploading from "../pages/Transport/Uploading.vue";
 import TransportUploadHistory from "../pages/Transport/UploadHistory.vue";
 import TransportPeerTransfer from "../pages/Transport/PeerTransfer.vue";
+import ErrPage403 from "../pages/Error/403.vue";
+import ErrPage404 from "../pages/Error/404.vue";
+import ErrPage500 from "../pages/Error/500.vue";
 import PdfView from "../pages/PdfView/index.vue";
 
 const routes: RouteRecordRaw[] = [
@@ -180,6 +183,38 @@ const routes: RouteRecordRaw[] = [
         },
         component: TransportPeerTransfer,
       },
+      // error pages --start
+      {
+        // 403 未授权
+        path: "/error/403",
+        name: "Error403",
+        meta: {
+          needAuth: false,
+          title: "errPage.403_title",
+        },
+        component: ErrPage403,
+      },
+      {
+        // 404 not found
+        path: "/error/404",
+        name: "Error404",
+        meta: {
+          needAuth: false,
+          title: "errPage.404_title",
+        },
+        component: ErrPage404,
+      },
+      {
+        // 500
+        path: "/error/500",
+        name: "Error500",
+        meta: {
+          needAuth: false,
+          title: "errPage.500_title",
+        },
+        component: ErrPage500,
+      },
+      // error pages --end
     ],
   },
   {
@@ -193,11 +228,10 @@ const routes: RouteRecordRaw[] = [
     component: MetanetSharedFile,
   },
   {
-    // TODO 4040 找不到叶妙
     // path: "*",
     path: "/:catchAll(.*)",
     // redirect: "/metanet/file?id=1&path=~",
-    redirect: "/login",
+    redirect: "/error/404",
   },
   // {
   //   path: "/about",

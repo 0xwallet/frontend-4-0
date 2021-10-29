@@ -284,6 +284,7 @@ export type ParamsQueryFileByDir = {
   dirId?: string;
   fullName?: string[];
   token?: string;
+  is_only_dir?: boolean;
   pageNumber: number;
   pageSize: number;
 };
@@ -332,6 +333,9 @@ export type ParamsLoopQueryFileByDir = {
   dirId?: string;
   fullName?: string[];
   token?: string;
+  is_only_dir?: boolean;
+  /** 从第几页开始循环请求 */
+  startPage: number;
 };
 type ResponseLoopQueryFileByDir = {
   driveListFiles: TFileList;
@@ -342,7 +346,7 @@ export const apiLoopQueryFileByDir = async (
 ): TApiRes<ResponseQueryFileByDir> => {
   try {
     let driveListFiles: TFileList = [];
-    let pageNumber = 1;
+    let pageNumber = params.startPage;
     const pageSize = 20;
     const fn = () =>
       useApollo<ResponseLoopQueryFileByDir>({
@@ -560,7 +564,8 @@ export const apiUploadSingle = async (
   // console.log("after-client-shakehand");
   console.timeEnd(`[性能 client.dial 时间]${params.file.name}`);
   if (!clientSession) return { err: Error(UPLOAD_MSG.err_noClientSession) };
-  console.log("session握手成功", clientSession);
+  // console.log("session握手成功", clientSession);
+  console.log("session握手成功");
   if (isCurrentUploadStatusPause()) {
     clientSession.close();
     return { err: Error(UPLOAD_MSG.err_pauseByUser) };

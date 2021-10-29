@@ -52,6 +52,15 @@ export default {
     normalText: "Get Captcha",
     sendText: "Reacquire in {0}s",
   },
+  errPage: {
+    "403_title": "403",
+    "404_title": "404",
+    "500_title": "500",
+    "403_subTitle": "Sorry, you are not authorized to access this page.",
+    "404_subTitle": "Sorry, the page you visited does not exist.",
+    "500_subTitle": "Sorry, the server is wrong.",
+    backHome: "Back Home",
+  },
   pageLogin: {
     loginButton: "Login",
     backLoginButton: "Back Login",
