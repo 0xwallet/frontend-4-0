@@ -291,12 +291,13 @@
                     rounded-sm
                     py-px
                     pl-3
-                    pr-1
+                    pr-2
                     cursor-move
                     mr-2
                     mb-1
                     flex
                     items-center
+                    rounded-full
                   "
                   :class="{
                     navTabBox: item.routeName !== 'Dashboard',
@@ -1158,7 +1159,9 @@ export default defineComponent({
   }
 }
 .activeNavItem {
-  background-color: #f0f2f5;
+  // background-color: #f0f2f5;
+  background-color: #1890ff;
+  color: white;
 }
 .navItemCloseBox {
   &:hover {
