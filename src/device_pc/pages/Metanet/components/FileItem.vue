@@ -1345,7 +1345,7 @@ export default defineComponent({
         copyMoveModalTableLoading.value = true;
         // 2021-07-05 先递归处理所有的目录, 后续要按需加载
         apiLoopQueryFileByDir({
-          is_only_dir: true,
+          fileType: "DIR",
           dirId: "root",
           startPage: 1,
         }).then(async (resultQueryFile) => {
@@ -1359,7 +1359,7 @@ export default defineComponent({
             const parentId = item.parent?.dirId;
             // const [resItem, errItem] = await apiQueryFileByDir({
             const resultQueryFileItem = await apiLoopQueryFileByDir({
-              is_only_dir: true,
+              fileType: "DIR",
               dirId: item.dirId,
               startPage: 1,
             });

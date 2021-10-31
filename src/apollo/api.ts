@@ -284,7 +284,7 @@ export type ParamsQueryFileByDir = {
   dirId?: string;
   fullName?: string[];
   token?: string;
-  is_only_dir?: boolean;
+  fileType?: "ALL" | "DIR" | "FILE";
   pageNumber: number;
   pageSize: number;
 };
@@ -333,7 +333,7 @@ export type ParamsLoopQueryFileByDir = {
   dirId?: string;
   fullName?: string[];
   token?: string;
-  is_only_dir?: boolean;
+  fileType?: "ALL" | "DIR" | "FILE";
   /** 从第几页开始循环请求 */
   startPage: number;
 };

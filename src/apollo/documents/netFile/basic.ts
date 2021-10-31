@@ -8,6 +8,7 @@ export const driveListFiles = gql`
     $token: String
     $pageNumber: Int
     $pageSize: Int
+    $fileType: DriveUserFileTypeFilter
   ) {
     driveListFiles(
       dirId: $dirId
@@ -15,6 +16,7 @@ export const driveListFiles = gql`
       token: $token
       pageNumber: $pageNumber
       pageSize: $pageSize
+      fileType: $fileType
     ) {
       fullName
       hash
