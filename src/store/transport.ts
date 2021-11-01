@@ -15,7 +15,7 @@ export const makeUploadItemUniqueId = (
 };
 
 /** 上传状态:
- * 等待中 | |等待nkn节点| 上传中 | 暂停 | 等待ws返回 | 成功 | 失败
+ * 等待中 | |等待 NKN 节点| 上传中 | 暂停 | 等待ws返回 | 成功 | 失败
  */
 export type UploadStatus =
   | "queueing"

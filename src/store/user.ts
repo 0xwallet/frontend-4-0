@@ -138,7 +138,7 @@ export default defineStore({
     setWallet() {
       if (!this.wallet) {
         this.wallet = new Wallet({ password: this.email });
-        console.log("[Ready wallet]", this);
+        // console.log("[Ready wallet]", this);
         (window as any).globalLoaderController.successStage(1);
       }
     },

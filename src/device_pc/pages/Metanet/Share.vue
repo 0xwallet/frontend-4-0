@@ -803,7 +803,7 @@ export default defineComponent({
     /** 表格里单项替换文件 */
     const onRecordReplaceShareFile = (record: TTableShareFileItem) => {
       if (userStore.isLoadingMultiClient) {
-        message.warning("请等待nkn节点就绪");
+        message.warning("请等待 NKN 节点就绪");
         return;
       }
       currentToUpdateFile.id = record.userFile.id;

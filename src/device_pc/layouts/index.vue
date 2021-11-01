@@ -37,10 +37,10 @@ export default defineComponent({
       (newVal) => {
         // console.log("layout-index-watch-route", newVal);
         // 如果当前也需要显示在未登录上 , 用NoLogin layout
-        console.log(
-          "isRoutePathShowInNoLogin(newVal.path)",
-          isRoutePathShowInNoLogin(newVal.path)
-        );
+        // console.log(
+        //   "isRoutePathShowInNoLogin(newVal.path)",
+        //   isRoutePathShowInNoLogin(newVal.path)
+        // );
         dupSetCurLayout(
           isRoutePathShowInNoLogin(newVal.path) ? "NoLogin" : "Common"
         );

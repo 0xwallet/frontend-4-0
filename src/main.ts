@@ -9,7 +9,8 @@ if ((window as any).__isMobile__) {
     /* webpackPrefetch: true */
     "./device_mobile/main"
   ).then((module) => {
-    console.log("加载移动端模块_mobile_module", module);
+    // console.log("加载移动端模块_mobile_module", module);
+    console.log("加载移动端模块_mobile_module");
   });
 } else {
   console.log("isPC");
@@ -18,7 +19,8 @@ if ((window as any).__isMobile__) {
     /* webpackPrefetch: true */
     "./device_pc/main"
   ).then((module) => {
-    console.log("加载PC端模块_pc_module", module);
+    // console.log("加载PC端模块_pc_module", module);
+    console.log("加载PC端模块_pc_module");
   });
 }
 

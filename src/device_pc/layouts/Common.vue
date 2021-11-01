@@ -19,9 +19,9 @@
         <!-- logo -->
         <div id="siderLogoBox" class="flex h-12 items-center justify-center">
           <div id="siderLogoSvg" v-html="svgLogoStr"></div>
-          <div id="siderLogoText" class="text-white text-lg font-bold pl-3">
-            <!-- {{ PRODUCT_NAME }} -->
-          </div>
+          <!-- <div id="siderLogoText" class="text-white text-lg font-bold pl-3">
+            {{ PRODUCT_NAME }}
+          </div> -->
         </div>
         <!-- 切换黑白主题 -->
         <!-- :inline-collapsed="collapsed" -->
@@ -124,130 +124,65 @@
           </a-sub-menu>
         </a-menu>
         <!-- nkn 状态 -->
-        <transition name="no-mode-fade">
-          <div
-            v-if="collapsed"
-            key="1"
-            class="
-              nknStatus
-              fixed
-              w-6
-              h-6
-              flex
-              items-center
-              justify-center
-              bottom-0
-              text-white
-              py-1
-              bg-white
-              rounded-full
-              cursor-pointer
-            "
-            :style="{
-              left: '28px',
-              bottom: '20px',
-              color: 'rgba(0, 0, 0, 0.85)',
-            }"
-          >
-            <!-- 状态区 -->
-            <!-- nkn节点状态 -->
-            <!-- <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`"> -->
-            <a-dropdown placement="topLeft">
-              <div class="cursor-pointer flex items-center justify-center">
-                <LoadingOutlined
-                  v-if="isLoadingNknMulticlient"
-                  class="font-14"
-                />
-                <img
-                  v-else
-                  class="inline-block"
-                  :src="require(`@/assets/images/wifi_${nknStatusCount}.png`)"
-                  :style="{
-                    width: '14px',
-                    height: '14px',
-                  }"
-                />
-              </div>
-              <template #overlay>
-                <a-menu class="py-0 rounded-full overflow-hidden">
-                  <a-menu-item class="text-center">
-                    <a
-                      class="px-4"
-                      href="javascript:;"
-                      @click="onShowSetDefaultNknCountModal"
-                      >设置nkn最小节点数</a
-                    >
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
-
-            <!-- </a-tooltip> -->
-          </div>
-          <div
-            v-else
-            key="2"
-            class="
-              nknStatus
-              fixed
-              w-44
-              bottom-0
-              text-white
-              py-1
-              bg-white
-              rounded-full
-              cursor-pointer
-            "
-            :style="{
-              left: '12px',
-              right: '14px',
-              bottom: '20px',
-              color: 'rgba(0, 0, 0, 0.85)',
-            }"
-          >
-            <a-dropdown placement="topLeft">
-              <!-- 状态区 -->
-              <!-- nkn节点状态 -->
-              <template v-if="isLoadingNknMulticlient">
-                <div class="flex items-center justify-center font-14">
-                  <LoadingOutlined class="mr-2" />
-                  初始化nkn节点
-                </div>
-              </template>
-              <template v-else>
-                <div class="flex items-center justify-center">
-                  <!-- @click="onResetNknMultiClient" -->
-                  <img
-                    class="inline-block mr-2"
-                    :src="require(`@/assets/images/wifi_${wifiPngIdx}.png`)"
-                    :style="{
-                      width: '14px',
-                      height: '14px',
-                    }"
-                  />
-                  <div v-if="lockBeforeCollapsed">
-                    nkn节点 : {{ nknStatusCount }}/{{ NKN_SUB_CLIENT_COUNT }}
-                  </div>
-                </div>
-              </template>
-              <template #overlay>
-                <a-menu class="py-0 rounded-full overflow-hidden">
-                  <a-menu-item class="text-center">
-                    nkn节点数: {{ nknStatusCount }}
-                    <!-- <a
+        <!-- v-if="collapsed" -->
+        <div
+          key="1"
+          class="
+            nknStatus
+            absolute
+            w-6
+            h-6
+            flex
+            items-center
+            justify-center
+            py-1
+            text-white
+            bg-white
+            rounded-full
+            cursor-pointer
+            left-0
+            right-0
+            bottom-0
+            mx-auto
+          "
+          :style="{
+            bottom: '20px',
+            color: 'rgba(0, 0, 0, 0.85)',
+          }"
+        >
+          <!-- 状态区 -->
+          <!-- nkn节点状态 -->
+          <!-- <a-tooltip :title="`nkn节点: ${nknClientConnectStatusMap.count}/4`"> -->
+          <a-dropdown placement="topCenter">
+            <div class="cursor-pointer flex items-center justify-center">
+              <LoadingOutlined v-if="isLoadingNknMulticlient" class="font-14" />
+              <img
+                v-else
+                class="inline-block"
+                :src="require(`@/assets/images/wifi_${wifiPngIdx}.png`)"
+                :style="{
+                  width: '16px',
+                  height: '16px',
+                }"
+              />
+            </div>
+            <template #overlay>
+              <a-menu class="py-0 rounded-full overflow-hidden">
+                <a-menu-item class="text-center">
+                  NKN 节点数: {{ nknStatusCount }}
+                  <!-- <a
                       class="px-4"
                       href="javascript:;"
                       @click="onShowSetDefaultNknCountModal"
                       >设置nkn最小节点数</a
                     > -->
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
 
-            <!-- </a-tooltip> -->
-          </div>
-        </transition>
+          <!-- </a-tooltip> -->
+        </div>
       </a-layout-sider>
       <a-layout prefixCls="ant-layout">
         <a-layout-header class="">
@@ -1140,14 +1075,14 @@ export default defineComponent({
 #siderLogoText {
   display: block;
 }
-.ant-layout-sider-collapsed {
-  #siderLogoText {
-    display: none;
-  }
-  #siderLogoBox {
-    transform: translateX(0px);
-  }
-}
+// .ant-layout-sider-collapsed {
+//   #siderLogoText {
+//     display: none;
+//   }
+//   #siderLogoBox {
+//     transform: translateX(0px);
+//   }
+// }
 
 :deep(.ant-menu-sub > .ant-menu-item) {
   padding-left: 40px !important;

@@ -169,7 +169,7 @@
               }"
             >
               <template v-if="isLoadingNknMulticlient">
-                <span> 等待nkn节点中,请稍后手动开始 </span>
+                <span> 等待 NKN节点中,请稍后手动开始 </span>
               </template>
               <template v-else-if="record.status === 'uploading'">
                 <span class="ant-color-blue-6">
