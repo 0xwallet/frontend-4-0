@@ -164,7 +164,7 @@ export default defineStore({
                 clearInterval(t1);
                 clearTimeout(timerCheckMultiClient);
                 console.log(
-                  "setInterval-nkn节点数满足,退出检测定时器",
+                  "setInterval-nkn节点数满足,退出检测定时器"
                   // this.multiClient,
                   // this.multiClient?.readyClientIDs().length
                 );
@@ -247,7 +247,7 @@ export default defineStore({
     },
     /** 获取client */
     getStoreMultiClient() {
-      return new Promise<classMultiClient | null>((resolve) => {
+      return new Promise<classMultiClient>((resolve, reject) => {
         if (!this.isLoadingMultiClient && this.multiClient)
           resolve(this.multiClient);
         else {
@@ -263,7 +263,8 @@ export default defineStore({
               resolve(this.multiClient);
             } else if (counter > 20000) {
               clearInterval(id);
-              resolve(null);
+              // resolve(null);
+              reject();
             }
           }, 300);
         }

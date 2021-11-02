@@ -4,6 +4,9 @@ import {
   LEN_OF_HEADER_U8_LENGTH,
   PRODUCT_NAME,
 } from "@/constants";
+import duration from "dayjs/plugin/duration";
+import dayjs from "dayjs";
+dayjs.extend(duration);
 /** 延迟函数,默认1000毫秒(1秒) */
 export const useDelay = (t = 1000): Promise<void> => {
   return new Promise<void>((r) => setTimeout(r, t));
@@ -334,4 +337,45 @@ export const XToast = (msg = "default", size = 14, durationSecond = 2) => {
     div?.remove();
     div = null;
   }, durationSecond * 1000);
+};
+
+/** 倒计时,duration总时长,unitType总时长单位,interVal间隔,step间隔步长,format输出格式,interValFn间隔运行的函数 */
+export const countDown = (
+  duration: number,
+  unitType: duration.DurationUnitType,
+  interVal: number,
+  step: number,
+  format: string,
+  onStep: (s: string) => void,
+  onStop: () => void
+) => {
+  let total = duration;
+  let timer: null | number;
+  const outputCurRes = () =>
+    onStep(dayjs.duration(total, unitType).format(format));
+  outputCurRes();
+  const stop = () => {
+    onStop();
+    if (timer) {
+      window.clearInterval(timer);
+      timer = null;
+    }
+  };
+  timer = window.setInterval(() => {
+    total -= step;
+    outputCurRes();
+    if (total <= 0) {
+      stop();
+    }
+  }, interVal);
+  return stop;
+};
+/** 每秒倒计时 */
+export const countDownSeconds = (
+  totalSeconds: number,
+  format: string,
+  onStep: (s: string) => void,
+  onStop: () => void
+) => {
+  return countDown(totalSeconds, "s", 1000, 1, format, onStep, onStop);
 };

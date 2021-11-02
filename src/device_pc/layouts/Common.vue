@@ -886,23 +886,21 @@ export default defineComponent({
           clearInterval(readClientCounter);
           if (newVal === false) {
             userStore.getStoreMultiClient().then((multiClient) => {
-              if (multiClient) {
-                nknStatusCount.value = multiClient.readyClientIDs().length;
-                // console.log(
-                //   "multiClient-isuserstoreclient same multiclient",
-                //   userStore.multiClient?.addr === multiClient.addr,
-                //   multiClient.readyClientIDs().length,
-                //   nknStatusCount.value
-                // );
-                // 节点未全满的情况下始终去更新 nknStatusCount
-                if (nknStatusCount.value < NKN_SUB_CLIENT_COUNT) {
-                  readClientCounter = window.setInterval(() => {
-                    nknStatusCount.value = multiClient.readyClientIDs().length;
-                    if (nknStatusCount.value >= NKN_SUB_CLIENT_COUNT) {
-                      clearInterval(readClientCounter);
-                    }
-                  }, 1000);
-                }
+              nknStatusCount.value = multiClient.readyClientIDs().length;
+              // console.log(
+              //   "multiClient-isuserstoreclient same multiclient",
+              //   userStore.multiClient?.addr === multiClient.addr,
+              //   multiClient.readyClientIDs().length,
+              //   nknStatusCount.value
+              // );
+              // 节点未全满的情况下始终去更新 nknStatusCount
+              if (nknStatusCount.value < NKN_SUB_CLIENT_COUNT) {
+                readClientCounter = window.setInterval(() => {
+                  nknStatusCount.value = multiClient.readyClientIDs().length;
+                  if (nknStatusCount.value >= NKN_SUB_CLIENT_COUNT) {
+                    clearInterval(readClientCounter);
+                  }
+                }, 1000);
               }
             });
           }

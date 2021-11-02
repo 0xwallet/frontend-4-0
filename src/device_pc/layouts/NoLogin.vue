@@ -18,7 +18,12 @@
       </div>
     </div>
     <div class="px-20">
-      <div class="bg-white rounded-xl">
+      <div
+        class="bg-white rounded-xl"
+        :style="{
+          minHeight: 'calc(100vh - 100px)',
+        }"
+      >
         <router-view></router-view>
       </div>
     </div>

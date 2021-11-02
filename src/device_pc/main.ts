@@ -59,6 +59,7 @@ import {
   Radio,
   Spin,
   Result,
+  Popover,
   Layout,
 } from "ant-design-vue";
 app
@@ -88,6 +89,7 @@ app
   .use(Radio)
   .use(Spin)
   .use(Result)
+  .use(Popover)
   .use(Layout);
 // ant-design-vue --end
 
