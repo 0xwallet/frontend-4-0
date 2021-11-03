@@ -70,7 +70,7 @@ export default defineStore({
         this.setWallet();
         useDelay(300).then(() => {
           if (this.wallet) {
-            console.log("重置后的wallet", this.wallet);
+            // console.log("重置后的wallet", this.wallet);
             this.setMultiClient();
           }
         });
@@ -190,7 +190,7 @@ export default defineStore({
                   this.isLoadingMultiClient = false;
                   console.log(
                     "setTimeout-有效节点数满足,退出定时器",
-                    this.multiClient,
+                    // this.multiClient,
                     this.multiClient?.readyClientIDs().length
                   );
                   clearTimeout(timerCheckMultiClient);
@@ -212,11 +212,11 @@ export default defineStore({
       this.setWallet();
       useDelay(300).then(() => {
         if (this.wallet) {
-          console.log("重置后的wallet", this.wallet);
+          // console.log("重置后的wallet", this.wallet);
           this.multiClient = getMultiClient(this.wallet);
           console.log(
-            "有效节点数未满足,重置为新的multiClient:",
-            this.multiClient
+            "有效节点数未满足,重置为新的multiClient:"
+            // this.multiClient
           );
         }
       });
