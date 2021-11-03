@@ -349,7 +349,7 @@ import {
 import { classMultiClient, TMessageType, TSession } from "nkn";
 import { getAnonymousMultiClient } from "@/apollo/nknConfig";
 import { useTransportStore, useUserStore } from "@/store";
-import { pick, remove, throttle } from "lodash-es";
+import { once, pick, remove, throttle } from "lodash-es";
 import {
   get,
   set,
@@ -698,7 +698,7 @@ export default defineComponent({
       }
     };
     initClientStatus.then(() => {
-      console.log("clientReady");
+      console.log("clientReady", nknClient);
     });
     /** 发送完所有文件后重置发送端状态 */
     const onFinishedSendFilesClear = () => {
@@ -739,7 +739,7 @@ export default defineComponent({
           stopAddFilesCoutDown();
           Promise.all(
             tableData.value.map((item) => {
-              console.log("handleShakeHandMessage", item, src);
+              // console.log("handleShakeHandMessage", item, src);
               // 注册该文件的目标远程地址, 方便单文件操作-开始 的调用
               return sendFileLimit(() => onSendOneFile(src, item));
             })
@@ -851,7 +851,7 @@ export default defineComponent({
       if (isActionSend.value) {
         Modal.confirm({
           icon: createVNode(ExclamationCircleOutlined),
-          title: "是否重置状态?",
+          title: "该空投支持断点续传, 请确认是否重置状态?",
           onOk: () => {
             return new Promise<void>((resolve) => {
               remoteAddr = "";
@@ -1173,8 +1173,28 @@ export default defineComponent({
             globalHeartBeatListenTimer = window.setTimeout(() => {
               // 如果这里运行, 说明已经超时
               isBothConnected.value = false;
+              // 如果此时有任务进行中
+              if (tableData.value.some((i) => i.status === "sending")) {
+                Modal.info({
+                  // content: "对方似乎已断开, 下次打开相同链接或输入相同空投码可断点续传",
+                  title: "对方似乎已断开",
+                  content: "下次打开相同链接或输入相同空投码可断点续传",
+                  onOk() {
+                    console.log("ok");
+                  },
+                });
+                // 把正在发送的设为取消状态
+                tableData.value.forEach((item, idx) => {
+                  if (item.status === "sending") {
+                    item.status = "cancel";
+                  }
+                });
+                // 清除旧的 session
+                [...nknClient.sessions.values()].forEach((i) => i.close());
+                useDelay(300).then(() => nknClient.sessions.clear());
+              }
               // TODO 需要 remove 这个 handler 吗?
-            }, 5_000 * 2);
+            }, 5_000 * 2.2);
             return CHANNEL_MSG.HEART_BEAT;
           }
         };
@@ -1195,6 +1215,8 @@ export default defineComponent({
     };
     // TODO check this
     let remoteAddr = route.query.addr as string;
+    // 链接方式打开页面的提示
+    let stopLinkConnectingMsg: null | (() => void);
     const handleReceiveFile = async (
       type: "link" | "code",
       remoteAddr?: string
@@ -1217,6 +1239,11 @@ export default defineComponent({
       // 一个session 只用来发送一个文件
       const handleSession = async (session: TSession) => {
         console.log("handleSession was called");
+        // 这里取消掉连接提示
+        if (stopLinkConnectingMsg) {
+          stopLinkConnectingMsg();
+          stopLinkConnectingMsg = null;
+        }
         isBothConnected.value = true;
         if (!nknClient) {
           console.log("handleSession-error-noNknClient", nknClient);
@@ -1419,6 +1446,7 @@ export default defineComponent({
       // 如果是链接模式
       isActionSend.value = false;
       peerLink.value = window.location.href;
+      stopLinkConnectingMsg = message.loading("正连接中", 0);
       initClientStatus.then(() => {
         heartBeatController.send(remoteAddr);
         handleReceiveFile("link", remoteAddr);
