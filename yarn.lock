@@ -1998,6 +1998,11 @@
   resolved "https://registry.yarnpkg.com/@types/phoenix/-/phoenix-1.5.2.tgz#9846009959b752e04b3560e31f213ddbc137e499"
   integrity sha512-eAr6f4apLMY0COa1WIZikziSUBq4plqE5TwzzUeDyXvfuWLnLckeMF43byOwbk6W5ioIJXSHP42iR3Wo7U3RiQ==
 
+"@types/photoswipe@^4.1.2":
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/@types/photoswipe/-/photoswipe-4.1.2.tgz#3ddafb668bf6800f8dfab5bea2ba82dda879cd84"
+  integrity sha512-HA9TtCAQKToldgxRiyJ1DbsElg/cQV/SQ8COVjqIqghjy60Zxfh78E1WiFotthquqkS86nz13Za9wEbToe0svQ==
+
 "@types/q@^1.5.1":
   version "1.5.5"
   resolved "https://registry.yarnpkg.com/@types/q/-/q-1.5.5.tgz#75a2a8e7d8ab4b230414505d92335d1dcb53a6df"
@@ -10048,6 +10053,11 @@ phoenix@^1.5.9:
   version "1.5.10"
   resolved "https://registry.yarnpkg.com/phoenix/-/phoenix-1.5.10.tgz#c7009b4d56628bc0c6f11a00451890f82ba8286f"
   integrity sha512-qWnQMry55oYL1eUj0gK9EN7uWtpQ+hl2DD4Oirnb9pcMAEaP7Dj2wC3Q+w0hpTutKYSLiTnD0qu+O2EHGB5neA==
+
+photoswipe@^4.1.3:
+  version "4.1.3"
+  resolved "https://registry.yarnpkg.com/photoswipe/-/photoswipe-4.1.3.tgz#59f49494eeb9ddab5888d03392926a19bc197550"
+  integrity sha512-89Z43IRUyw7ycTolo+AaiDn3W1EEIfox54hERmm9bI12IB9cvRfHSHez3XhAyU8XW2EAFrC+2sKMhh7SJwn0bA==
 
 picomatch@^2.0.4, picomatch@^2.2.1, picomatch@^2.2.3:
   version "2.3.0"

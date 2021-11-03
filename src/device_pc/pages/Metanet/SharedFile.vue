@@ -554,6 +554,7 @@ import {
   makeShareUrlByUri,
   cacheFn,
   useDelay,
+  transformRawDescription,
 } from "@/utils";
 import {
   ExportOutlined,
@@ -846,31 +847,41 @@ export default defineComponent({
           "YYYYMMDDHHmmss"
         )}`;
         previewImages.push(url);
-        const $viewer = viewerApi({
-          options: {
-            zIndex: 99999,
-            toolbar: {
-              zoomIn: 1,
-              zoomOut: 1,
-              oneToOne: 1,
-              reset: 0,
-              prev: 0,
-              play: {
-                show: 0,
-                size: "large",
-              },
-              next: 0,
-              rotateLeft: 0,
-              rotateRight: 0,
-              flipHorizontal: 0,
-              flipVertical: 0,
-            },
-            movable: true,
-            // initialViewIndex: 1,
-          },
-          images: previewImages,
-        });
-        $viewer.show();
+        // const $viewer = viewerApi({
+        //   options: {
+        //     zIndex: 99999,
+        //     toolbar: {
+        //       zoomIn: 1,
+        //       zoomOut: 1,
+        //       oneToOne: 1,
+        //       reset: 0,
+        //       prev: 0,
+        //       play: {
+        //         show: 0,
+        //         size: "large",
+        //       },
+        //       next: 0,
+        //       rotateLeft: 0,
+        //       rotateRight: 0,
+        //       flipHorizontal: 0,
+        //       flipVertical: 0,
+        //     },
+        //     movable: true,
+        //     // initialViewIndex: 1,
+        //   },
+        //   images: previewImages,
+        // });
+        // $viewer.show();
+        baseStore.setPhotoSwipeAndShow(
+          previewImages.map((i) => ({
+            src: i,
+            w: 0,
+            h: 0,
+            title: record.userFile?.info.description
+              ? transformRawDescription(record.userFile?.info.description)
+              : "",
+          }))
+        );
       } else if (fileType === "pdf") {
         // console.log("pdf");
         const token = record.token;

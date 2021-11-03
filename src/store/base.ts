@@ -1,6 +1,15 @@
 import { MAX_FILEITEM_COUNT } from "@/constants";
 import { DescObj } from "@/utils";
 import { defineStore } from "pinia";
+import PhotoSwipeUI_Default from "photoswipe/dist/photoswipe-ui-default";
+
+type PItem = {
+  src: string;
+  w?: number;
+  h?: number;
+  title?: string;
+};
+export type PhotoSwipeItemList = PItem[];
 
 type FileWindowItem = {
   path: string;
@@ -14,6 +23,12 @@ type BaseState = {
   fileWindow: {
     [key: string]: FileWindowItem | null;
   };
+  photoSwipe: {
+    itemList: PhotoSwipeItemList;
+    isShow: boolean;
+    options: PhotoSwipeUI_Default.Options;
+  };
+  // PhotoSwipeUI_Default.Options
 };
 
 export default defineStore({
@@ -22,6 +37,11 @@ export default defineStore({
     isShowMobileLeftMenuPopup: false,
     isShowLoginModal: false,
     fileWindow: {},
+    photoSwipe: {
+      itemList: [],
+      isShow: false,
+      options: {},
+    },
   }),
   getters: {
     activeFileWindowCount: (state) => {
@@ -70,6 +90,19 @@ export default defineStore({
     /** 切换移动端左侧菜单栏弹层 */
     changeMobileLeftPopupVisible(v: boolean) {
       this.isShowMobileLeftMenuPopup = v;
+    },
+    setPhotoSwipeIsShow(v: boolean) {
+      this.photoSwipe.isShow = v;
+    },
+    /** 设置 photoSwipe 并显示 */
+    setPhotoSwipeAndShow(
+      list: PhotoSwipeItemList,
+      options?: PhotoSwipeUI_Default.Options
+    ) {
+      this.photoSwipe.itemList = list;
+      if (options) this.photoSwipe.options = options;
+      // this.photoSwipe.isShow = true;
+      this.setPhotoSwipeIsShow(true);
     },
   },
 });

@@ -938,6 +938,7 @@ import {
   lastOfArray,
   makeShareUrlByUri,
   getCommonFileType,
+  transformRawDescription,
 } from "@/utils";
 import { FILE_TYPE_MAP, PRODUCT_NAME } from "@/constants";
 import { useForm } from "@ant-design-vue/use";
@@ -2344,7 +2345,15 @@ export default defineComponent({
       };
       /** 表格里每一行的名字的点击事件 */
       const onClickItemName = async (record: TFileItem) => {
-        const { fileType: e, id, fullName, isShared, user, space } = record;
+        const {
+          fileType: e,
+          id,
+          fullName,
+          isShared,
+          user,
+          space,
+          info: { description },
+        } = record;
         if (!e) return;
         // console.log("点击的当前record", e, id);
         // 原来的处理有 : 文件夹 / 图片 / md txt json文本 / pdf
@@ -2390,31 +2399,39 @@ export default defineComponent({
             "YYYYMMDDHHmmss"
           )}`;
           previewImages.push(url);
-          const $viewer = viewerApi({
-            options: {
-              zIndex: 99999,
-              toolbar: {
-                zoomIn: 1,
-                zoomOut: 1,
-                oneToOne: 1,
-                reset: 0,
-                prev: 0,
-                play: {
-                  show: 0,
-                  size: "large",
-                },
-                next: 0,
-                rotateLeft: 0,
-                rotateRight: 0,
-                flipHorizontal: 0,
-                flipVertical: 0,
-              },
-              movable: true,
-              // initialViewIndex: 1,
-            },
-            images: previewImages,
-          });
-          $viewer.show();
+          baseStore.setPhotoSwipeAndShow(
+            previewImages.map((i) => ({
+              src: i,
+              w: 0,
+              h: 0,
+              title: description ? transformRawDescription(description) : "",
+            }))
+          );
+          // const $viewer = viewerApi({
+          //   options: {
+          //     zIndex: 99999,
+          //     toolbar: {
+          //       zoomIn: 1,
+          //       zoomOut: 1,
+          //       oneToOne: 1,
+          //       reset: 0,
+          //       prev: 0,
+          //       play: {
+          //         show: 0,
+          //         size: "large",
+          //       },
+          //       next: 0,
+          //       rotateLeft: 0,
+          //       rotateRight: 0,
+          //       flipHorizontal: 0,
+          //       flipVertical: 0,
+          //     },
+          //     movable: true,
+          //     // initialViewIndex: 1,
+          //   },
+          //   images: previewImages,
+          // });
+          // $viewer.show();
         } else if (FILE_TYPE_MAP.text.includes(e)) {
           console.log("todo type-text");
         } else if (FILE_TYPE_MAP.archive.includes(e)) {

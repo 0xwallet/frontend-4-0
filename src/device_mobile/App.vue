@@ -13,6 +13,7 @@
       :visible="isShowMobileLeftMenuPopup"
       @update:visible="onUpdateLeftMenuVisible"
     />
+    <MPhotoSwipe />
   </div>
 </template>
 
@@ -22,12 +23,13 @@ import { addHead } from "@/utils";
 import { Toast } from "vant";
 import { computed, defineComponent, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { MPopupLogin, MPopupLeftMenu } from "./components";
+import { MPopupLogin, MPopupLeftMenu, MPhotoSwipe } from "./components";
 
 export default defineComponent({
   components: {
     MPopupLogin,
     MPopupLeftMenu,
+    MPhotoSwipe,
   },
   setup() {
     // document

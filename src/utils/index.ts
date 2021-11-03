@@ -3,6 +3,7 @@ import {
   FILE_TYPE_MAP,
   LEN_OF_HEADER_U8_LENGTH,
   PRODUCT_NAME,
+  TAG_COLOR_LIST,
 } from "@/constants";
 import duration from "dayjs/plugin/duration";
 import dayjs from "dayjs";
@@ -378,4 +379,14 @@ export const countDownSeconds = (
   onStop: () => void
 ) => {
   return countDown(totalSeconds, "s", 1000, 1, format, onStep, onStop);
+};
+/** 处理原描述中的标签 */
+export const transformRawDescription = (rawStr: string) => {
+  let colorIdx = 0;
+  const getColor = () => TAG_COLOR_LIST[colorIdx++];
+  return rawStr.replace(
+    /#(.+?)#/g,
+    (m, p1) =>
+      `<span class="markTag" style="background-color:${getColor()}">${p1}</span>`
+  );
 };

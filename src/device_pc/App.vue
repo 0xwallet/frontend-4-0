@@ -25,6 +25,7 @@
       @update:visible="onUpdateVisible"
     />
     <router-view />
+    <XPhotoSwipe />
   </a-config-provider>
 </template>
 
@@ -37,11 +38,12 @@ import { useLocalStorage } from "@vueuse/core";
 import { useBaseStore, useUserStore } from "@/store";
 import { notification } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
-import { XModalLogin } from "./components";
+import { XModalLogin, XPhotoSwipe } from "./components";
 
 export default defineComponent({
   components: {
     XModalLogin,
+    XPhotoSwipe,
   },
   // TODO 全局更改语言配置
   setup() {

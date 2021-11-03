@@ -6,7 +6,7 @@
 import { defineComponent, ref, watch } from "vue";
 import marked from "marked";
 import DOMPurify from "dompurify";
-import { TAG_COLOR_LIST } from "@/constants";
+import { transformRawDescription } from "@/utils";
 
 export default defineComponent({
   props: {
@@ -18,19 +18,13 @@ export default defineComponent({
   setup(props) {
     const clean = ref("");
     // marked.setOptions({});
-    let colorIdx = 0;
-    const getColor = () => TAG_COLOR_LIST[colorIdx++];
     marked.use({
       renderer: {
         // tag renderer
         text(text) {
           // console.log("arguments", arguments);
           // console.log("text", text, typeof text);
-          return text.replace(
-            /#(.+?)#/g,
-            (m, p1) =>
-              `<span class="markTag" style="background-color:${getColor()}">${p1}</span>`
-          );
+          return transformRawDescription(text);
         },
       },
     });
@@ -42,7 +36,6 @@ export default defineComponent({
     watch(
       () => props.content,
       (newVal) => {
-        colorIdx = 0; // 重置colorIdx 从头渲染
         const parsedContent = marked(newVal);
         clean.value = DOMPurify.sanitize(parsedContent);
       },

@@ -597,6 +597,7 @@ import {
   cacheFn,
   downloadFileByUrl,
   useDelay,
+  transformRawDescription,
 } from "@/utils";
 import dayjs from "dayjs";
 import { Dialog, Toast } from "vant";
@@ -1302,7 +1303,17 @@ export default defineComponent({
           "YYYYMMDDHHmmss"
         )}`;
         previewImages.value.push(url);
-        onShowViewer();
+        // onShowViewer();
+        baseStore.setPhotoSwipeAndShow(
+          previewImages.value.map((i) => ({
+            src: i,
+            w: 0,
+            h: 0,
+            title: record.userFile?.info.description
+              ? transformRawDescription(record.userFile?.info.description)
+              : "",
+          }))
+        );
       } else if (fileType === "pdf") {
         // 先清理上一次的任务(如果有)
         if (destoryPdfLoadingTask) {
@@ -1509,33 +1520,6 @@ export default defineComponent({
       //   // }
       // });
     };
-    const onShowViewer = () => {
-      const $viewer = viewerApi({
-        options: {
-          toolbar: {
-            zoomIn: 0,
-            zoomOut: 0,
-            oneToOne: 1,
-            reset: 0,
-            prev: 0,
-            play: {
-              show: 0,
-              size: "large",
-            },
-            next: 0,
-            rotateLeft: 0,
-            rotateRight: 0,
-            flipHorizontal: 0,
-            flipVertical: 0,
-          },
-          movable: true,
-          // initialViewIndex: 1,
-        },
-        images: previewImages.value,
-      });
-      $viewer.show();
-      // 经测试 关闭后会自动回收内存
-    };
     return {
       TAG_COLOR_LIST,
       isCanFilePreview,
@@ -1582,7 +1566,6 @@ export default defineComponent({
       lastOfArray,
       cacheFormatDescription,
       fileTableRef,
-      onShowViewer,
       ...useDescriptionPopup(),
       // ...useRightPopup(),
       ...useBottomPopup(),
