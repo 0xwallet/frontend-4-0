@@ -534,12 +534,15 @@ export default defineComponent({
     });
     let currentReceiveRemoteAddr = "";
     const sendFileLimit = pLimit(2);
+    // 同一时间 dial 同个地址会有bug , 这里得锁住1个 dial 并发
+    const dialLimit = pLimit(1);
     /** 发送一个文件 */
     const onSendOneFile = async (remotAddr: string, item: PeerFileItem) => {
       if (!item.file) return;
       if (!nknClient) return;
+      // console.log("准备dial-", remotAddr);
       const repeatlyDial = getRepeatlyClientDialFn(nknClient, remotAddr);
-      const session = await repeatlyDial();
+      const session = await dialLimit(() => repeatlyDial());
       if (!session) {
         message.warning("session 握手失败");
         console.log("session 握手失败");
@@ -547,7 +550,7 @@ export default defineComponent({
         item.file = undefined; // 清空文件缓存 不允许再次操作
         return;
       }
-      console.log("session", session);
+      // console.log("session", session);
       item.status = "sending";
       // console.log("session", session);
       const header: FileHeader = {
@@ -589,6 +592,8 @@ export default defineComponent({
 
       // 读取接收方的offset --end
       const startTime = dayjs();
+      // 计算速度前的长度
+      const beginCalcSpeedStartLen = startLen;
       let diffSeconds = 0;
       let toSetBytesPerSecond = 0;
       const fileBuffer = await item.file.arrayBuffer();
@@ -643,7 +648,9 @@ export default defineComponent({
         if (toSetProgressVal < 100) {
           const curDiffSeconds = dayjs().diff(startTime, "second");
           if (curDiffSeconds > diffSeconds) {
-            toSetBytesPerSecond = startLen / dayjs().diff(startTime, "second");
+            toSetBytesPerSecond =
+              (startLen - beginCalcSpeedStartLen) /
+              dayjs().diff(startTime, "second");
             diffSeconds = curDiffSeconds;
           }
           // 如果不是暂停/取消 状态,继续设置进度和发送状态
@@ -700,6 +707,7 @@ export default defineComponent({
       clearNknClientEvent();
       peerLink.value = "";
       peerCode.value = "";
+      isBothConnected.value = false;
     };
     /** 发送完所有文件后重置接收端状态 */
     const onFinishedReceiveFilesClear = () => {
@@ -707,6 +715,7 @@ export default defineComponent({
       clearNknClientEvent();
       peerLink.value = "";
       peerCode.value = "";
+      isBothConnected.value = false;
     };
     const onMakeSendReady = async () => {
       console.log("onMakeSendReady");
@@ -730,8 +739,9 @@ export default defineComponent({
           stopAddFilesCoutDown();
           Promise.all(
             tableData.value.map((item) => {
+              console.log("handleShakeHandMessage", item, src);
               // 注册该文件的目标远程地址, 方便单文件操作-开始 的调用
-              sendFileLimit(() => onSendOneFile(src, item));
+              return sendFileLimit(() => onSendOneFile(src, item));
             })
           );
         }
@@ -994,6 +1004,7 @@ export default defineComponent({
               // 设置为取消状态,发送暂停信息给接收端
               record.status = "cancel";
               remove(tableData.value, (v) => v.fileHash === record.fileHash);
+              if (tableData.value.length === 0) onFinishedSendFilesClear();
               resolve();
             });
           },
@@ -1001,6 +1012,7 @@ export default defineComponent({
       } else {
         // 2 直接取消
         remove(tableData.value, (v) => v.fileHash === record.fileHash);
+        if (tableData.value.length === 0) onFinishedSendFilesClear();
       }
     };
     /** 表格项-接收端-下载 */
@@ -1033,6 +1045,7 @@ export default defineComponent({
         const fileHash = record.fileHash;
         del(fileHash).catch((e) => console.log(e));
         remove(tableData.value, (v) => v.fileHash === record.fileHash);
+        if (tableData.value.length === 0) onFinishedReceiveFilesClear();
       }
     };
     // 表格项 action --end
@@ -1072,12 +1085,6 @@ export default defineComponent({
       tableData.value.push(...noSameFileArr);
       // 清空input 的缓存
       input.value = "";
-      // 如果有 当前接收端地址的, 立刻开始发送新加入的文件
-      if (currentReceiveRemoteAddr) {
-        noSameFileArr.forEach((item) => {
-          sendFileLimit(() => onSendOneFile(currentReceiveRemoteAddr, item));
-        });
-      }
     };
     const storegeReceiveData = useLocalStorage(
       "tableReceiveData",
@@ -1276,6 +1283,8 @@ export default defineComponent({
         //   dbLimit(() => updateFileDb(r));
         // };
         const startTime = dayjs();
+        // 计算速度前的长度
+        const beginCalcSpeedStartLen = startLen;
         let diffSeconds = 0;
         let toSetBytesPerSecond = 0;
         /** 未读取正确长度的buffer */
@@ -1347,7 +1356,8 @@ export default defineComponent({
             const curDiffSeconds = dayjs().diff(startTime, "second");
             if (curDiffSeconds > diffSeconds) {
               toSetBytesPerSecond =
-                startLen / dayjs().diff(startTime, "second");
+                (startLen - beginCalcSpeedStartLen) /
+                dayjs().diff(startTime, "second");
               diffSeconds = curDiffSeconds;
             }
             // 如果不是暂停/取消 状态,继续设置进度和接收状态
@@ -1526,9 +1536,9 @@ export default defineComponent({
   }
 }
 // 名称列的圆角
-:deep(.ant-table-thead > tr > th:nth-of-type(1)) {
-  border-radius: 10px 0 0 10px !important;
-}
+// :deep(.ant-table-thead > tr > th:nth-of-type(1)) {
+//   border-radius: 10px 0 0 10px !important;
+// }
 // .ant-table-placeholder {
 //   border-top: none;
 // }

@@ -143,7 +143,7 @@ export const getRepeatlyClientDialFn = (
 ): (() => Promise<TSession | null>) => {
   let dialTryTimes = 0;
   /** 最多重试次数 */
-  const maxDialTimes = 20;
+  const maxDialTimes = 100_000;
   const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
     try {
