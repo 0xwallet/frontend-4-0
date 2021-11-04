@@ -266,7 +266,7 @@
 
 <script lang="ts">
 import { apiGetBsvExchangeRate } from "@/apollo/api";
-import { useUserStore } from "@/store";
+import { useBaseStore, useUserStore } from "@/store";
 import { useSvgWhiteLogo } from "@/utils";
 import { useClipboard } from "@vueuse/core";
 import { Toast } from "vant";
@@ -285,13 +285,19 @@ export default defineComponent({
     const router = useRouter();
     const { t } = useI18n();
     const userStore = useUserStore();
+    const baseStore = useBaseStore();
     const svgStr = useSvgWhiteLogo();
     const bsvUsdExchangeRate = ref("");
     apiGetBsvExchangeRate().then(
       (res) => (bsvUsdExchangeRate.value = res.data?.rate.substring(0, 7) ?? "")
     );
+    // TODO delete
+    // setTimeout(() => {
+    //   baseStore.changeMobileLeftPopupVisible(true);
+    // }, 2000);
     const onClickLogo = () => {
       Toast("TODO-clickLogo");
+      baseStore.changeMobileLeftPopupVisible(true);
     };
     const onCopyNknAddress = () => {
       const text = userStore.multiClient?.addr ?? "";

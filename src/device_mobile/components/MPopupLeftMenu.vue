@@ -9,14 +9,45 @@
     }"
   >
     <header
-      class="px-6 py-7"
+      class="px-6 py-7 flex items-center"
       :style="{
         'background-color': '#fafafb',
       }"
     >
-      <div class="font-16 font-semibold mb-1">
-        {{ userStore.username }}
+      <!-- 头像 -->
+      <div class="mr-2.5">
+        <div v-if="userStore.avatar"></div>
+        <div
+          v-else
+          class="
+            relative
+            rounded-full
+            flex
+            items-center
+            justify-center
+            text-xl text-white
+          "
+          :style="{
+            width: '42px',
+            height: '42px',
+            background: 'linear-gradient(45deg, #00acc1, #00d5e2)',
+            border: '1px solid #FEFEFE',
+          }"
+        >
+          {{ userStore.username[0].toUpperCase() }}
+        </div>
       </div>
+      <div>
+        <div class="font-16 font-semibold">
+          {{ userStore.username }}
+        </div>
+        <div class="text-gray-500">
+          {{ userStore.email }}
+        </div>
+      </div>
+    </header>
+    <div class="px-6">
+      <div class="mb-1">免费</div>
       <!-- 进度条 -->
       <van-progress
         class="mb-0.5"
@@ -24,12 +55,21 @@
         stroke-width="5"
         :show-pivot="false"
       />
-      <div class="font-12 text-gray-400">
-        {{ diskInfo.usedSpace }} / {{ diskInfo.totalSpace }}
+      <div class="text-gray-500 mb-4">
+        <span class="font-semibold ant-blue">{{ diskInfo.usedSpace }}</span>
+        /
+        {{ diskInfo.totalSpace }}
 
         <span class="ml-4"> {{ diskInfo.usedPercent }}% </span>
       </div>
-    </header>
+      <div>
+        <van-button
+          type="primary"
+          :style="{ width: '90px', height: '36px', 'border-radius': '4px' }"
+          >升级</van-button
+        >
+      </div>
+    </div>
     <!-- 菜单区 -->
     <section class="pl-6 py-4">
       <!-- 网盘 -->
@@ -51,6 +91,7 @@
           <div
             class="relative flex items-center pl-6 py-2"
             :class="{ subMenuItemActive: isRouteIncludes('/metanet/file') }"
+            @click="onClickSubMenuItem('MetanetFile')"
           >
             <MSvgIcon class="mr-2" icon="FolderOpenOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.file") }}</div>
@@ -59,6 +100,7 @@
           <div
             class="relative flex items-center pl-6 py-2"
             :class="{ subMenuItemActive: isRouteIncludes('/metanet/share') }"
+            @click="onClickSubMenuItem('MetanetSharedFile')"
           >
             <MSvgIcon class="mr-2" icon="ShareAltOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.shareButton") }}</div>
@@ -67,6 +109,7 @@
           <div
             class="relative flex items-center pl-6 py-2"
             :class="{ subMenuItemActive: isRouteIncludes('/metanet/publish') }"
+            @click="onClickSubMenuItem('publish')"
           >
             <MSvgIcon class="mr-2" icon="GlobalOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.publish") }}</div>
@@ -75,6 +118,7 @@
           <div
             class="relative flex items-center pl-6 py-2"
             :class="{ subMenuItemActive: isRouteIncludes('/metanet/collect') }"
+            @click="onClickSubMenuItem('collect')"
           >
             <MSvgIcon class="mr-2" icon="StarOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.collectionButton") }}</div>
@@ -83,6 +127,7 @@
           <div
             class="relative flex items-center pl-6 py-2"
             :class="{ subMenuItemActive: isRouteIncludes('/metanet/recycle') }"
+            @click="onClickSubMenuItem('recycle')"
           >
             <MSvgIcon class="mr-2" icon="SyncOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.recycle") }}</div>
@@ -109,6 +154,7 @@
             :class="{
               subMenuItemActive: isRouteIncludes('/transport/uploading'),
             }"
+            @click="onClickSubMenuItem('uploading')"
           >
             <MSvgIcon class="mr-2" icon="CloudUploadOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.uploadButton") }}</div>
@@ -119,6 +165,7 @@
             :class="{
               subMenuItemActive: isRouteIncludes('/transport/uploadHistory'),
             }"
+            @click="onClickSubMenuItem('uploadHistory')"
           >
             <MSvgIcon class="mr-2" icon="HistoryOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.uploadHistory") }}</div>
@@ -129,10 +176,34 @@
             :class="{
               subMenuItemActive: isRouteIncludes('/transport/peerTransfer'),
             }"
+            @click="onClickSubMenuItem('peerTransfer')"
           >
             <MSvgIcon class="mr-2" icon="UploadOutlined" :size="18" />
             <div class="subMenuText">{{ $t("metanet.peerTransfer") }}</div>
           </div>
+        </div>
+      </div>
+      <!-- 账户 -->
+      <div class="pt-4">
+        <div
+          class="pr-6 flex items-center relative"
+          @click="onExpand(2)"
+          :class="{ subMenuItemActive: isRouteIncludes('/account') }"
+        >
+          <MSvgIcon class="mr-2" icon="CloudServerOutlined" :size="20" />
+          <span class="leading-none">{{ $t("common.account") }}</span>
+          <!-- <span class="leading-none">{{ $t("common.security") }}</span> -->
+        </div>
+      </div>
+      <!-- 安全 -->
+      <div class="pt-4">
+        <div
+          class="pr-6 flex items-center relative"
+          @click="onExpand(3)"
+          :class="{ subMenuItemActive: isRouteIncludes('/security') }"
+        >
+          <MSvgIcon class="mr-2" icon="CloudServerOutlined" :size="20" />
+          <span class="leading-none">{{ $t("common.security") }}</span>
         </div>
       </div>
       <div
@@ -180,8 +251,8 @@ import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { MSvgIcon } from "../components";
 
-/** 当前展开的索引,0网盘,1传输,2国际化 */
-type ExpandV = 0 | 1 | 2;
+/** 当前展开的索引,0网盘,1传输,2账户,3安全,4国际化 */
+type ExpandV = 0 | 1 | 2 | 3 | 4;
 
 export default defineComponent({
   components: {
@@ -258,9 +329,31 @@ export default defineComponent({
       });
       /** 展开菜单 */
       const onExpand = (v: ExpandV) => {
-        expandKeys.includes(v)
-          ? remove(expandKeys, (i) => i === v)
-          : expandKeys.push(v);
+        if (v === 2) {
+          // 账户
+          router.push({ name: "Account" });
+        } else if (v === 3) {
+          // 安全
+          router.push({ name: "Security" });
+        } else {
+          expandKeys.includes(v)
+            ? remove(expandKeys, (i) => i === v)
+            : expandKeys.push(v);
+        }
+      };
+      /** 菜单子项的点击 */
+      const onClickSubMenuItem = (routeName: string) => {
+        if (routeName === "MetanetFile") {
+          router.push({
+            name: "MetanetFile",
+            query: {
+              path: "~",
+            },
+          });
+        } else {
+          router.push({ name: routeName });
+        }
+        updateVisible(false);
       };
       const onSelectLocale = (item: { name: string; value: string }) => {
         // TODO 设置语言后刷新?
@@ -273,6 +366,7 @@ export default defineComponent({
         onExpand,
         curLocale,
         localeSelectList,
+        onClickSubMenuItem,
         onSelectLocale,
       };
     }
