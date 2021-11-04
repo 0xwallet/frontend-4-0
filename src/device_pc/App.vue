@@ -25,7 +25,7 @@
       @update:visible="onUpdateVisible"
     />
     <router-view />
-    <XPhotoSwipe />
+    <!-- <XPhotoSwipe /> -->
   </a-config-provider>
 </template>
 

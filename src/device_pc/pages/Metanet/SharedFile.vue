@@ -555,6 +555,9 @@ import {
   cacheFn,
   useDelay,
   transformRawDescription,
+  PhotoSwipeItemList,
+  makePreviewImgUrl,
+  previewImg,
 } from "@/utils";
 import {
   ExportOutlined,
@@ -810,7 +813,6 @@ export default defineComponent({
         setCurrentDescriptionModalDataFromCache(dirId);
       }
     };
-    const previewImages = reactive<string[]>([]);
     /** 点击文件图标 */
     const onItemIconClick = async (record: ListItem) => {
       // console.log("onItemIconClick", record);
@@ -835,18 +837,39 @@ export default defineComponent({
         isShowDescriptionModalFileNameInAddressBar.value = false;
         // 1.2 change fileData
       } else if (FILE_TYPE_MAP.image.includes(fileType)) {
-        previewImages.length = 0;
         const { user, space, id: fileId, fullName } = record.userFile;
         // 分享的预览用的token 是该分享数据的token
         const token = record.token;
-        const url = `https://drive-s.owaf.io/preview/${
-          user.id
-        }/${space.toLowerCase()}/${fileId}/${
-          fullName.slice(-1)[0]
-        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
-          "YYYYMMDDHHmmss"
-        )}`;
-        previewImages.push(url);
+        const tableImgList = fileData.value.filter(
+          (item) =>
+            item.userFile !== null &&
+            FILE_TYPE_MAP.image.includes(item.userFile.fileType ?? "")
+        );
+        const toPreviewList = tableImgList.map((item) => ({
+          src: makePreviewImgUrl(
+            token,
+            item.userFile?.user.id ?? "",
+            item.userFile?.space ?? "",
+            item.userFile?.id ?? "",
+            item.userFile?.fullName.slice(-1)[0] ?? "",
+            item.userFile?.updatedAt ?? ""
+          ),
+          w: 0,
+          h: 0,
+          title: item.userFile?.info.description
+            ? transformRawDescription(item.userFile?.info.description)
+            : "",
+        }));
+        // 找出当前点击的图片的 openIndex
+        const startImgIdx = tableImgList.findIndex((i) => i.id === record.id);
+        // const url = `https://drive-s.owaf.io/preview/${
+        //   user.id
+        // }/${space.toLowerCase()}/${fileId}/${
+        //   fullName.slice(-1)[0]
+        // }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
+        //   "YYYYMMDDHHmmss"
+        // )}`;
+        previewImg(toPreviewList, startImgIdx);
         // const $viewer = viewerApi({
         //   options: {
         //     zIndex: 99999,
@@ -872,16 +895,16 @@ export default defineComponent({
         //   images: previewImages,
         // });
         // $viewer.show();
-        baseStore.setPhotoSwipeAndShow(
-          previewImages.map((i) => ({
-            src: i,
-            w: 0,
-            h: 0,
-            title: record.userFile?.info.description
-              ? transformRawDescription(record.userFile?.info.description)
-              : "",
-          }))
-        );
+        // baseStore.setPhotoSwipeAndShow(
+        //   previewImages.map((i) => ({
+        //     src: i,
+        //     w: 0,
+        //     h: 0,
+        //     title: record.userFile?.info.description
+        //       ? transformRawDescription(record.userFile?.info.description)
+        //       : "",
+        //   }))
+        // );
       } else if (fileType === "pdf") {
         // console.log("pdf");
         const token = record.token;

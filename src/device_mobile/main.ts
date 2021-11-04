@@ -8,6 +8,8 @@ import { DEFAULT_LANG } from "@/constants";
 import { useLocalStorage } from "@vueuse/core";
 import "viewerjs/dist/viewer.css";
 import VueViewer from "v-viewer";
+import "photoswipe/dist/photoswipe.css";
+import "photoswipe/dist/default-skin/default-skin.css";
 const mobileApp = createApp(App);
 mobileApp.use(VueViewer);
 // 注意 是响应式的

@@ -6,6 +6,7 @@ import {
   TAG_COLOR_LIST,
 } from "@/constants";
 import duration from "dayjs/plugin/duration";
+export * from "./photoSwipe";
 import dayjs from "dayjs";
 dayjs.extend(duration);
 /** 延迟函数,默认1000毫秒(1秒) */
@@ -389,4 +390,18 @@ export const transformRawDescription = (rawStr: string) => {
     (m, p1) =>
       `<span class="markTag" style="background-color:${getColor()}">${p1}</span>`
   );
+};
+
+/** 获取预览图片 url */
+export const makePreviewImgUrl = (
+  token:string,
+  userId: string,
+  space: string,
+  fileId: string,
+  fileName: string,
+  updateAt: string
+) => {
+  return `https://drive-s.owaf.io/preview/${userId}/${space.toLowerCase()}/${fileId}/${fileName}?token=${token}&t=${dayjs(
+    updateAt
+  ).format("YYYYMMDDHHmmss")}`;
 };

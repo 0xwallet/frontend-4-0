@@ -247,7 +247,6 @@ export default defineComponent({
       watch(
         () => curLocale.value,
         (newVal) => {
-          console.log("f-newVal", newVal);
           localeSelectList.value = localeList.filter((i) => i.name !== newVal);
         }
       );

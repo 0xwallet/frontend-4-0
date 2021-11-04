@@ -939,6 +939,9 @@ import {
   makeShareUrlByUri,
   getCommonFileType,
   transformRawDescription,
+  previewImg,
+  PhotoSwipeItemList,
+  makePreviewImgUrl,
 } from "@/utils";
 import { FILE_TYPE_MAP, PRODUCT_NAME } from "@/constants";
 import { useForm } from "@ant-design-vue/use";
@@ -2312,8 +2315,6 @@ export default defineComponent({
       const dirArr = historyDir.value;
       return lastOfArray(dirArr).isShared;
     });
-    /** 预览图片数组 */
-    const previewImages = reactive<string[]>([]);
     function useTableData() {
       // 返回当前目录的上一级
       const onUpperLevel = () => {
@@ -2385,28 +2386,42 @@ export default defineComponent({
           });
           // curFolderId.value = id;
         } else if (FILE_TYPE_MAP.image.includes(e)) {
-          previewImages.length = 0;
           //  const { user, space, id: fileId, fullName } = item.userFile;
           const resultPreviewToken = await apiGetPreviewToken();
           // console.log("resultPreviewToken", resultPreviewToken);
           if (resultPreviewToken.err) return;
           const token = resultPreviewToken.data.drivePreviewToken;
-          const url = `https://drive-s.owaf.io/preview/${
-            user.id
-          }/${space.toLowerCase()}/${id}/${
-            fullName.slice(-1)[0]
-          }?token=${token}&t=${dayjs(record.updatedAt).format(
-            "YYYYMMDDHHmmss"
-          )}`;
-          previewImages.push(url);
-          baseStore.setPhotoSwipeAndShow(
-            previewImages.map((i) => ({
-              src: i,
-              w: 0,
-              h: 0,
-              title: description ? transformRawDescription(description) : "",
-            }))
+          // 把列表的所有图片都加进来
+          const tableImgList = tableData.value.filter(
+            (item): item is TFileItem =>
+              item !== null && FILE_TYPE_MAP.image.includes(item.fileType ?? "")
           );
+          const toPreviewList = tableImgList.map((item) => ({
+            src: makePreviewImgUrl(
+              token,
+              item.user.id,
+              item.space,
+              item.id,
+              item.fullName.slice(-1)[0],
+              item.updatedAt
+            ),
+            w: 0,
+            h: 0,
+            title: item.info.description
+              ? transformRawDescription(item.info.description)
+              : "",
+          }));
+          // 找出当前点击的图片的 openIndex
+          const startImgIdx = tableImgList.findIndex((i) => i.id === record.id);
+          previewImg(toPreviewList, startImgIdx);
+          // const url = `https://drive-s.owaf.io/preview/${
+          //   user.id
+          // }/${space.toLowerCase()}/${id}/${
+          //   fullName.slice(-1)[0]
+          // }?token=${token}&t=${dayjs(record.updatedAt).format(
+          //   "YYYYMMDDHHmmss"
+          // )}`;
+          // previewImages.push(url);
           // const $viewer = viewerApi({
           //   options: {
           //     zIndex: 99999,

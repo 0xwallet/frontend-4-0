@@ -13,7 +13,7 @@
       :visible="isShowMobileLeftMenuPopup"
       @update:visible="onUpdateLeftMenuVisible"
     />
-    <MPhotoSwipe />
+    <!-- <MPhotoSwipe /> -->
   </div>
 </template>
 

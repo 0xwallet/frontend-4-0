@@ -598,6 +598,9 @@ import {
   downloadFileByUrl,
   useDelay,
   transformRawDescription,
+  PhotoSwipeItemList,
+  makePreviewImgUrl,
+  previewImg,
 } from "@/utils";
 import dayjs from "dayjs";
 import { Dialog, Toast } from "vant";
@@ -730,7 +733,6 @@ export default defineComponent({
     /** 是否正在加载列表中的数据 */
     const isLoadingListData = ref(false);
     const fileData = ref<ListItem[]>([]);
-    const previewImages = ref<string[]>([]);
     const isLoadingConfirmCode = ref(false);
     /** 当前的分享是否收藏过 */
     const isCurrentShareCollected = ref(false);
@@ -1291,29 +1293,32 @@ export default defineComponent({
         // 1.2 change fileData
       } else if (FILE_TYPE_MAP.image.includes(fileType)) {
         // 2.是图片
-        previewImages.value.length = 0;
         const { user, space, id: fileId, fullName } = record.userFile;
         // 分享的预览用的token 是该分享数据的token
         const token = record.token;
-        const url = `https://drive-s.owaf.io/preview/${
-          user.id
-        }/${space.toLowerCase()}/${fileId}/${
-          fullName.slice(-1)[0]
-        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
-          "YYYYMMDDHHmmss"
-        )}`;
-        previewImages.value.push(url);
-        // onShowViewer();
-        baseStore.setPhotoSwipeAndShow(
-          previewImages.value.map((i) => ({
-            src: i,
-            w: 0,
-            h: 0,
-            title: record.userFile?.info.description
-              ? transformRawDescription(record.userFile?.info.description)
-              : "",
-          }))
+        const tableImgList = fileData.value.filter(
+          (item) =>
+            item.userFile !== null &&
+            FILE_TYPE_MAP.image.includes(item.userFile.fileType ?? "")
         );
+        const toPreviewList = tableImgList.map((item) => ({
+          src: makePreviewImgUrl(
+            token,
+            item.userFile?.user.id ?? "",
+            item.userFile?.space ?? "",
+            item.userFile?.id ?? "",
+            item.userFile?.fullName.slice(-1)[0] ?? "",
+            item.userFile?.updatedAt ?? ""
+          ),
+          w: 0,
+          h: 0,
+          title: item.userFile?.info.description
+            ? transformRawDescription(item.userFile?.info.description)
+            : "",
+        }));
+        // 找出当前点击的图片的 openIndex
+        const startImgIdx = tableImgList.findIndex((i) => i.id === record.id);
+        previewImg(toPreviewList, startImgIdx);
       } else if (fileType === "pdf") {
         // 先清理上一次的任务(如果有)
         if (destoryPdfLoadingTask) {
@@ -1543,7 +1548,6 @@ export default defineComponent({
       onDownload,
       saveToMetanetModalPreAction,
       onConfirmCode,
-      previewImages,
       expiredText,
       insertedAtText,
       isLoadingListData,

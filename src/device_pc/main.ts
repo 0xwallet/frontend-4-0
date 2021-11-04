@@ -9,6 +9,8 @@ import { lastOfArray } from "../utils";
 import "viewerjs/dist/viewer.css";
 import Viewer from "v-viewer";
 import { XLink } from "./components";
+import "photoswipe/dist/photoswipe.css";
+import "photoswipe/dist/default-skin/default-skin.css";
 const app = createApp(App);
 app.component("XLink", XLink);
 app.use(Viewer);
