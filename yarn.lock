@@ -12947,14 +12947,6 @@ uuid@^3.3.2, uuid@^3.4.0:
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.4.0.tgz#b23e4358afa8a202fe7a100af1f5f883f02007ee"
   integrity sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==
 
-v-viewer@^3.0.9:
-  version "3.0.9"
-  resolved "https://registry.yarnpkg.com/v-viewer/-/v-viewer-3.0.9.tgz#1c55b1a4dcd4dc1adabdd0e03944984e84d58cc6"
-  integrity sha512-rAYXkYNxp1Z4nqzionhnPgxbkGiHrsmRd4gMGEqZpM77zVadPA1FcD9H4uvg9YQh9GLXY7XoQC44IedqFDfzXQ==
-  dependencies:
-    lodash "^4.17.21"
-    viewerjs "^1.9.0"
-
 v8-compile-cache@^2.0.3:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/v8-compile-cache/-/v8-compile-cache-2.3.0.tgz#2de19618c66dc247dcfb6f99338035d8245a2cee"
@@ -13011,11 +13003,6 @@ verror@1.10.0:
     assert-plus "^1.0.0"
     core-util-is "1.0.2"
     extsprintf "^1.2.0"
-
-viewerjs@^1.9.0:
-  version "1.10.1"
-  resolved "https://registry.yarnpkg.com/viewerjs/-/viewerjs-1.10.1.tgz#07499ed043d0a29e3002b90f55c5b228bd1a742c"
-  integrity sha512-Oyzd3JP9dDSd+bBulfnQ+UTfHoobFwkmcT/uKSnQXjmPz7rZU0HJIiKudxPaMsiv17dr4Sm1cHnASJcDlFw1PA==
 
 vm-browserify@^1.0.1:
   version "1.1.2"

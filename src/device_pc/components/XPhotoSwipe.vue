@@ -22,21 +22,29 @@
         <div class="pswp__top-bar">
           <!--  Controls are self-explanatory. Order can be changed. -->
 
-          <div class="pswp__counter"></div>
+          <div class="pswp__counter hidden"></div>
 
           <button
             class="pswp__button pswp__button--close"
             title="Close (Esc)"
+            :style="{
+              background: 'transparent',
+              position: 'absolute',
+              left: '0',
+              color: 'white',
+            }"
+          >
+            <LeftOutlined />
+          </button>
+
+          <button
+            class="pswp__button pswp__button--fs"
+            title="Toggle fullscreen"
           ></button>
 
           <button
             class="pswp__button pswp__button--share"
             title="Share"
-          ></button>
-
-          <button
-            class="pswp__button pswp__button--fs"
-            title="Toggle fullscreen"
           ></button>
 
           <button
@@ -72,7 +80,16 @@
         ></button>
 
         <div ref="captionRef" class="pswp__caption">
-          <div class="pswp__caption__center"></div>
+          <div class="pswp__caption__center hidden"></div>
+          <div
+            id="mdContainer"
+            :style="{
+              'max-width': '420px',
+              margin: '0 auto',
+            }"
+          >
+            <XMdParser v-if="mdContent" :content="mdContent" theme="dark" />
+          </div>
         </div>
       </div>
     </div>
@@ -94,27 +111,85 @@ import PhotoSwipe from "photoswipe";
 import PhotoSwipeUI_Default from "photoswipe/dist/photoswipe-ui-default";
 import { onClickOutside } from "@vueuse/core";
 import { useBaseStore } from "@/store";
+import { LeftOutlined } from "@ant-design/icons-vue";
+import { XMdParser } from ".";
 
 export default defineComponent({
+  components: {
+    LeftOutlined,
+    XMdParser,
+  },
   setup(props) {
     const baseStore = useBaseStore();
+    const mdContent = ref("");
     let gallery: null | PhotoSwipe<any> = null;
     const captionRef = ref(null);
     // const stopClickOutSide = onClickOutside(captionRef, (e) => {
     //   console.log("click-caption-outside");
     // });
+    const setMdContentFromItemList = (idx: number) =>
+      (mdContent.value = baseStore.photoSwipe.itemList[idx].title ?? "");
     const openPhotoSwipe = () => {
       closePhotoSwipe();
       // console.log("call openPhotoSwipe");
+      const totalLen = baseStore.photoSwipe.itemList.length;
+      // 注册第一次打开的 描述markdown
+      setMdContentFromItemList(baseStore.photoSwipe.options.index ?? 0);
       gallery = new PhotoSwipe(
         document.querySelectorAll(".pswp")[0] as HTMLElement,
         PhotoSwipeUI_Default,
-        baseStore.photoSwipe.itemList,
+        baseStore.photoSwipe.itemList.map((item, idx) => ({
+          ...item,
+          // 加上 1/11 的索引
+          title: `${idx + 1}/${totalLen}  ${item.title}`,
+        })),
         {
           closeOnScroll: false,
           index: 0, // start at first slide
+          ...baseStore.photoSwipe.options,
         }
       );
+      // 解决移动端全屏的bug,copy from photoswipe.com 源码 --start
+
+      let realViewportWidth,
+        useLargeImages = false,
+        firstResize = true,
+        imageSrcWillChange: boolean;
+      gallery.listen("beforeResize", function () {
+        if (!gallery) return;
+        let dpiRatio = window.devicePixelRatio ? window.devicePixelRatio : 1;
+        dpiRatio = Math.min(dpiRatio, 2.5);
+        realViewportWidth = gallery.viewportSize.x * dpiRatio;
+
+        if (
+          realViewportWidth >= 1200 ||
+          (!(gallery as any).likelyTouchDevice && realViewportWidth > 800) ||
+          screen.width > 1200
+        ) {
+          if (!useLargeImages) {
+            useLargeImages = true;
+            imageSrcWillChange = true;
+          }
+        } else {
+          if (useLargeImages) {
+            useLargeImages = false;
+            imageSrcWillChange = true;
+          }
+        }
+
+        if (imageSrcWillChange && !firstResize) {
+          console.log("call-gallery.invalidateCurrItems");
+          gallery.invalidateCurrItems();
+        }
+
+        if (firstResize) {
+          firstResize = false;
+        }
+
+        imageSrcWillChange = false;
+      });
+      // 解决移动端全屏的bug,copy from photoswipe.com 源码 --end
+
       gallery.listen("imageLoadComplete", function (index, item) {
         // 如果是 0 的话, 设为自动宽高
         // console.log("item...", item);
@@ -129,8 +204,11 @@ export default defineComponent({
           img.src = item.src as string;
         }
       });
+      gallery.listen("beforeChange", () => {
+        setMdContentFromItemList(gallery?.getCurrentIndex() ?? 0);
+      });
       gallery.listen("close", () => {
-        baseStore.setPhotoSwipeIsShow(false);
+        baseStore.setPhotoSwipeVisible(false);
       });
       gallery.init();
     };
@@ -156,7 +234,7 @@ export default defineComponent({
     onUnmounted(() => {
       closePhotoSwipe();
     });
-    return { captionRef };
+    return { captionRef, mdContent };
   },
 });
 </script>

@@ -6,7 +6,6 @@ import {
   TAG_COLOR_LIST,
 } from "@/constants";
 import duration from "dayjs/plugin/duration";
-export * from "./photoSwipe";
 import dayjs from "dayjs";
 dayjs.extend(duration);
 /** 延迟函数,默认1000毫秒(1秒) */

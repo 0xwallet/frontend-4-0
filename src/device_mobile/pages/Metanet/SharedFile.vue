@@ -598,9 +598,7 @@ import {
   downloadFileByUrl,
   useDelay,
   transformRawDescription,
-  PhotoSwipeItemList,
   makePreviewImgUrl,
-  previewImg,
 } from "@/utils";
 import dayjs from "dayjs";
 import { Dialog, Toast } from "vant";
@@ -614,14 +612,13 @@ import {
   ref,
   watch,
 } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import {
   MFileTypeIcon,
   MSvgIcon,
   MMdParser,
   MLocaleSwither,
 } from "../../components";
-import { api as viewerApi } from "v-viewer";
 import { useBaseStore, useUserStore } from "@/store";
 import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
 import pdfjsLib from "pdfjs-dist";
@@ -1318,7 +1315,7 @@ export default defineComponent({
         }));
         // 找出当前点击的图片的 openIndex
         const startImgIdx = tableImgList.findIndex((i) => i.id === record.id);
-        previewImg(toPreviewList, startImgIdx);
+        baseStore.setPhotoSwipeAndShow(toPreviewList, { index: startImgIdx });
       } else if (fileType === "pdf") {
         // 先清理上一次的任务(如果有)
         if (destoryPdfLoadingTask) {
@@ -1525,6 +1522,14 @@ export default defineComponent({
       //   // }
       // });
     };
+    // 手机导航后退的时候,检查有没先关闭图片预览
+    onBeforeRouteLeave((to, from) => {
+      if (baseStore.photoSwipe.isShow) {
+        baseStore.setPhotoSwipeVisible(false);
+        return false;
+      }
+      return true;
+    });
     return {
       TAG_COLOR_LIST,
       isCanFilePreview,

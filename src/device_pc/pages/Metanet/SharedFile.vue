@@ -532,7 +532,12 @@ import {
   TFileItem,
 } from "@/apollo/api";
 import dayjs from "dayjs";
-import { onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
+import {
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+  useRoute,
+  useRouter,
+} from "vue-router";
 import { message } from "ant-design-vue";
 import {
   XFileTypeIcon,
@@ -555,9 +560,7 @@ import {
   cacheFn,
   useDelay,
   transformRawDescription,
-  PhotoSwipeItemList,
   makePreviewImgUrl,
-  previewImg,
 } from "@/utils";
 import {
   ExportOutlined,
@@ -576,7 +579,6 @@ import {
 import { TDir } from "./components/FileItem.vue";
 import { useBaseStore, useUserStore } from "@/store";
 import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
-import { api as viewerApi } from "v-viewer";
 import ModalDetail, { TDetailInfo } from "./components/ModalDetail.vue";
 import { onClickOutside } from "@vueuse/core";
 
@@ -869,42 +871,7 @@ export default defineComponent({
         // }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
         //   "YYYYMMDDHHmmss"
         // )}`;
-        previewImg(toPreviewList, startImgIdx);
-        // const $viewer = viewerApi({
-        //   options: {
-        //     zIndex: 99999,
-        //     toolbar: {
-        //       zoomIn: 1,
-        //       zoomOut: 1,
-        //       oneToOne: 1,
-        //       reset: 0,
-        //       prev: 0,
-        //       play: {
-        //         show: 0,
-        //         size: "large",
-        //       },
-        //       next: 0,
-        //       rotateLeft: 0,
-        //       rotateRight: 0,
-        //       flipHorizontal: 0,
-        //       flipVertical: 0,
-        //     },
-        //     movable: true,
-        //     // initialViewIndex: 1,
-        //   },
-        //   images: previewImages,
-        // });
-        // $viewer.show();
-        // baseStore.setPhotoSwipeAndShow(
-        //   previewImages.map((i) => ({
-        //     src: i,
-        //     w: 0,
-        //     h: 0,
-        //     title: record.userFile?.info.description
-        //       ? transformRawDescription(record.userFile?.info.description)
-        //       : "",
-        //   }))
-        // );
+        baseStore.setPhotoSwipeAndShow(toPreviewList, { index: startImgIdx });
       } else if (fileType === "pdf") {
         // console.log("pdf");
         const token = record.token;
@@ -1506,6 +1473,14 @@ export default defineComponent({
         saveToMetanetModalPreAction,
       };
     }
+    // 手机导航后退的时候,检查有没先关闭图片预览
+    onBeforeRouteLeave((to, from) => {
+      if (baseStore.photoSwipe.isShow) {
+        baseStore.setPhotoSwipeVisible(false);
+        return false;
+      }
+      return true;
+    });
     return {
       isCodeResolved,
       inputCode,

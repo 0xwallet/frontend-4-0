@@ -25,7 +25,7 @@
       @update:visible="onUpdateVisible"
     />
     <router-view />
-    <!-- <XPhotoSwipe /> -->
+    <XPhotoSwipe />
   </a-config-provider>
 </template>
 
@@ -332,5 +332,15 @@ body,
 .no-mode-fade-enter-from,
 .no-mode-fade-leave-to {
   opacity: 0;
+}
+// markdown body 里的颜色继承父(.markdown-body)
+// 而不是全局ant-design-color
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  color: inherit;
 }
 </style>

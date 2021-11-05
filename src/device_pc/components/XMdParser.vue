@@ -1,12 +1,14 @@
 <template>
-  <div class="markdown-body" v-html="clean"></div>
+  <div class="markdown-body" :class="themeClassName" v-html="clean"></div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch } from "vue";
+import { defineComponent, PropType, ref, watch } from "vue";
 import marked from "marked";
 import DOMPurify from "dompurify";
 import { transformRawDescription } from "@/utils";
+
+type MdTheme = "light" | "dark";
 
 export default defineComponent({
   props: {
@@ -14,9 +16,15 @@ export default defineComponent({
       type: String,
       required: true,
     },
+    theme: {
+      type: String as PropType<MdTheme>,
+      default: "light",
+    },
   },
   setup(props) {
     const clean = ref("");
+    const themeClassName = ref("");
+    themeClassName.value = `markdown-body-${props.theme}`;
     // marked.setOptions({});
     marked.use({
       renderer: {
@@ -46,7 +54,7 @@ export default defineComponent({
     // const parsedContent = marked(props.content);
     // clean.value = DOMPurify.sanitize(parsedContent);
     // console.log("clean", clean);
-    return { clean };
+    return { clean, themeClassName };
   },
 });
 </script>

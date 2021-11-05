@@ -91,7 +91,7 @@ export default defineStore({
     changeMobileLeftPopupVisible(v: boolean) {
       this.isShowMobileLeftMenuPopup = v;
     },
-    setPhotoSwipeIsShow(v: boolean) {
+    setPhotoSwipeVisible(v: boolean) {
       this.photoSwipe.isShow = v;
     },
     /** 设置 photoSwipe 并显示 */
@@ -102,7 +102,7 @@ export default defineStore({
       this.photoSwipe.itemList = list;
       if (options) this.photoSwipe.options = options;
       // this.photoSwipe.isShow = true;
-      this.setPhotoSwipeIsShow(true);
+      this.setPhotoSwipeVisible(true);
     },
   },
 });

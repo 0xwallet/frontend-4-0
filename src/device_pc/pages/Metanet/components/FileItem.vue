@@ -939,8 +939,6 @@ import {
   makeShareUrlByUri,
   getCommonFileType,
   transformRawDescription,
-  previewImg,
-  PhotoSwipeItemList,
   makePreviewImgUrl,
 } from "@/utils";
 import { FILE_TYPE_MAP, PRODUCT_NAME } from "@/constants";
@@ -948,7 +946,6 @@ import { useForm } from "@ant-design-vue/use";
 import { RuleObject } from "ant-design-vue/lib/form/interface";
 import { useClipboard, onClickOutside } from "@vueuse/core";
 import { onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
-import { api as viewerApi } from "v-viewer";
 
 export type THistoryDirItem = {
   name: string;
@@ -2413,7 +2410,8 @@ export default defineComponent({
           }));
           // 找出当前点击的图片的 openIndex
           const startImgIdx = tableImgList.findIndex((i) => i.id === record.id);
-          previewImg(toPreviewList, startImgIdx);
+          // previewImg(toPreviewList, startImgIdx);
+          baseStore.setPhotoSwipeAndShow(toPreviewList, { index: startImgIdx });
           // const url = `https://drive-s.owaf.io/preview/${
           //   user.id
           // }/${space.toLowerCase()}/${id}/${
