@@ -9,7 +9,7 @@
     :loading="loading"
     :columns="columns"
     :data-source="data"
-    :scroll="scroll"
+    :scroll="customScroll"
     :row-selection="rowSelection"
     :pagination="false"
     :rowClassName="rowClassName"
@@ -23,7 +23,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref } from "vue";
+import { debounce } from "lodash";
+import {
+  computed,
+  defineComponent,
+  onUnmounted,
+  PropType,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 
 type TColumn = {
   title: string;
@@ -119,10 +128,32 @@ export default defineComponent({
             ),
           }),
         };
-
+    const customScroll = reactive<{ x: boolean | number; y: boolean | number }>(
+      {
+        x: false,
+        y: false,
+      }
+    );
+    const curDataLength = computed(() => props.data.length);
+    watch(
+      () => curDataLength.value,
+      (newVal) => setCustomScroll()
+    );
+    const setCustomScroll = () => {
+      // console.log("call debounceSetCustomScroll");
+      const tableMaxHeight = window.innerHeight - 220;
+      const curDataHeight = curDataLength.value * 42; // 每行42px高度
+      customScroll.y = curDataHeight > tableMaxHeight ? tableMaxHeight : false;
+    };
+    const debounceSetCustomScroll = debounce(setCustomScroll, 100);
+    window.addEventListener("resize", debounceSetCustomScroll);
+    onUnmounted(() =>
+      window.removeEventListener("resize", debounceSetCustomScroll)
+    );
     return {
       slots,
       rowSelection,
+      customScroll,
     };
   },
 });
@@ -165,5 +196,8 @@ export default defineComponent({
 // }
 :deep(.ant-table-thead > tr) {
   border-bottom: 1rem solid blue;
+}
+:deep(.ant-table-wrapper) {
+  border-bottom: 1px solid #eff2f9;
 }
 </style>

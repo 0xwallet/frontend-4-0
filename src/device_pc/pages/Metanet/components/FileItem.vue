@@ -70,7 +70,7 @@
           class="inline-block mr-2 px-1"
           @click="onRefreshTableData"
         >
-          <SyncOutlined :spin="tableLoading" />
+          <SyncOutlined :spin="isLoadingAllTableData" />
         </a>
       </a-tooltip>
       <div
@@ -236,10 +236,10 @@
       :customRow="customRow"
       :columns="columns"
       :data="tableData"
-      :loading="tableLoading"
       v-model:selectedRows="selectedRows"
       v-model:selectedRowKeys="selectedRowKeys"
     >
+      <!-- :loading="tableLoading" -->
       <template #name="{ record }">
         <div class="tdName relative">
           <!-- 空白就是blank 文件夹就是folder -->
@@ -430,12 +430,12 @@
         </a-dropdown>
       </template>
     </XTableFiles>
-    <div
+    <!-- <div
       v-if="!tableLoading && isLoadingAllTableData"
       class="h-10 flex items-center justify-center"
     >
       <a-spin :spinning="isLoadingAllTableData"> </a-spin>
-    </div>
+    </div> -->
     <!-- 弹窗 分享文件 -->
     <a-modal
       :destroyOnClose="true"
@@ -2620,7 +2620,7 @@ export default defineComponent({
         },
         {
           title: t("metanet.action"),
-          fixed: "right",
+          // fixed: "right",
           width: 60,
           slots: { customRender: "action" },
         },
