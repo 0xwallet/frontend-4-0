@@ -1,12 +1,14 @@
 <template>
-  <div class="markdown-body" v-html="clean"></div>
+  <div class="markdown-body" :class="themeClassName" v-html="clean"></div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch } from "vue";
+import { defineComponent, PropType, ref, watch } from "vue";
 import marked from "marked";
 import DOMPurify from "dompurify";
-import { TAG_COLOR_LIST } from "@/constants";
+import { transformRawDescription } from "@/utils";
+
+type MdTheme = "light" | "dark";
 
 export default defineComponent({
   props: {
@@ -14,23 +16,23 @@ export default defineComponent({
       type: String,
       required: true,
     },
+    theme: {
+      type: String as PropType<MdTheme>,
+      default: "light",
+    },
   },
   setup(props) {
     const clean = ref("");
+    const themeClassName = ref("");
+    themeClassName.value = `markdown-body-${props.theme}`;
     // marked.setOptions({});
-    let colorIdx = 0;
-    const getColor = () => TAG_COLOR_LIST[colorIdx++];
     marked.use({
       renderer: {
         // tag renderer
         text(text) {
           // console.log("arguments", arguments);
           // console.log("text", text, typeof text);
-          return text.replace(
-            /#(.+?)#/g,
-            (m, p1) =>
-              `<span class="markTag" style="background-color:${getColor()}">${p1}</span>`
-          );
+          return transformRawDescription(text);
         },
       },
     });
@@ -42,7 +44,6 @@ export default defineComponent({
     watch(
       () => props.content,
       (newVal) => {
-        colorIdx = 0; // 重置colorIdx 从头渲染
         const parsedContent = marked(newVal);
         clean.value = DOMPurify.sanitize(parsedContent);
       },
@@ -53,7 +54,7 @@ export default defineComponent({
     // const parsedContent = marked(props.content);
     // clean.value = DOMPurify.sanitize(parsedContent);
     // console.log("clean", clean);
-    return { clean };
+    return { clean, themeClassName };
   },
 });
 </script>

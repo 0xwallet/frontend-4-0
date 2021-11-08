@@ -79,14 +79,18 @@
           title="Next (arrow right)"
         ></button>
 
-        <div ref="captionRef" class="pswp__caption">
+        <div ref="captionRef" id="captionBox" class="pswp__caption">
           <div class="pswp__caption__center hidden"></div>
           <div
-            id="mdContainer"
+            class="mdContainer"
             :style="{
               'max-width': '420px',
               margin: '0 auto',
             }"
+            :class="{
+              expandMdContainer: isExpandMdContainer,
+            }"
+            @click="onExpandMdContainer"
           >
             <MMdParser v-if="mdContent" :content="mdContent" theme="dark" />
           </div>
@@ -112,6 +116,8 @@ import PhotoSwipeUI_Default from "photoswipe/dist/photoswipe-ui-default";
 import { onClickOutside } from "@vueuse/core";
 import { useBaseStore } from "@/store";
 import { MMdParser } from ".";
+import PerfectScrollbar from "perfect-scrollbar";
+// import "perfect-scrollbar/css/perfect-scrollbar.css";
 
 export default defineComponent({
   components: {
@@ -143,6 +149,7 @@ export default defineComponent({
         })),
         {
           closeOnScroll: false,
+          closeOnVerticalDrag: false,
           index: 0, // start at first slide
           ...baseStore.photoSwipe.options,
         }
@@ -176,7 +183,7 @@ export default defineComponent({
         }
 
         if (imageSrcWillChange && !firstResize) {
-          console.log("call-gallery.invalidateCurrItems");
+          // console.log("call-gallery.invalidateCurrItems");
           gallery.invalidateCurrItems();
         }
 
@@ -232,16 +239,69 @@ export default defineComponent({
     onUnmounted(() => {
       closePhotoSwipe();
     });
-    return { captionRef, mdContent };
+    function useExpandMdContainer() {
+      const isExpandMdContainer = ref(false);
+      const onExpandMdContainer = () => {
+        isExpandMdContainer.value = !isExpandMdContainer.value;
+        // pswp__caption
+        document
+          .getElementById("captionBox")
+          ?.classList.add("importantOpacity-100");
+        // if (isExpandMdContainer.value) {
+        //   document
+        //     .getElementById("captionBox")
+        //     ?.classList.add("importantOpacity-100");
+        // } else {
+        //   document
+        //     .getElementById("captionBox")
+        //     ?.classList.remove("importantOpacity-100");
+        // }
+      };
+      let ps: null | PerfectScrollbar;
+      onMounted(() => {
+        ps = new PerfectScrollbar(".mdContainer");
+        // console.log("ps", ps);
+      });
+      onUnmounted(() => {
+        ps?.destroy();
+        ps = null;
+      });
+      return {
+        isExpandMdContainer,
+        onExpandMdContainer,
+      };
+    }
+    return { captionRef, mdContent, ...useExpandMdContainer() };
   },
 });
 </script>
 
 <style lang="less" scoped>
+@import "~perfect-scrollbar/css/perfect-scrollbar.css";
 // .pswp__caption__center {
 // }
 .pswp img {
   max-width: none;
   object-fit: contain !important;
+}
+:deep(.markdown-body) {
+  background-color: #000;
+}
+.importantOpacity-100 {
+  opacity: 1 !important;
+}
+.mdContainer {
+  position: relative;
+  // width: 600px;
+  // height: 100px;
+  max-height: 4em;
+  overflow: hidden;
+  overflow-y: scroll;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+.expandMdContainer {
+  max-height: 12em;
 }
 </style>
