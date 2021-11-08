@@ -393,7 +393,7 @@ export const transformRawDescription = (rawStr: string) => {
 
 /** 获取预览图片 url */
 export const makePreviewImgUrl = (
-  token:string,
+  token: string,
   userId: string,
   space: string,
   fileId: string,
@@ -403,4 +403,9 @@ export const makePreviewImgUrl = (
   return `https://drive-s.owaf.io/preview/${userId}/${space.toLowerCase()}/${fileId}/${fileName}?token=${token}&t=${dayjs(
     updateAt
   ).format("YYYYMMDDHHmmss")}`;
+};
+
+/** 获取百分比数据 */
+export const calcPercent = (val: number, total: number) => {
+  return Math.floor((val / total) * 100);
 };

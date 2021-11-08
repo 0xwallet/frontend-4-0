@@ -345,6 +345,7 @@ import {
   writeHeaderInSession,
   formatBytes,
   downloadFileByBlob,
+  calcPercent,
 } from "@/utils";
 import { classMultiClient, TMessageType, TSession } from "nkn";
 import { getAnonymousMultiClient } from "@/apollo/nknConfig";
@@ -442,7 +443,7 @@ const calcTimeLeftText = throttle(calcTimeLeftTextFn, 1000);
 /** 获取节点准备好的nkn client */
 const getReadyAnonymousMultiClient = () => {
   return new Promise<classMultiClient>((resolve, reject) => {
-    // 10s 4个节点, 不然就重置
+    // 10s 2个节点, 不然就重置
     let client = getAnonymousMultiClient();
     let counter = 0;
     let id = setInterval(() => {
@@ -532,10 +533,53 @@ export default defineComponent({
     const initClientStatus = initMultiClient().then((client) => {
       nknStatusCount.value = client?.readyClientIDs().length ?? 0;
     });
+    const removeNknClientMsgListener = (fn: (m: TMessageType) => void) => {
+      remove(nknClient?.eventListeners?.message ?? [], (v) => v === fn);
+    };
     let currentReceiveRemoteAddr = "";
     const sendFileLimit = pLimit(2);
     // 同一时间 dial 同个地址会有bug , 这里得锁住1个 dial 并发
     const dialLimit = pLimit(1);
+    // 读取接收方的offset --start 10 秒后会超时
+    const readOffsetFromMessage = (fileHash: string, waitTime = 10_000) => {
+      // console.time("[性能] 接收offset时间");
+      return new Promise<number>((resolve) => {
+        const timer = setTimeout(() => {
+          // 相当于一个错误
+          console.log("等待offset 信息超时");
+          removeNknClientMsgListener(handleConfirmOffset);
+          resolve(0);
+        }, waitTime);
+        const handleConfirmOffset = (msgObj: TMessageType) => {
+          // hash 和 offset
+          // console.log("msgObj", msgObj);
+          const [msgFileHash, offset] = msgObj.payload.split("-");
+          if (msgFileHash === fileHash) {
+            console.log("收到接收方offset消息推送", offset);
+            clearTimeout(timer);
+            removeNknClientMsgListener(handleConfirmOffset);
+            resolve(+offset);
+            // console.timeEnd("[性能] 接收offset时间");
+          }
+        };
+        nknClient?.onMessage(handleConfirmOffset);
+      });
+    };
+    /** 设置表格项的进度/速度/状态 */
+    const setTableItemProgressSpeedStatus = (
+      fileHash: string,
+      progress: number,
+      speed: number,
+      status: PeerFileItem["status"]
+    ) => {
+      // 防止push 的过程idx 变了, 所以得重新查找
+      const idx = tableData.value.findIndex((i) => i.fileHash === fileHash);
+      if (idx !== -1) {
+        tableData.value[idx].progress = progress;
+        tableData.value[idx].speed = speed;
+        tableData.value[idx].status = status;
+      }
+    };
     /** 发送一个文件 */
     const onSendOneFile = async (remotAddr: string, item: PeerFileItem) => {
       if (!item.file) return;
@@ -552,7 +596,6 @@ export default defineComponent({
       }
       // console.log("session", session);
       item.status = "sending";
-      // console.log("session", session);
       const header: FileHeader = {
         fileName: item.file.name,
         fileSize: item.file.size,
@@ -561,59 +604,14 @@ export default defineComponent({
       };
       await writeHeaderInSession(session, encode(header));
       // while fileSize MAX_MTU
-      let startLen = 0;
-      // 读取接收方的offset --start 10 秒后会超时
-      const readOffsetFromMessage = (waitTime = 10_000) => {
-        // console.time("[性能] 接收offset时间");
-        return new Promise<number>((resolve) => {
-          const timer = setTimeout(() => {
-            // 相当于一个错误
-            console.log("等待offset 信息超时");
-            // removeNknClientMsgListener(handleConfirmOffset);
-            resolve(0);
-          }, waitTime);
-          const handleConfirmOffset = (msgObj: TMessageType) => {
-            // hash 和 offset
-            // console.log("msgObj", msgObj);
-            const [fileHash, offset] = msgObj.payload.split("-");
-            if (fileHash === item.fileHash) {
-              console.log("收到接收方offset消息推送", offset);
-              resolve(+offset);
-              // console.timeEnd("[性能] 接收offset时间");
-              clearTimeout(timer);
-              // removeNknClientMsgListener(handleConfirmOffset);
-            }
-          };
-          nknClient?.onMessage(handleConfirmOffset);
-        });
-      };
-      const offsetRes = await readOffsetFromMessage();
-      startLen = offsetRes;
-
-      // 读取接收方的offset --end
+      let startLen = await readOffsetFromMessage(item.fileHash);
       const startTime = dayjs();
       // 计算速度前的长度
       const beginCalcSpeedStartLen = startLen;
       let diffSeconds = 0;
       let toSetBytesPerSecond = 0;
       const fileBuffer = await item.file.arrayBuffer();
-      // console.log("fileBuffer", fileBuffer);
       const maxSendLength = fileBuffer.byteLength;
-      const setItemProgressSpeedStatus = (
-        progress: number,
-        speed: number,
-        status: PeerFileItem["status"]
-      ) => {
-        // 防止push 的过程idx 变了, 所以得重新查找
-        const idx = tableData.value.findIndex(
-          (i) => i.fileHash === item.fileHash
-        );
-        if (idx !== -1) {
-          tableData.value[idx].progress = progress;
-          tableData.value[idx].speed = speed;
-          tableData.value[idx].status = status;
-        }
-      };
       const getItemCurSendStatus = () => item.status;
       while (startLen <= maxSendLength) {
         // console.log("getItemCurSendStatus", getItemCurSendStatus);
@@ -644,7 +642,7 @@ export default defineComponent({
         await session.write(toWriteChunk);
         startLen += MAX_MTU;
         // 设置进度 start
-        const toSetProgressVal = Math.floor((startLen / maxSendLength) * 100);
+        const toSetProgressVal = calcPercent(startLen, maxSendLength);
         if (toSetProgressVal < 100) {
           const curDiffSeconds = dayjs().diff(startTime, "second");
           if (curDiffSeconds > diffSeconds) {
@@ -655,14 +653,15 @@ export default defineComponent({
           }
           // 如果不是暂停/取消 状态,继续设置进度和发送状态
           if (!["pause", "cancel"].includes(getItemCurSendStatus())) {
-            setItemProgressSpeedStatus(
+            setTableItemProgressSpeedStatus(
+              item.fileHash,
               toSetProgressVal,
               toSetBytesPerSecond,
               "sending"
             );
           }
         } else {
-          setItemProgressSpeedStatus(99, 0, "waiting");
+          setTableItemProgressSpeedStatus(item.fileHash, 99, 0, "waiting");
         }
         // 设置进度 end
       }
@@ -671,7 +670,7 @@ export default defineComponent({
       const handleConfirmMessage = (message: TMessageType) => {
         if (message.payload === confirmMessage) {
           console.log("收到确认信息", message);
-          setItemProgressSpeedStatus(100, 0, "successSend");
+          setTableItemProgressSpeedStatus(item.fileHash, 100, 0, "successSend");
           // 如果全部都发送完毕就清除状态
           if (tableData.value.every((i) => i.status === "successSend")) {
             onFinishedSendFilesClear();
@@ -684,7 +683,7 @@ export default defineComponent({
             );
           // 清空文件节省内存
           item.file = undefined;
-          // removeNknClientMsgListener(handleConfirmMessage);
+          removeNknClientMsgListener(handleConfirmMessage);
         }
       };
       nknClient.onMessage(handleConfirmMessage);
@@ -1113,9 +1112,7 @@ export default defineComponent({
                 const storageItemLen = await getStorageItemProgress(
                   item.fileHash
                 );
-                const progress = Math.floor(
-                  (storageItemLen / item.fileSize) * 100
-                );
+                const progress = calcPercent(storageItemLen, item.fileSize);
                 return {
                   ...item,
                   file: new File(["0"], item.fileName),
@@ -1360,24 +1357,7 @@ export default defineComponent({
           //   startLen = maxReceiveLength;
           // }
           // 设置进度 start
-          const setItemProgressSpeedStatus = (
-            progress: number,
-            speed: number,
-            status: PeerFileItem["status"]
-          ) => {
-            // 防止push 的过程idx 变了, 所以得重新查找
-            const idx = tableData.value.findIndex(
-              (i) => i.fileHash === fileHash
-            );
-            if (idx !== -1) {
-              tableData.value[idx].progress = progress;
-              tableData.value[idx].speed = speed;
-              tableData.value[idx].status = status;
-            }
-          };
-          const toSetProgressVal = Math.floor(
-            (startLen / maxReceiveLength) * 100
-          );
+          const toSetProgressVal = calcPercent(startLen, maxReceiveLength);
           // console.log("toSetProgressVal", toSetProgressVal);
           if (toSetProgressVal < 100) {
             const curDiffSeconds = dayjs().diff(startTime, "second");
@@ -1389,7 +1369,8 @@ export default defineComponent({
             }
             // 如果不是暂停/取消 状态,继续设置进度和接收状态
             if (!["pause", "cancel"].includes(getItemCurReceiveStatus())) {
-              setItemProgressSpeedStatus(
+              setTableItemProgressSpeedStatus(
+                fileHash,
                 toSetProgressVal,
                 toSetBytesPerSecond,
                 "receiving"
@@ -1397,7 +1378,7 @@ export default defineComponent({
             }
           } else {
             await dbLimit(() => null);
-            setItemProgressSpeedStatus(100, 0, "successReceive");
+            setTableItemProgressSpeedStatus(fileHash, 100, 0, "successReceive");
             // 如果全部都发送完毕就清除接收端状态
             if (tableData.value.every((i) => i.status === "successReceive")) {
               onFinishedReceiveFilesClear();
