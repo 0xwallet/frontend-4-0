@@ -116,8 +116,6 @@ import PhotoSwipeUI_Default from "photoswipe/dist/photoswipe-ui-default";
 import { onClickOutside } from "@vueuse/core";
 import { useBaseStore } from "@/store";
 import { MMdParser } from ".";
-import PerfectScrollbar from "perfect-scrollbar";
-// import "perfect-scrollbar/css/perfect-scrollbar.css";
 
 export default defineComponent({
   components: {
@@ -224,6 +222,13 @@ export default defineComponent({
       }
       // stopClickOutSide && stopClickOutSide();
     };
+    const isExpandMdContainer = ref(false);
+    const onExpandMdContainer = () => {
+      isExpandMdContainer.value = !isExpandMdContainer.value;
+      document
+        .getElementById("captionBox")
+        ?.classList.add("importantOpacity-100");
+    };
     watch(
       () => baseStore.photoSwipe.isShow,
       (newVal) => {
@@ -231,6 +236,7 @@ export default defineComponent({
           openPhotoSwipe();
         } else {
           closePhotoSwipe();
+          isExpandMdContainer.value = false;
         }
       },
       { immediate: true }
@@ -239,45 +245,12 @@ export default defineComponent({
     onUnmounted(() => {
       closePhotoSwipe();
     });
-    function useExpandMdContainer() {
-      const isExpandMdContainer = ref(false);
-      const onExpandMdContainer = () => {
-        isExpandMdContainer.value = !isExpandMdContainer.value;
-        // pswp__caption
-        document
-          .getElementById("captionBox")
-          ?.classList.add("importantOpacity-100");
-        // if (isExpandMdContainer.value) {
-        //   document
-        //     .getElementById("captionBox")
-        //     ?.classList.add("importantOpacity-100");
-        // } else {
-        //   document
-        //     .getElementById("captionBox")
-        //     ?.classList.remove("importantOpacity-100");
-        // }
-      };
-      let ps: null | PerfectScrollbar;
-      onMounted(() => {
-        ps = new PerfectScrollbar(".mdContainer");
-        // console.log("ps", ps);
-      });
-      onUnmounted(() => {
-        ps?.destroy();
-        ps = null;
-      });
-      return {
-        isExpandMdContainer,
-        onExpandMdContainer,
-      };
-    }
-    return { captionRef, mdContent, ...useExpandMdContainer() };
+    return { captionRef, mdContent, isExpandMdContainer, onExpandMdContainer };
   },
 });
 </script>
 
 <style lang="less" scoped>
-@import "~perfect-scrollbar/css/perfect-scrollbar.css";
 // .pswp__caption__center {
 // }
 .pswp img {
@@ -292,14 +265,23 @@ export default defineComponent({
 }
 .mdContainer {
   position: relative;
-  // width: 600px;
-  // height: 100px;
   max-height: 4em;
+  padding: 0px 12px;
   overflow: hidden;
   overflow-y: scroll;
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  scrollbar-color: #000 #393939; // for firefox
+}
+.mdContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mdContainer::-webkit-scrollbar-track {
+  background-color: #000;
+}
+
+.mdContainer::-webkit-scrollbar-thumb {
+  background-color: #393939;
+  border-radius: 100px;
 }
 .expandMdContainer {
   max-height: 12em;
