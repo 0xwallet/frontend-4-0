@@ -535,6 +535,9 @@ export const apiUploadSingle = async (
   const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
     try {
+      if (isCurrentUploadStatusPause()) {
+        return null;
+      }
       const resNfr = await apiQueryNfrAddress();
       if (resNfr.err || !resNfr.data) {
         console.error("apiQueryNfrAddress-获取不到数据");
@@ -563,7 +566,11 @@ export const apiUploadSingle = async (
   const clientSession = await sessionLimit(() => repeatlyClientDial());
   // console.log("after-client-shakehand");
   console.timeEnd(`[性能 client.dial 时间]${params.file.name}`);
-  if (!clientSession) return { err: Error(UPLOAD_MSG.err_noClientSession) };
+  if (!clientSession) {
+    return isCurrentUploadStatusPause()
+      ? { err: Error(UPLOAD_MSG.err_pauseByUser) }
+      : { err: Error(UPLOAD_MSG.err_noClientSession) };
+  }
   // console.log("session握手成功", clientSession);
   console.log("session握手成功");
   if (isCurrentUploadStatusPause()) {
