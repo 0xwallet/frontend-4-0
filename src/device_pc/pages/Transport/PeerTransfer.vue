@@ -607,18 +607,6 @@ export default defineComponent({
       ).finally(() => remove(calcHashPromiseArr, (v) => v === task));
       calcHashPromiseArr.push(task);
     };
-    // TODO test 删除
-    setTimeout(() => {
-      tableData.value.push({
-        fileName: "test.jpg",
-        fileSize: 10 * 1024 * 1024,
-        fileHash: "hash",
-        fileType: "jpg",
-        progress: 10,
-        speed: 0,
-        status: "queueing",
-      });
-    }, 1000);
     // 读取接收方的offset --start 10 秒后会超时
     const readOffsetFromMessage = (fileHash: string, waitTime = 10_000) => {
       // console.time("[性能] 接收offset时间");
