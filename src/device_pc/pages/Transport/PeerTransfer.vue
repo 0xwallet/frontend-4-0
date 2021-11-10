@@ -16,13 +16,16 @@
     <section class="p-4 pb-6 rounded-xl bg-white">
       <!-- 功能区 height 32px-->
       <div class="relative h-8 flex items-center mb-3">
-        <a-tooltip title="重置状态">
-          <XLink
+        <a-tooltip title="添加文件">
+          <!-- <XLink
             class="inline-block px-1 mr-2"
             :disabled="peerLink.length === 0 && peerCode.length === 0"
             @click="onResetStatus"
           >
             <LeftCircleOutlined />
+          </XLink> -->
+          <XLink @click="onSendAddFiles">
+            <PlusSquareOutlined class="mr-2" />
           </XLink>
         </a-tooltip>
         <div
@@ -39,13 +42,14 @@
             relative
           "
         >
-          <XLink @click="onSendAddFiles">
+          <!-- <XLink @click="onSendAddFiles">
             <PlusSquareOutlined class="mr-2" />
-          </XLink>
-          <template v-if="!peerLink"> 可拖拽文件至此 </template>
+          </XLink> -->
+          <span v-if="!peerLink" class="text-gray-400"> 拖拽添加文件 </span>
           <div
             class="
               absolute
+              left-2
               inset-0
               z-50
               rounded-full
@@ -55,7 +59,6 @@
               pr-2
             "
             :style="{
-              left: '30px',
               border: '2px dashed transparent',
             }"
             :class="{
@@ -67,9 +70,6 @@
             @drop="onDrop"
           >
             <template v-if="peerLink">
-              <XLink class="truncate" @click="onCopyPeerLink">{{
-                peerLink
-              }}</XLink>
               <a-popover title="空投链接二维码">
                 <template #content>
                   <XQrCode :url="peerLink" :width="180" />
@@ -78,6 +78,9 @@
                   <QrcodeOutlined />
                 </XLink>
               </a-popover>
+              <XLink class="flex-1 truncate mr-2" @click="onCopyPeerLink">{{
+                peerLink
+              }}</XLink>
               <XLink class="inline-block" @click="onCopyPeerLink">
                 <CopyOutlined />
               </XLink>
@@ -198,8 +201,27 @@
                 'margin-top': '-4px',
               }"
             >
+              <!-- 指示灯 -->
+              <a-tooltip :title="calcRecordStatusTooltip(record)">
+                <span
+                  class="
+                    inline-block
+                    w-1.5
+                    h-1.5
+                    rounded-full
+                    mr-1
+                    align-middle
+                  "
+                  :style="{
+                    'background-color': calcRecordStatusColor(record),
+                  }"
+                ></span>
+              </a-tooltip>
               <template v-if="record.status === 'queueing'">
                 <span>等待中</span>
+              </template>
+              <template v-else-if="record.status === 'calculating'">
+                <span>计算文件摘要中...</span>
               </template>
               <!-- send -->
               <template v-else-if="record.status === 'sending'">
@@ -334,7 +356,7 @@ import { useI18n } from "vue-i18n";
 import {
   countDown,
   countDownSeconds,
-  getFileSHA256,
+  getFileDigest,
   getFileType,
   getRandomNumStr,
   getRepeatlyClientDialFn,
@@ -370,6 +392,7 @@ import { useClipboard, useLocalStorage } from "@vueuse/core";
 import dayjs from "dayjs";
 import pLimit from "p-limit";
 import { useRoute, useRouter } from "vue-router";
+import Bowser from "bowser";
 
 type PeerFileItem = {
   file?: File;
@@ -380,6 +403,7 @@ type PeerFileItem = {
   progress: number;
   speed: number;
   status:
+    | "calculating" // 计算 hash 中
     | "queueing"
     | "sending"
     | "receiving"
@@ -408,6 +432,7 @@ const CHANNEL_MSG = {
   PAUSE: "pause",
   CANCEL: "cancel",
   HEART_BEAT: "heart_beat",
+  DEVICE: "device",
 };
 /**计算剩余时间 */
 const calcTimeLeftTextFn = (record: PeerFileItem) => {
@@ -464,11 +489,22 @@ const getReadyAnonymousMultiClient = () => {
 };
 /** 创建-确认信息 */
 const makeConfirmMessage = (fileHash: string) => `received-${fileHash}`;
+/** 设置个 假的默认的fileHash 填充 */
+const makeFakeFileHash = (fileName: string, fileSize: number) =>
+  `${fileName}-${fileSize}`;
+/** 创建设备信息 */
+const makeDeviceInfo = () => {
+  const { browser, os } = Bowser.parse(window.navigator.userAgent);
+  return `${os.name} ${browser.name} Browser`;
+};
+/** 创建nkn的设备信息 */
+const makeNknDeviceMsg = () => {
+  return `${CHANNEL_MSG.DEVICE}+${makeDeviceInfo()}`;
+};
 /** 判断record传输状态 */
 const isStatus = (sArr: PeerFileItem["status"][], record: PeerFileItem) => {
   return sArr.includes(record.status);
 };
-
 export default defineComponent({
   components: {
     XLink,
@@ -536,10 +572,53 @@ export default defineComponent({
     const removeNknClientMsgListener = (fn: (m: TMessageType) => void) => {
       remove(nknClient?.eventListeners?.message ?? [], (v) => v === fn);
     };
+    /** 对方设备信息 */
+    const remoteDeviceInfo = ref("");
+    const calcRecordStatusTooltip = (record: PeerFileItem) => {
+      if (!isBothConnected.value) return "未连接";
+      // 连接的话返回对方浏览器信息
+      return remoteDeviceInfo.value;
+      // if(isStatus[''])
+    };
+    const calcRecordStatusColor = (record: PeerFileItem) => {
+      if (!isBothConnected.value) return "red";
+      if (record.speed === 0) return "yellow";
+      return "green";
+    };
     let currentReceiveRemoteAddr = "";
     const sendFileLimit = pLimit(2);
     // 同一时间 dial 同个地址会有bug , 这里得锁住1个 dial 并发
     const dialLimit = pLimit(1);
+    // 存放 计算hash 的 promise 数组
+    const calcHashPromiseArr: Promise<void[]>[] = [];
+    /** 计算列表中每个文件的摘要 */
+    const calcFileListDigest = (list: PeerFileItem[]) => {
+      const task = Promise.all(
+        list.map(async (i) => {
+          if (!i.file) return;
+          const { fileName, fileSize } = i;
+          const fileHashStr = await getFileDigest(i.file);
+          setTableItem(
+            (v) => v.fileName === fileName && v.fileSize === fileSize,
+            { fileHash: fileHashStr, status: "queueing" }
+          );
+          console.log(`${fileName}文件的摘要为:${fileHashStr}`);
+        })
+      ).finally(() => remove(calcHashPromiseArr, (v) => v === task));
+      calcHashPromiseArr.push(task);
+    };
+    // TODO test 删除
+    setTimeout(() => {
+      tableData.value.push({
+        fileName: "test.jpg",
+        fileSize: 10 * 1024 * 1024,
+        fileHash: "hash",
+        fileType: "jpg",
+        progress: 10,
+        speed: 0,
+        status: "queueing",
+      });
+    }, 1000);
     // 读取接收方的offset --start 10 秒后会超时
     const readOffsetFromMessage = (fileHash: string, waitTime = 10_000) => {
       // console.time("[性能] 接收offset时间");
@@ -566,19 +645,27 @@ export default defineComponent({
       });
     };
     /** 设置表格项的进度/速度/状态 */
-    const setTableItemProgressSpeedStatus = (
-      fileHash: string,
-      progress: number,
-      speed: number,
-      status: PeerFileItem["status"]
+    // const setTableItemProgressSpeedStatus = (
+    //   fileHash: string,
+    //   progress: number,
+    //   speed: number,
+    //   status: PeerFileItem["status"]
+    // ) => {
+    //   // 防止push 的过程idx 变了, 所以得重新查找
+    //   const idx = tableData.value.findIndex((i) => i.fileHash === fileHash);
+    //   if (idx !== -1) {
+    //     tableData.value[idx].progress = progress;
+    //     tableData.value[idx].speed = speed;
+    //     tableData.value[idx].status = status;
+    //   }
+    // };
+    /** 设置表格里对象的数据 */
+    const setTableItem = (
+      fn: (item: PeerFileItem) => boolean,
+      obj: Partial<PeerFileItem>
     ) => {
-      // 防止push 的过程idx 变了, 所以得重新查找
-      const idx = tableData.value.findIndex((i) => i.fileHash === fileHash);
-      if (idx !== -1) {
-        tableData.value[idx].progress = progress;
-        tableData.value[idx].speed = speed;
-        tableData.value[idx].status = status;
-      }
+      const idx = tableData.value.findIndex(fn);
+      if (idx !== -1) Object.assign(tableData.value[idx], obj);
     };
     /** 发送一个文件 */
     const onSendOneFile = async (remotAddr: string, item: PeerFileItem) => {
@@ -610,8 +697,9 @@ export default defineComponent({
       const beginCalcSpeedStartLen = startLen;
       let diffSeconds = 0;
       let toSetBytesPerSecond = 0;
-      const fileBuffer = await item.file.arrayBuffer();
-      const maxSendLength = fileBuffer.byteLength;
+      // const fileBuffer = await item.file.arrayBuffer();
+      // const maxSendLength = fileBuffer.byteLength;
+      const maxSendLength = item.file.size;
       const getItemCurSendStatus = () => item.status;
       while (startLen <= maxSendLength) {
         // console.log("getItemCurSendStatus", getItemCurSendStatus);
@@ -632,13 +720,10 @@ export default defineComponent({
           console.error("session closed");
           return;
         }
-        const toWriteChunk = new Uint8Array(
-          fileBuffer.slice(
-            startLen,
-            Math.min(startLen + MAX_MTU, maxSendLength)
-          )
-        );
-        // console.log("正在传的chunk开始长度", startLen);
+        const toWriteBlob = await item.file
+          .slice(startLen, Math.min(startLen + MAX_MTU, maxSendLength))
+          .arrayBuffer();
+        const toWriteChunk = new Uint8Array(toWriteBlob);
         await session.write(toWriteChunk);
         startLen += MAX_MTU;
         // 设置进度 start
@@ -653,15 +738,25 @@ export default defineComponent({
           }
           // 如果不是暂停/取消 状态,继续设置进度和发送状态
           if (!["pause", "cancel"].includes(getItemCurSendStatus())) {
-            setTableItemProgressSpeedStatus(
-              item.fileHash,
-              toSetProgressVal,
-              toSetBytesPerSecond,
-              "sending"
-            );
+            // setTableItemProgressSpeedStatus(
+            //   item.fileHash,
+            //   toSetProgressVal,
+            //   toSetBytesPerSecond,
+            //   "sending"
+            // );
+            setTableItem((v) => v.fileHash === item.fileHash, {
+              progress: toSetProgressVal,
+              speed: toSetBytesPerSecond,
+              status: "sending",
+            });
           }
         } else {
-          setTableItemProgressSpeedStatus(item.fileHash, 99, 0, "waiting");
+          // setTableItemProgressSpeedStatus(item.fileHash, 99, 0, "waiting");
+          setTableItem((v) => v.fileHash === item.fileHash, {
+            progress: 99,
+            speed: 0,
+            status: "waiting",
+          });
         }
         // 设置进度 end
       }
@@ -670,7 +765,12 @@ export default defineComponent({
       const handleConfirmMessage = (message: TMessageType) => {
         if (message.payload === confirmMessage) {
           console.log("收到确认信息", message);
-          setTableItemProgressSpeedStatus(item.fileHash, 100, 0, "successSend");
+          // setTableItemProgressSpeedStatus(item.fileHash, 100, 0, "successSend");
+          setTableItem((v) => v.fileHash === item.fileHash, {
+            progress: 100,
+            speed: 0,
+            status: "successSend",
+          });
           // 如果全部都发送完毕就清除状态
           if (tableData.value.every((i) => i.status === "successSend")) {
             onFinishedSendFilesClear();
@@ -697,7 +797,7 @@ export default defineComponent({
       }
     };
     initClientStatus.then(() => {
-      console.log("clientReady", nknClient);
+      console.log("clientReady");
     });
     /** 发送完所有文件后重置发送端状态 */
     const onFinishedSendFilesClear = () => {
@@ -716,6 +816,7 @@ export default defineComponent({
       peerCode.value = "";
       isBothConnected.value = false;
     };
+
     const onMakeSendReady = async () => {
       console.log("onMakeSendReady");
       if (!nknClient) {
@@ -735,6 +836,11 @@ export default defineComponent({
           isBothConnected.value = true;
           heartBeatController.listen();
           console.log("收到接收方发来的消息,即将发送文件", payload);
+          if (calcHashPromiseArr.length) {
+            const hide = message.loading("等待全部文件摘要计算完毕...", 0);
+            await Promise.all(calcHashPromiseArr);
+            hide();
+          }
           stopAddFilesCoutDown();
           Promise.all(
             tableData.value.map((item) => {
@@ -746,6 +852,23 @@ export default defineComponent({
         }
       };
       nknClient.onMessage(handleShakeHandMessage);
+      const handleDeviceMessage = async ({
+        payload,
+        src,
+      }: {
+        payload: string;
+        src: string;
+      }) => {
+        // makeNknDeviceMsg
+        const [msgPrefix, deviceInfo] = payload.split("+");
+        if (msgPrefix === CHANNEL_MSG.DEVICE) {
+          console.log("收到接收方设备信息:", deviceInfo);
+          remoteDeviceInfo.value = deviceInfo;
+          removeNknClientMsgListener(handleDeviceMessage);
+          return makeNknDeviceMsg();
+        }
+      };
+      nknClient.onMessage(handleDeviceMessage);
       const transferUrl = location.href.match(/^.*peerTransfer/g)?.[0];
       const myAddr = nknClient.addr;
       peerLink.value = `${transferUrl}?addr=${myAddr}`;
@@ -790,18 +913,14 @@ export default defineComponent({
       if (peerLink.value) {
         useClipboard({ read: false })
           .copy(peerLink.value)
-          .then(() => {
-            message.success(t("metanet.copySuccess"));
-          });
+          .then(() => message.success(t("metanet.copySuccess")));
       }
     };
     const onCopyPeerCode = () => {
       if (peerCode.value) {
         useClipboard({ read: false })
           .copy(peerCode.value)
-          .then(() => {
-            message.success(t("metanet.copySuccess"));
-          });
+          .then(() => message.success(t("metanet.copySuccess")));
       }
     };
     /** 是否正在校验空投码 */
@@ -835,9 +954,7 @@ export default defineComponent({
           isActionSend.value = true;
         }
       },
-      {
-        deep: true,
-      }
+      { deep: true }
     );
     /** 重置状态 */
     const onResetStatus = () => {
@@ -943,18 +1060,18 @@ export default defineComponent({
         }
         const files = event.dataTransfer?.files;
         if (!files) return;
-        const fileArr: PeerFileItem[] = await Promise.all(
-          [...files].map(async (i) => ({
-            file: i,
-            fileName: i.name,
-            fileSize: i.size,
-            fileHash: await getFileSHA256(i),
-            fileType: getFileType({ isDir: false, fileName: i.name }),
-            progress: 0,
-            speed: 0,
-            status: "queueing" as PeerFileItem["status"],
-          }))
-        );
+        const fileArr: PeerFileItem[] = [...files].map((i) => ({
+          file: i,
+          fileName: i.name,
+          fileSize: i.size,
+          fileHash: makeFakeFileHash(i.name, i.size),
+          fileType: getFileType({ isDir: false, fileName: i.name }),
+          progress: 0,
+          speed: 0,
+          // status: "queueing" as PeerFileItem["status"],
+          status: "calculating" as PeerFileItem["status"],
+        }));
+        calcFileListDigest(fileArr);
         // 去掉已经加入的文件
         const noSameFileArr = fileArr.filter(
           (i) => !tableData.value.some((e) => e.fileHash === i.fileHash)
@@ -1061,18 +1178,18 @@ export default defineComponent({
       const input = e.target as HTMLInputElement;
       if (!input.files?.length) return;
       isActionSend.value = true;
-      const fileArr: PeerFileItem[] = await Promise.all(
-        [...input.files].map(async (i) => ({
-          file: i,
-          fileHash: await getFileSHA256(i),
-          fileName: i.name,
-          fileSize: i.size,
-          fileType: getFileType({ isDir: false, fileName: i.name }),
-          progress: 0,
-          speed: 0,
-          status: "queueing" as PeerFileItem["status"], // 首次加入文件设置为等待中
-        }))
-      );
+      const fileArr: PeerFileItem[] = [...input.files].map((i) => ({
+        file: i,
+        fileHash: makeFakeFileHash(i.name, i.size),
+        fileName: i.name,
+        fileSize: i.size,
+        fileType: getFileType({ isDir: false, fileName: i.name }),
+        progress: 0,
+        speed: 0,
+        status: "calculating" as PeerFileItem["status"], // 首次加入文件设置为等待中
+      }));
+      calcFileListDigest(fileArr);
+      // console.log("fileArr", fileArr);
       // 去掉已经加入的文件
       const noSameFileArr = fileArr.filter(
         (i) => !tableData.value.some((e) => e.fileHash === i.fileHash)
@@ -1214,6 +1331,16 @@ export default defineComponent({
     let remoteAddr = route.query.addr as string;
     // 链接方式打开页面的提示
     let stopLinkConnectingMsg: null | (() => void);
+    /** 接收端发送设备信息 */
+    const receiveSendDeviceInfo = (addr: string) => {
+      console.log("call-receiveSendDeviceInfo", makeNknDeviceMsg());
+      nknClient.send(addr, makeNknDeviceMsg()).then((val) => {
+        const sendSideDeviceMsg = val as unknown as string;
+        const [msgPrefix, deviceInfo] = sendSideDeviceMsg.split("+");
+        console.log("收到发送方设备信息:", deviceInfo);
+        remoteDeviceInfo.value = deviceInfo;
+      });
+    };
     const handleReceiveFile = async (
       type: "link" | "code",
       remoteAddr?: string
@@ -1226,6 +1353,8 @@ export default defineComponent({
         await nknClient.send(remoteAddr, CHANNEL_MSG.SHAKE_HAND, {
           noReply: true,
         });
+        // 发送 接收端的设备信息
+        receiveSendDeviceInfo(remoteAddr);
       }
       // 必须要listen 才能onSession
       nknClient.listen();
@@ -1369,16 +1498,26 @@ export default defineComponent({
             }
             // 如果不是暂停/取消 状态,继续设置进度和接收状态
             if (!["pause", "cancel"].includes(getItemCurReceiveStatus())) {
-              setTableItemProgressSpeedStatus(
-                fileHash,
-                toSetProgressVal,
-                toSetBytesPerSecond,
-                "receiving"
-              );
+              // setTableItemProgressSpeedStatus(
+              //   fileHash,
+              //   toSetProgressVal,
+              //   toSetBytesPerSecond,
+              //   "receiving"
+              // );
+              setTableItem((v) => v.fileHash === fileHash, {
+                progress: toSetProgressVal,
+                speed: toSetBytesPerSecond,
+                status: "receiving",
+              });
             }
           } else {
             await dbLimit(() => null);
-            setTableItemProgressSpeedStatus(fileHash, 100, 0, "successReceive");
+            // setTableItemProgressSpeedStatus(fileHash, 100, 0, "successReceive");
+            setTableItem((v) => v.fileHash === fileHash, {
+              progress: 100,
+              speed: 0,
+              status: "successReceive",
+            });
             // 如果全部都发送完毕就清除接收端状态
             if (tableData.value.every((i) => i.status === "successReceive")) {
               onFinishedReceiveFilesClear();
@@ -1466,6 +1605,7 @@ export default defineComponent({
       const ref2 = receiveChannel.on(
         CHANNEL_MSG.CONFIRM_CODE,
         (data: ChannelMsgType) => {
+          receiveSendDeviceInfo(data.addr);
           console.log("receiveChannel 收到的data", data);
           // console.log(data, "receiveCode is valid");
           heartBeatController.send(data.addr);
@@ -1499,6 +1639,8 @@ export default defineComponent({
       tableData,
       peerLink,
       peerCode,
+      calcRecordStatusTooltip,
+      calcRecordStatusColor,
       onCopyPeerLink,
       onCopyPeerCode,
       onResetStatus,

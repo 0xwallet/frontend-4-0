@@ -529,8 +529,7 @@ export const apiUploadSingle = async (
   // const clientSession = await multiClient?.dial(REMOTE_ADDR);
   // 尝试重拨dial 的次数, 防止爆栈
   let dialTryTimes = 0;
-  const maxDialTimes = 2_0000;
-  // TODO 如果用户点了取消, 这里也要取消重试
+  const maxDialTimes = 20_000;
   /** 如果是dial 超时就重新dial */
   const repeatlyClientDial = async (): Promise<TSession | null> => {
     let res;
@@ -545,7 +544,7 @@ export const apiUploadSingle = async (
       }
       const nfrAddress = resNfr.data.driveNfrAddress;
       res = await multiClient.dial(nfrAddress, {
-        dialTimeout: 10000, // 10s dial 过期
+        dialTimeout: 10_000, // 10s dial 过期
       });
       // 过期就重试
     } catch (error) {
@@ -609,13 +608,15 @@ export const apiUploadSingle = async (
   const readOffsetFromMessage = () => {
     // console.time("[性能] 接收offset时间");
     return new Promise<number | null>((resolve) => {
-      const timer = setTimeout(() => {
-        // 相当于一个错误
-        console.log("等待offset 信息超时");
+      const removeOffsetListener = () =>
         remove(
           multiClient.eventListeners.message,
           (v) => v === handleConfirmOffset
         );
+      const timer = setTimeout(() => {
+        // 相当于一个错误
+        console.log("等待offset 信息超时");
+        removeOffsetListener();
         resolve(null);
       }, 60_000);
       const handleConfirmOffset = (msgObj: TMessageType) => {
@@ -631,10 +632,7 @@ export const apiUploadSingle = async (
           resolve(startOffset);
           // console.timeEnd("[性能] 接收offset时间");
           clearTimeout(timer);
-          remove(
-            multiClient.eventListeners.message,
-            (v) => v === handleConfirmOffset
-          );
+          removeOffsetListener();
         }
       };
       multiClient.onMessage(handleConfirmOffset);

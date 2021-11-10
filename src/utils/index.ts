@@ -31,9 +31,7 @@ export const formatBytes = (bytes: number, decimals = 1): string => {
 };
 
 /** 计算文件的sha256 哈希值,跟后端算法一样 */
-export const getFileSHA256 = async (file: File): Promise<string> => {
-  const timeTag = `计算文件-${file.name}-hash时间`;
-  console.time(timeTag);
+export const getFileSHA256 = async (file: Blob): Promise<string> => {
   const data = await file.arrayBuffer();
   // hash the message
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -43,9 +41,26 @@ export const getFileSHA256 = async (file: File): Promise<string> => {
   const hashHex = hashArray
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  console.timeEnd(timeTag);
   // console.log("hashHex", hashHex);
   return hashHex;
+};
+
+/** 计算文件的 hash256 升级版,小于chunkSize 500mb 的直接算, 大于的就算chunkSize总和文字*/
+export const getFileDigest = async (file: File, chunkSizeMb = 512) => {
+  console.time("calc-digest");
+  const chunkSizeByte = chunkSizeMb * 1024 * 1024;
+  if (file.size < chunkSizeByte) return getFileSHA256(file);
+  let start = 0;
+  const totalHex: string[] = [];
+  while (start < file.size) {
+    const endRead = start + chunkSizeByte;
+    const toReadBuf = file.slice(start, Math.min(endRead, file.size));
+    const chunkHex = await getFileSHA256(toReadBuf);
+    totalHex.push(chunkHex);
+    start = endRead;
+  }
+  console.timeEnd("calc-digest");
+  return totalHex.join("|");
 };
 
 /** 缓存处理字符串的函数 */
