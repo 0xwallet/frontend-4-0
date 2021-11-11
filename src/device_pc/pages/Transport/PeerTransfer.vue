@@ -878,7 +878,7 @@ export default defineComponent({
         if (msgPrefix === CHANNEL_MSG.DEVICE) {
           console.log("收到接收方设备信息:", deviceInfo);
           remoteDeviceInfo.value = deviceInfo;
-          removeNknClientMsgListener(handleDeviceMessage);
+          // removeNknClientMsgListener(handleDeviceMessage);
           return makeNknDeviceMsg();
         }
       };
