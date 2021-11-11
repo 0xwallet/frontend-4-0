@@ -259,7 +259,7 @@
                 >
               </template>
               <template v-else-if="record.status === 'successReceive'">
-                <span>接收成功</span>
+                <span>空投下载成功</span>
               </template>
               <template v-else>
                 <span>其他状态</span>
@@ -297,7 +297,7 @@
               </XLink>
             </template>
             <template v-else>
-              <XLink
+              <!-- <XLink
                 class="flex-1"
                 @click="onReceiveRecordDownload(record)"
                 :disabled="record.status !== 'successReceive'"
@@ -305,8 +305,12 @@
                 <a-tooltip title="下载">
                   <DownloadOutlined />
                 </a-tooltip>
-              </XLink>
-              <XLink class="flex-1" @click="onReceiveRecordCancel(record)">
+              </XLink> -->
+              <XLink
+                v-if="['successReceive', 'failed'].includes(record.status)"
+                class="flex-1"
+                @click="onReceiveRecordCancel(record)"
+              >
                 <a-tooltip title="删除">
                   <DeleteOutlined class="text-red-500" />
                 </a-tooltip>
@@ -575,15 +579,34 @@ export default defineComponent({
     /** 对方设备信息 */
     const remoteDeviceInfo = ref("");
     const calcRecordStatusTooltip = (record: PeerFileItem) => {
+      if (
+        isStatus(
+          ["calculating", "queueing", "pause", "cancel", "failed"],
+          record
+        )
+      ) {
+        return "未连接";
+      }
+      // 剩下的状态是 sending receiving waiting successSend successReceive
       if (!isBothConnected.value) return "未连接";
+      if (record.speed === 0) return "连接中";
       // 连接的话返回对方浏览器信息
       return remoteDeviceInfo.value;
-      // if(isStatus[''])
     };
     const calcRecordStatusColor = (record: PeerFileItem) => {
-      if (!isBothConnected.value) return "red";
-      if (record.speed === 0) return "yellow";
-      return "green";
+      if (
+        isStatus(
+          ["calculating", "queueing", "pause", "cancel", "failed"],
+          record
+        )
+      ) {
+        return "#ff4d4f";
+      }
+      // 剩下的状态是 sending receiving waiting successSend successReceive
+      if (!isBothConnected.value) return "#ff4d4f";
+      if (record.speed === 0) return "#fadb14";
+      // 连接的话返回对方浏览器信息
+      return "#52c41a";
     };
     let currentReceiveRemoteAddr = "";
     const sendFileLimit = pLimit(2);
@@ -745,6 +768,7 @@ export default defineComponent({
             speed: 0,
             status: "waiting",
           });
+          session.close(); // 发送完后关闭这个session
         }
         // 设置进度 end
       }
@@ -759,6 +783,8 @@ export default defineComponent({
             speed: 0,
             status: "successSend",
           });
+          // 写进历史
+
           // 如果全部都发送完毕就清除状态
           if (tableData.value.every((i) => i.status === "successSend")) {
             onFinishedSendFilesClear();
@@ -785,7 +811,7 @@ export default defineComponent({
       }
     };
     initClientStatus.then(() => {
-      console.log("clientReady");
+      console.log("clientReady", nknClient);
     });
     /** 发送完所有文件后重置发送端状态 */
     const onFinishedSendFilesClear = () => {
@@ -1233,6 +1259,9 @@ export default defineComponent({
               message.info("检测到上次传输的文件缓存,您可以继续接收", 3);
             }
           });
+        } else {
+          // 没有 idb 缓存的话说明文件已经下载, 清空 localStorage
+          storegeReceiveData.value.length = 0;
         }
       });
     }
@@ -1506,6 +1535,9 @@ export default defineComponent({
               speed: 0,
               status: "successReceive",
             });
+            session.close(); // 接收完这个文件后关闭这个session
+            // 一个文件接收完成后, 下载这个文件, 然后删除idb缓存
+            onReceiveRecordDownload(itemToPush).then(() => del(fileHash));
             // 如果全部都发送完毕就清除接收端状态
             if (tableData.value.every((i) => i.status === "successReceive")) {
               onFinishedReceiveFilesClear();
