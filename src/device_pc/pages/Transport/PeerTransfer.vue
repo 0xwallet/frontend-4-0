@@ -259,7 +259,7 @@
                 >
               </template>
               <template v-else-if="record.status === 'successReceive'">
-                <span>空投下载成功</span>
+                <span>下载成功</span>
               </template>
               <template v-else>
                 <span>其他状态</span>
@@ -297,7 +297,7 @@
               </XLink>
             </template>
             <template v-else>
-              <!-- <XLink
+              <XLink
                 class="flex-1"
                 @click="onReceiveRecordDownload(record)"
                 :disabled="record.status !== 'successReceive'"
@@ -305,7 +305,7 @@
                 <a-tooltip title="下载">
                   <DownloadOutlined />
                 </a-tooltip>
-              </XLink> -->
+              </XLink>
               <XLink
                 v-if="['successReceive', 'failed'].includes(record.status)"
                 class="flex-1"
@@ -397,6 +397,7 @@ import dayjs from "dayjs";
 import pLimit from "p-limit";
 import { useRoute, useRouter } from "vue-router";
 import Bowser from "bowser";
+import streamSaver from "streamsaver";
 
 type PeerFileItem = {
   file?: File;
@@ -509,6 +510,8 @@ const makeNknDeviceMsg = () => {
 const isStatus = (sArr: PeerFileItem["status"][], record: PeerFileItem) => {
   return sArr.includes(record.status);
 };
+const LIMIT_SIZE = 20 * 1024 * 1024;
+
 export default defineComponent({
   components: {
     XLink,
@@ -768,7 +771,7 @@ export default defineComponent({
             speed: 0,
             status: "waiting",
           });
-          session.close(); // 发送完后关闭这个session
+          // session.close(); // 发送完后关闭这个session
         }
         // 设置进度 end
       }
@@ -1152,16 +1155,34 @@ export default defineComponent({
         message.warning("文件未接收完整");
         return;
       }
-      const { fileHash, fileName } = record;
-      const fileBuffer = await get(fileHash);
-      if (fileBuffer) {
-        downloadFileByBlob(
-          new File([fileBuffer], fileName, {
-            type: record.file?.type,
-          }),
-          fileName
-        );
+      const { fileHash, fileName, fileSize } = record;
+      // TODO
+      const totalChunks = Math.ceil(fileSize / LIMIT_SIZE);
+      const fileStream = streamSaver.createWriteStream(fileName, {
+        size: fileSize, // (optional filesize) Will show progress
+      });
+      let startCounter = 1;
+      const writer = fileStream.getWriter();
+      while (startCounter <= totalChunks) {
+        const buf = await get(`${totalChunks}*${startCounter++}*${fileHash}`);
+        await writer.write(buf);
       }
+      await writer.close();
+      // const fileBuffer = await get(fileHash);
+      // if (fileBuffer) {
+      //   downloadFileByBlob(
+      //     new File([fileBuffer], fileName, {
+      //       type: record.file?.type,
+      //     }),
+      //     fileName
+      //   );
+      // }
+    };
+    /** 根据 fileHash 找出并删除 idb 中相关的文件 */
+    const delIdbFilesByHash = async (fileHash: string) => {
+      const idbAllKeys = (await keys()) as unknown as string[];
+      const shouldDelKeys = idbAllKeys.filter((key) => key.includes(fileHash));
+      await delMany(shouldDelKeys);
     };
     /** 表格项-接收端-取消 */
     const onReceiveRecordCancel = (record: PeerFileItem) => {
@@ -1173,7 +1194,8 @@ export default defineComponent({
         )
       ) {
         const fileHash = record.fileHash;
-        del(fileHash).catch((e) => console.log(e));
+        delIdbFilesByHash(fileHash);
+        // del(fileHash).catch((e) => console.log(e));
         remove(tableData.value, (v) => v.fileHash === record.fileHash);
         if (tableData.value.length === 0) onFinishedReceiveFilesClear();
       }
@@ -1223,27 +1245,40 @@ export default defineComponent({
         "file" | "progress" | "speed" | "status"
       >[]
     );
-    const getStorageItemProgress = async (fileHash: string) => {
-      const found = await get(fileHash);
-      return found?.length ?? 0;
+    const getIdbItemLen = async (sameHashIdbKeyList: string[]) => {
+      let maxCounter = 0;
+      let maxCounterName = "";
+      for (const idbName of sameHashIdbKeyList) {
+        const [total, counter] = idbName.split("*");
+        if (+counter > maxCounter) {
+          maxCounter = +counter;
+          maxCounterName = idbName;
+        }
+      }
+      const lastOneLen = (await get(maxCounterName)).length;
+      return (maxCounter - 1) * LIMIT_SIZE + lastOneLen;
     };
     // 如果有indexDB数据的文件缓存
     if (storegeReceiveData.value.length) {
       // 检测到有缓存, 切换成接收端模式
-      keys().then((fileHashList) => {
+      keys().then((keyList) => {
+        const fileIdbNameList = keyList as unknown as string[];
+        // console.log("fileIdbNameList", fileIdbNameList);
         const hasDataList = storegeReceiveData.value.filter((item) =>
-          fileHashList.includes(item.fileHash)
+          fileIdbNameList.some((e) => e.includes(item.fileHash))
         );
+        // console.log("hasDataList", hasDataList);
         if (hasDataList.length) {
           isActionSend.value = false;
           storegeReceiveData.value = hasDataList;
           Promise.all(
             storegeReceiveData.value.map<Promise<PeerFileItem>>(
               async (item) => {
-                const storageItemLen = await getStorageItemProgress(
-                  item.fileHash
+                const sameHashIdbKeyList = fileIdbNameList.filter((i) =>
+                  i.includes(item.fileHash)
                 );
-                const progress = calcPercent(storageItemLen, item.fileSize);
+                const totalIdbLen = await getIdbItemLen(sameHashIdbKeyList);
+                const progress = calcPercent(totalIdbLen, item.fileSize);
                 return {
                   ...item,
                   file: new File(["0"], item.fileName),
@@ -1261,7 +1296,8 @@ export default defineComponent({
           });
         } else {
           // 没有 idb 缓存的话说明文件已经下载, 清空 localStorage
-          storegeReceiveData.value.length = 0;
+          // TODO 放出来
+          // storegeReceiveData.value.length = 0;
         }
       });
     }
@@ -1430,23 +1466,37 @@ export default defineComponent({
         const fileHash = headerObj.fileHash;
         const dbKeys = await keys();
         let startLen = 0;
-        if (!dbKeys.includes(fileHash)) {
-          set(fileHash, new Uint8Array(0));
-        } else {
-          // 如果有缓存, 取出上一次的长度
-          startLen = (await get(fileHash)).length;
-        }
+        // if (!dbKeys.includes(fileHash)) {
+        //   set(fileHash, new Uint8Array(0));
+        // } else {
+        //   // 如果有缓存, 取出上一次的长度
+        //   startLen = (await get(fileHash)).length;
+        // }
+        // TODO 根据keys设定初始len
         console.log("startLen", startLen);
         // 发送offset信息
         await nknClient.send(session.remoteAddr, `${fileHash}-${startLen}`);
         const dbLimit = pLimit(1);
-        const LIMIT_SIZE = 5 * 1024 * 1024;
         let bufBox = new Uint8Array(0);
+        let totalChunks = Math.ceil(maxReceiveLength / LIMIT_SIZE);
+        let chunkCounter = 1;
         const updateFileDb = async (buf: Uint8Array) => {
           bufBox = mergeUint8Array(bufBox, buf); // pass
           if (bufBox.length >= LIMIT_SIZE) {
-            await update(fileHash, (val) => mergeUint8Array(val, bufBox));
-            bufBox = new Uint8Array(0);
+            // await update(fileHash, (val) => mergeUint8Array(val, bufBox));
+            // bufBox = new Uint8Array(0);
+            const temp = bufBox.slice(0, LIMIT_SIZE);
+            bufBox = bufBox.slice(LIMIT_SIZE);
+            // await update(fileHash, (val) => mergeUint8Array(val, temp));
+            try {
+              const toSetKey = `${totalChunks}*${chunkCounter++}*${fileHash}`;
+              // console.log("toSetKey-temp", toSetKey, temp);
+              await set(toSetKey, temp);
+            } catch (error) {
+              console.log("updateFileDb-err", error);
+            }
+            // bufBox = new Uint8Array(0);
+            // bufBox = bufBox.slice(LIMIT_SIZE);
           }
         };
         // const cacheMergeRoundedBuf = async (r: Uint8Array) => {
@@ -1462,7 +1512,7 @@ export default defineComponent({
         // '0-100':new Uint8Array(0)
         // };
         // const errorReadLenPromiseArr = [];
-        const getItemCurReceiveStatus = () => itemToPush.status;
+        // const getItemCurReceiveStatus = () => itemToPush.status;
         while (startLen < maxReceiveLength) {
           // pause cancel 状态检测?
           if (session.isClosed) {
@@ -1514,7 +1564,7 @@ export default defineComponent({
               diffSeconds = curDiffSeconds;
             }
             // 如果不是暂停/取消 状态,继续设置进度和接收状态
-            if (!["pause", "cancel"].includes(getItemCurReceiveStatus())) {
+            if (!["pause", "cancel"].includes(itemToPush.status)) {
               // setTableItemProgressSpeedStatus(
               //   fileHash,
               //   toSetProgressVal,
@@ -1536,8 +1586,7 @@ export default defineComponent({
               status: "successReceive",
             });
             session.close(); // 接收完这个文件后关闭这个session
-            // 一个文件接收完成后, 下载这个文件, 然后删除idb缓存
-            onReceiveRecordDownload(itemToPush).then(() => del(fileHash));
+
             // 如果全部都发送完毕就清除接收端状态
             if (tableData.value.every((i) => i.status === "successReceive")) {
               onFinishedReceiveFilesClear();
@@ -1558,11 +1607,17 @@ export default defineComponent({
           console.time("last-update");
           // const beforeLastUpdate = await get(fileHash);
           await dbLimit(() =>
-            update(fileHash, (val) => mergeUint8Array(val, bufBox))
+            // update(fileHash, (val) => mergeUint8Array(val, bufBox))
+            set(`${totalChunks}*${chunkCounter++}*${fileHash}`, bufBox)
           );
           // const afterLastUpdate = await get(fileHash);
           console.timeEnd("last-update");
         }
+        // 一个文件接收完成后, 下载这个文件, 然后删除idb缓存
+        onReceiveRecordDownload(itemToPush).then(() => {
+          // TODO
+          // del(fileHash)
+        });
         // TODO 发回去校验hash
         // 发送-确认信息
         await nknClient.send(session.remoteAddr, makeConfirmMessage(fileHash));
