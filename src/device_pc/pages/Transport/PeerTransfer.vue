@@ -441,7 +441,7 @@ const CHANNEL_MSG = {
   DEVICE: "device",
 };
 /**计算剩余时间 */
-const calcTimeLeftTextFn = (record: PeerFileItem) => {
+const calcTimeLeftText = (record: PeerFileItem) => {
   let { fileSize, progress, speed } = record;
   // `剩余时间: 00:00:01` // speed /s
   const leftSize = fileSize * ((100 - progress) / 100);
@@ -470,7 +470,6 @@ const calcTimeLeftTextFn = (record: PeerFileItem) => {
     )}`;
   }
 };
-const calcTimeLeftText = throttle(calcTimeLeftTextFn, 1000);
 /** 获取节点准备好的nkn client */
 const getReadyAnonymousMultiClient = () => {
   return new Promise<classMultiClient>((resolve, reject) => {
@@ -1274,47 +1273,49 @@ export default defineComponent({
     // 如果有indexDB数据的文件缓存
     if (storegeReceiveData.value.length) {
       // 检测到有缓存, 切换成接收端模式
-      keys().then((keyList) => {
-        const fileIdbNameList = keyList as unknown as string[];
-        // console.log("fileIdbNameList", fileIdbNameList);
-        const hasDataList = storegeReceiveData.value.filter((item) =>
-          fileIdbNameList.some((e) => e.includes(item.fileHash))
-        );
-        // console.log("hasDataList", hasDataList);
-        if (hasDataList.length) {
-          isActionSend.value = false;
-          storegeReceiveData.value = hasDataList;
-          Promise.all(
-            storegeReceiveData.value.map<Promise<PeerFileItem>>(
-              async (item) => {
-                const sameHashIdbKeyList = fileIdbNameList.filter((i) =>
-                  i.includes(item.fileHash)
-                );
-                const totalIdbLen = await getIdbItemLen(
-                  sameHashIdbKeyList,
-                  item.fileSize
-                );
-                const progress = calcPercent(totalIdbLen, item.fileSize);
-                return {
-                  ...item,
-                  file: new File(["0"], item.fileName),
-                  progress,
-                  speed: 0,
-                  status: progress === 100 ? "successReceive" : "queueing",
-                };
+      keys()
+        .then((keyList) => {
+          const fileIdbNameList = keyList as unknown as string[];
+          // console.log("fileIdbNameList", fileIdbNameList);
+          const hasDataList = storegeReceiveData.value.filter((item) =>
+            fileIdbNameList.some((e) => e.includes(item.fileHash))
+          );
+          console.log("hasDataList", hasDataList);
+          if (hasDataList.length) {
+            isActionSend.value = false;
+            storegeReceiveData.value = hasDataList;
+            Promise.all(
+              storegeReceiveData.value.map<Promise<PeerFileItem>>(
+                async (item) => {
+                  const sameHashIdbKeyList = fileIdbNameList.filter((i) =>
+                    i.includes(item.fileHash)
+                  );
+                  const totalIdbLen = await getIdbItemLen(
+                    sameHashIdbKeyList,
+                    item.fileSize
+                  );
+                  const progress = calcPercent(totalIdbLen, item.fileSize);
+                  return {
+                    ...item,
+                    file: new File(["0"], item.fileName),
+                    progress,
+                    speed: 0,
+                    status: progress === 100 ? "successReceive" : "queueing",
+                  };
+                }
+              )
+            ).then((list) => {
+              tableData.value.push(...list);
+              if (list.some((e) => e.progress < 100)) {
+                message.info("检测到上次传输的文件缓存,您可以继续接收", 3);
               }
-            )
-          ).then((list) => {
-            tableData.value.push(...list);
-            if (list.some((e) => e.progress < 100)) {
-              message.info("检测到上次传输的文件缓存,您可以继续接收", 3);
-            }
-          });
-        } else {
-          // 没有 idb 缓存的话说明文件已经下载, 清空 localStorage
-          storegeReceiveData.value.length = 0;
-        }
-      });
+            });
+          } else {
+            // 没有 idb 缓存的话说明文件已经下载, 清空 localStorage
+            storegeReceiveData.value.length = 0;
+          }
+        })
+        .catch((e) => console.log("idb-keys()-err", e));
     }
     let globalHeartBeatSendTimer: number;
     let globalHeartBeatListenTimer: number;
@@ -1376,7 +1377,7 @@ export default defineComponent({
                 useDelay(300).then(() => nknClient.sessions.clear());
               }
               // TODO 需要 remove 这个 handler 吗?
-            }, 5_000 * 2.2);
+            }, 60_000 * 2);
             return CHANNEL_MSG.HEART_BEAT;
           }
         };
