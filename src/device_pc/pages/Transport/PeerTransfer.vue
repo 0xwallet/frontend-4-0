@@ -297,7 +297,7 @@
               </XLink>
             </template>
             <template v-else>
-              <XLink
+              <!-- <XLink
                 class="flex-1"
                 @click="onReceiveRecordDownload(record)"
                 :disabled="record.status !== 'successReceive'"
@@ -305,7 +305,7 @@
                 <a-tooltip title="下载">
                   <DownloadOutlined />
                 </a-tooltip>
-              </XLink>
+              </XLink> -->
               <XLink
                 v-if="['successReceive', 'failed'].includes(record.status)"
                 class="flex-1"
@@ -372,6 +372,7 @@ import {
   formatBytes,
   downloadFileByBlob,
   calcPercent,
+  cacheFn,
 } from "@/utils";
 import { classMultiClient, TMessageType, TSession } from "nkn";
 import { getAnonymousMultiClient } from "@/apollo/nknConfig";
@@ -510,8 +511,18 @@ const makeNknDeviceMsg = () => {
 const isStatus = (sArr: PeerFileItem["status"][], record: PeerFileItem) => {
   return sArr.includes(record.status);
 };
-const LIMIT_SIZE = 20 * 1024 * 1024;
-
+// const LIMIT_SIZE = 20 * 1024 * 1024;
+const mbBytes = (mb: number) => mb * 1024 * 1024;
+/** 计算文件分片的大小 */
+const calcChunkSize = (totalSize: number) => {
+  if (totalSize < mbBytes(50)) return mbBytes(5);
+  if (totalSize < mbBytes(100)) return mbBytes(10);
+  return mbBytes(20);
+};
+const cacheCalcChunkSize = (size: number) => {
+  const cache: { [key: string]: number } = {};
+  return cache[size] || (cache[size] = calcChunkSize(size));
+};
 export default defineComponent({
   components: {
     XLink,
@@ -1156,8 +1167,7 @@ export default defineComponent({
         return;
       }
       const { fileHash, fileName, fileSize } = record;
-      // TODO
-      const totalChunks = Math.ceil(fileSize / LIMIT_SIZE);
+      const totalChunks = Math.ceil(fileSize / cacheCalcChunkSize(fileSize));
       const fileStream = streamSaver.createWriteStream(fileName, {
         size: fileSize, // (optional filesize) Will show progress
       });
@@ -1245,7 +1255,10 @@ export default defineComponent({
         "file" | "progress" | "speed" | "status"
       >[]
     );
-    const getIdbItemLen = async (sameHashIdbKeyList: string[]) => {
+    const getIdbItemLen = async (
+      sameHashIdbKeyList: string[],
+      fileSize: number
+    ) => {
       let maxCounter = 0;
       let maxCounterName = "";
       for (const idbName of sameHashIdbKeyList) {
@@ -1256,7 +1269,7 @@ export default defineComponent({
         }
       }
       const lastOneLen = (await get(maxCounterName)).length;
-      return (maxCounter - 1) * LIMIT_SIZE + lastOneLen;
+      return (maxCounter - 1) * cacheCalcChunkSize(fileSize) + lastOneLen;
     };
     // 如果有indexDB数据的文件缓存
     if (storegeReceiveData.value.length) {
@@ -1277,7 +1290,10 @@ export default defineComponent({
                 const sameHashIdbKeyList = fileIdbNameList.filter((i) =>
                   i.includes(item.fileHash)
                 );
-                const totalIdbLen = await getIdbItemLen(sameHashIdbKeyList);
+                const totalIdbLen = await getIdbItemLen(
+                  sameHashIdbKeyList,
+                  item.fileSize
+                );
                 const progress = calcPercent(totalIdbLen, item.fileSize);
                 return {
                   ...item,
@@ -1296,8 +1312,7 @@ export default defineComponent({
           });
         } else {
           // 没有 idb 缓存的话说明文件已经下载, 清空 localStorage
-          // TODO 放出来
-          // storegeReceiveData.value.length = 0;
+          storegeReceiveData.value.length = 0;
         }
       });
     }
@@ -1464,29 +1479,34 @@ export default defineComponent({
         // console.log(headerObj);
         const maxReceiveLength = headerObj.fileSize;
         const fileHash = headerObj.fileHash;
-        const dbKeys = await keys();
         let startLen = 0;
-        // if (!dbKeys.includes(fileHash)) {
-        //   set(fileHash, new Uint8Array(0));
-        // } else {
-        //   // 如果有缓存, 取出上一次的长度
-        //   startLen = (await get(fileHash)).length;
-        // }
-        // TODO 根据keys设定初始len
+        // 如果有缓存, 取出上一次的长度
+        const fileIdbNameList = (await keys()) as unknown as string[];
+        const sameHashIdbKeyList = fileIdbNameList.filter((i) =>
+          i.includes(itemToPush.fileHash)
+        );
+        if (sameHashIdbKeyList.length) {
+          startLen = await getIdbItemLen(
+            sameHashIdbKeyList,
+            itemToPush.fileSize
+          );
+        }
         console.log("startLen", startLen);
         // 发送offset信息
         await nknClient.send(session.remoteAddr, `${fileHash}-${startLen}`);
         const dbLimit = pLimit(1);
         let bufBox = new Uint8Array(0);
-        let totalChunks = Math.ceil(maxReceiveLength / LIMIT_SIZE);
-        let chunkCounter = 1;
+        const chunkSize = cacheCalcChunkSize(maxReceiveLength);
+        let totalChunks = Math.ceil(maxReceiveLength / chunkSize);
+        // let chunkCounter = 1;
+        let chunkCounter = Math.ceil(startLen / chunkSize) + 1; // 接着上次的counter
         const updateFileDb = async (buf: Uint8Array) => {
           bufBox = mergeUint8Array(bufBox, buf); // pass
-          if (bufBox.length >= LIMIT_SIZE) {
+          if (bufBox.length >= chunkSize) {
             // await update(fileHash, (val) => mergeUint8Array(val, bufBox));
             // bufBox = new Uint8Array(0);
-            const temp = bufBox.slice(0, LIMIT_SIZE);
-            bufBox = bufBox.slice(LIMIT_SIZE);
+            const temp = bufBox.slice(0, chunkSize);
+            bufBox = bufBox.slice(chunkSize);
             // await update(fileHash, (val) => mergeUint8Array(val, temp));
             try {
               const toSetKey = `${totalChunks}*${chunkCounter++}*${fileHash}`;
@@ -1534,11 +1554,11 @@ export default defineComponent({
           } catch (error) {
             // session 读取出错的时候先保存
             console.error("session-read-error,save file db first", error);
-            dbLimit(() => {
-              if (bufBox.length) {
-                return update(fileHash, (val) => mergeUint8Array(val, bufBox));
-              }
-            });
+            // dbLimit(() => {
+            //   if (bufBox.length) {
+            //     return update(fileHash, (val) => mergeUint8Array(val, bufBox));
+            //   }
+            // });
           }
 
           // fileBuffer = mergeUint8Array(fileBuffer, roundRead);
@@ -1615,8 +1635,7 @@ export default defineComponent({
         }
         // 一个文件接收完成后, 下载这个文件, 然后删除idb缓存
         onReceiveRecordDownload(itemToPush).then(() => {
-          // TODO
-          // del(fileHash)
+          delIdbFilesByHash(fileHash);
         });
         // TODO 发回去校验hash
         // 发送-确认信息
