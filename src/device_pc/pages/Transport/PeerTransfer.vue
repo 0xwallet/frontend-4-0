@@ -24,7 +24,7 @@
           >
             <LeftCircleOutlined />
           </XLink> -->
-          <XLink @click="onSendAddFiles">
+          <XLink @click="onSendAddFiles" :disabled="!isActionSend">
             <PlusSquareOutlined class="mr-2" />
           </XLink>
         </a-tooltip>
@@ -125,8 +125,37 @@
             <RightCircleOutlined v-else class="px-2" />
           </XLink>
         </div>
-        <!--  -->
-        <a-tooltip :title="isBothConnected ? '双方已连接' : '双方未连接'">
+        <!-- 发送端 显示添加文件剩余时间和 关闭按钮 -->
+        <!-- <template v-if="isActionSend"> -->
+        <div
+          class="
+            rounded-full
+            h-address-bar
+            bg-address-bar
+            overflow-hidden
+            flex
+            items-center
+            justify-between
+          "
+          :style="{
+            transition: '.3s',
+            'max-width': peerLink ? '200px' : '0px',
+          }"
+        >
+          <a-tooltip title="倒计时过后或者传输过程中将不可以再修改文件">
+            <span
+              v-if="addFilesCountDownText"
+              class="font-semibold ant-color-blue-6 ml-2"
+              >{{ addFilesCountDownText }}</span
+            >
+          </a-tooltip>
+
+          <XLink class="inline-block" @click="onResetStatus">
+            <CloseCircleOutlined class="px-2" />
+          </XLink>
+        </div>
+        <!-- </template> -->
+        <!-- <a-tooltip :title="isBothConnected ? '双方已连接' : '双方未连接'">
           <XLink
             class="inline-block px-1 flex-center"
             @click="onClickConnectStatus"
@@ -139,16 +168,10 @@
               icon="swapLine"
               :size="16"
             />
-            <!-- <ThunderboltFilled
-              class="text-gray-400"
-              :class="{
-                'ant-color-blue-6': isBothConnected,
-              }"
-            /> -->
           </XLink>
-        </a-tooltip>
+        </a-tooltip> -->
       </div>
-      <div class="px-1 mb-3" v-if="addFilesCountDownText">
+      <!-- <div class="px-1 mb-3" v-if="addFilesCountDownText">
         <div>
           <InfoCircleFilled class="ant-color-blue-6" />
           <span class="text-gray-400 pl-2">
@@ -159,7 +182,7 @@
             , 倒计时过后或者传输过程中将不可以再修改文件
           </span>
         </div>
-      </div>
+      </div> -->
       <XTableFiles
         rowKey="fileHash"
         :disableSelect="true"
@@ -349,6 +372,7 @@ import {
   ThunderboltFilled,
   DownloadOutlined,
   CloseOutlined,
+  CloseCircleOutlined,
   PauseOutlined,
   CopyOutlined,
   DeleteOutlined,
@@ -539,6 +563,7 @@ export default defineComponent({
     DownloadOutlined,
     PauseOutlined,
     CloseOutlined,
+    CloseCircleOutlined,
     CopyOutlined,
     DeleteOutlined,
     QrcodeOutlined,
