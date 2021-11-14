@@ -1098,10 +1098,21 @@ export default defineComponent({
       const onDrop = async (event: DragEvent) => {
         event.preventDefault();
         isFileOverUploadZone.value = false;
+        if (!isUserLoggedIn.value) {
+          message.warning("请先登录再使用发送功能");
+          router.push({
+            name: "Login",
+            query: {
+              redirect: route.fullPath,
+            },
+          });
+          return;
+        }
         // 判断是否上一次完成的任务没有清除
         if (tableData.value.length && !peerLink.value) {
           tableData.value.length = 0;
         }
+        isActionSend.value === true;
         if (isCanAddFiles() === false) {
           message.warning("已过调整文件时间,此时不能再调整文件");
           return;
@@ -1411,10 +1422,21 @@ export default defineComponent({
     };
     /** 发送端添加文件 */
     const onSendAddFiles = () => {
+      if (!isUserLoggedIn.value) {
+        message.warning("请先登录再使用发送功能");
+        router.push({
+          name: "Login",
+          query: {
+            redirect: route.fullPath,
+          },
+        });
+        return;
+      }
       // 判断是否上一次完成的任务没有清除
       if (tableData.value.length && !peerLink.value) {
         tableData.value.length = 0;
       }
+      isActionSend.value === true;
       if (isCanAddFiles() === false) {
         message.warning("已过调整文件时间,此时不能再调整文件");
         return;
