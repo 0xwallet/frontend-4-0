@@ -538,9 +538,11 @@ export const apiUploadSingle = async (
         return null;
       }
       const resNfr = await apiQueryNfrAddress();
-      if (resNfr.err || !resNfr.data) {
+      console.log("resNfr", resNfr);
+      if (resNfr.err || !resNfr.data.driveNfrAddress) {
         console.error("apiQueryNfrAddress-获取不到数据");
-        throw Error("apiQueryNfrAddress-获取不到数据");
+        // throw Error("apiQueryNfrAddress-获取不到数据");
+        return null;
       }
       const nfrAddress = resNfr.data.driveNfrAddress;
       res = await multiClient.dial(nfrAddress, {

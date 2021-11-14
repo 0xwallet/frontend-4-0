@@ -1,6 +1,7 @@
 import { apiUploadSingle, ParamsUploadSingle } from "@/apollo/api";
 import { UPLOAD_MSG } from "@/constants";
 import { useDelay, getFileType, lastOfArray } from "@/utils";
+import { message } from "ant-design-vue";
 import { uniqueId, unset, values } from "lodash-es";
 import pLimit from "p-limit";
 import { defineStore } from "pinia";
@@ -338,6 +339,8 @@ export default defineStore({
             errMsg === UPLOAD_MSG.err_pauseByUser ? "pause" : "failed"
           );
         }
+        if (errMsg !== UPLOAD_MSG.err_pauseByUser)
+          message.warning("与NFR节点建立session失败");
         return { err: resultUploadSingle.err };
       }
       // 非秒传成功 的要等websocket 返回确认信息
