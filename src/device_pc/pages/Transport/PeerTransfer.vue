@@ -492,6 +492,10 @@ const CHANNEL_MSG = {
   CANCEL: "cancel",
   HEART_BEAT: "heart_beat",
   DEVICE: "device",
+  DOWNLOAD_UNSTART: "download_unstart",
+  DOWNLOADING: "downloading",
+  DOWNLOAD_FINISHED: "download_finished",
+  FAKE_FILEHASH: "fake_filehash",
 };
 /**计算剩余时间 */
 const calcTimeLeftText = (record: PeerFileItem) => {
@@ -546,18 +550,20 @@ const getReadyAnonymousMultiClient = () => {
   });
 };
 /** 创建-确认信息 */
-const makeConfirmMessage = (fileHash: string) => `received-${fileHash}`;
+// const makeConfirmMessage = (fileHash: string) => `received-${fileHash}`;
 /** 创建-开始下载信息 */
-const makeDownloadUnstartMessage = (fileHash: string) =>
-  `downloadUnstart-${fileHash}`;
-/** 创建-下载中信息 */
-const makeDownloadingMessage = (fileHash: string) => `downloading-${fileHash}`;
-/** 创建-下载完成信息 */
-const makeDownloadFinishedMessage = (fileHash: string) =>
-  `downloadFinished-${fileHash}`;
-/** 设置个 假的默认的fileHash 填充 */
-const makeFakeFileHash = (fileName: string, fileSize: number) =>
-  `${fileName}-${fileSize}`;
+// const makeDownloadUnstartMessage = (fileHash: string) =>
+//   `downloadUnstart-${fileHash}`;
+// /** 创建-下载中信息 */
+// const makeDownloadingMessage = (fileHash: string) => `downloading-${fileHash}`;
+// /** 创建-下载完成信息 */
+// const makeDownloadFinishedMessage = (fileHash: string) =>
+//   `downloadFinished-${fileHash}`;
+// /** 设置个 假的默认的fileHash 填充 */
+// const makeFakeFileHash = (fileName: string, fileSize: number) =>
+//   `${fileName}-${fileSize}`;
+const makePrefixMsg = (prefix: string, content: string) =>
+  `${prefix}-${content}`;
 /** 创建设备信息 */
 const makeDeviceInfo = () => {
   const { browser, os } = Bowser.parse(window.navigator.userAgent);
@@ -847,7 +853,10 @@ export default defineComponent({
         }
         // 设置进度 end
       }
-      const downloadUnstartMessage = makeDownloadUnstartMessage(item.fileHash);
+      const downloadUnstartMessage = makePrefixMsg(
+        CHANNEL_MSG.DOWNLOAD_UNSTART,
+        item.fileHash
+      );
       const handleDownloadUnstartMessage = (message: TMessageType) => {
         if (message.payload === downloadUnstartMessage) {
           console.log("收到下载未开始信息", message);
@@ -864,7 +873,10 @@ export default defineComponent({
         }
       };
       nknClient.onMessage(handleDownloadUnstartMessage);
-      const downloadingMessage = makeDownloadingMessage(item.fileHash);
+      const downloadingMessage = makePrefixMsg(
+        CHANNEL_MSG.DOWNLOADING,
+        item.fileHash
+      );
       const handleDownloadingMessage = (message: TMessageType) => {
         if (message.payload === downloadingMessage) {
           console.log("收到下载进行中信息", message);
@@ -878,7 +890,8 @@ export default defineComponent({
         }
       };
       nknClient.onMessage(handleDownloadUnstartMessage);
-      const downloadFinishedMessage = makeDownloadFinishedMessage(
+      const downloadFinishedMessage = makePrefixMsg(
+        CHANNEL_MSG.DOWNLOAD_FINISHED,
         item.fileHash
       );
       const handleDownloadFinishedMessage = (message: TMessageType) => {
@@ -1227,7 +1240,7 @@ export default defineComponent({
           file: i,
           fileName: i.name,
           fileSize: i.size,
-          fileHash: makeFakeFileHash(i.name, i.size),
+          fileHash: makePrefixMsg(i.name, i.size.toString()),
           fileType: getFileType({ isDir: false, fileName: i.name }),
           progress: 0,
           speed: 0,
@@ -1361,7 +1374,7 @@ export default defineComponent({
       isActionSend.value = true;
       const fileArr: PeerFileItem[] = [...input.files].map((i) => ({
         file: i,
-        fileHash: makeFakeFileHash(i.name, i.size),
+        fileHash: makePrefixMsg(i.name, i.size.toString()),
         fileName: i.name,
         fileSize: i.size,
         fileType: getFileType({ isDir: false, fileName: i.name }),
@@ -1780,13 +1793,13 @@ export default defineComponent({
         // 发送准备下载信息
         await nknClient.send(
           session.remoteAddr,
-          makeDownloadUnstartMessage(fileHash)
+          makePrefixMsg(CHANNEL_MSG.DOWNLOAD_UNSTART, fileHash)
         );
         await useDelay(300);
         // 发送下载中信息
         await nknClient.send(
           session.remoteAddr,
-          makeDownloadingMessage(fileHash)
+          makePrefixMsg(CHANNEL_MSG.DOWNLOADING, fileHash)
         );
         setTableItem((v) => v.fileHash === fileHash, {
           progress: 100,
@@ -1806,7 +1819,7 @@ export default defineComponent({
         // 发送下载完成信息
         await nknClient.send(
           session.remoteAddr,
-          makeDownloadFinishedMessage(fileHash)
+          makePrefixMsg(CHANNEL_MSG.DOWNLOAD_FINISHED, fileHash)
         );
         setTableItem((v) => v.fileHash === fileHash, {
           progress: 100,
