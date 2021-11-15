@@ -224,68 +224,94 @@
                 'margin-top': '-4px',
               }"
             >
-              <!-- 指示灯 -->
-              <a-tooltip :title="calcRecordStatusTooltip(record)">
-                <span
-                  class="
-                    inline-block
-                    w-1.5
-                    h-1.5
-                    rounded-full
-                    mr-1
-                    align-middle
-                  "
-                  :style="{
-                    'background-color': calcRecordStatusColor(record),
-                  }"
-                ></span>
-              </a-tooltip>
-              <template v-if="record.status === 'queueing'">
-                <span>等待中</span>
-              </template>
-              <template v-else-if="record.status === 'calculating'">
-                <span>计算文件摘要中...</span>
-              </template>
-              <!-- send -->
-              <template v-else-if="record.status === 'sending'">
-                <span class="ant-color-blue-6">
-                  <!-- {{ calcStatusText(record.status) }} -->
-                  {{ formatBytes(record.speed) }}/S
-                </span>
-                <span v-if="record.speed > 0">
-                  - {{ calcTimeLeftText(record) }}</span
+              <template
+                v-if="
+                  [
+                    'downloadUnstarted',
+                    'downloading',
+                    'successSend',
+                    'successReceive',
+                  ].includes(record.status)
+                "
+              >
+                <span v-if="record.status === 'downloadUnstarted'"
+                  >下载未开始</span
                 >
-              </template>
-              <template v-else-if="record.status === 'waiting'">
-                <span>等待确认</span>
-              </template>
-              <template v-else-if="record.status === 'successSend'">
-                <span>发送成功</span>
-              </template>
-              <template v-else-if="record.status === 'failed'">
-                <span>任务失败</span>
-              </template>
-              <template v-else-if="record.status === 'pause'">
-                <span>暂停</span>
-              </template>
-              <template v-else-if="record.status === 'cancel'">
-                <span>取消</span>
-              </template>
-              <!-- receive -->
-              <template v-else-if="record.status === 'receiving'">
-                <span class="ant-color-blue-6">
-                  <!-- {{ calcStatusText(record.status) }} -->
-                  {{ formatBytes(record.speed) }}/S
-                </span>
-                <span v-if="record.speed > 0">
-                  - {{ calcTimeLeftText(record) }}</span
+                <span v-else-if="record.status === 'downloading'"
+                  >下载进行中</span
                 >
-              </template>
-              <template v-else-if="record.status === 'successReceive'">
-                <span>下载成功</span>
+                <span v-else-if="record.status === 'successSend'"
+                  >发送成功</span
+                >
+                <span v-else-if="record.status === 'successReceive'"
+                  >接收成功</span
+                >
               </template>
               <template v-else>
-                <span>其他状态</span>
+                <!-- 指示灯 -->
+                <a-tooltip :title="calcRecordStatusTooltip(record)">
+                  <span
+                    class="
+                      inline-block
+                      w-1.5
+                      h-1.5
+                      rounded-full
+                      mr-1
+                      align-middle
+                    "
+                    :style="{
+                      'background-color': calcRecordStatusColor(record),
+                    }"
+                  ></span>
+                </a-tooltip>
+                <template v-if="record.status === 'queueing'">
+                  <span>传输未开始</span>
+                </template>
+                <template v-else-if="record.status === 'calculating'">
+                  <span>计算文件摘要中...</span>
+                </template>
+                <!-- send -->
+                <template v-else-if="record.status === 'sending'">
+                  <span class="ant-color-blue-6">
+                    <!-- {{ calcStatusText(record.status) }} -->
+                    {{ formatBytes(record.speed) }}/S
+                  </span>
+                  <span v-if="record.speed > 0">
+                    - {{ calcTimeLeftText(record) }}</span
+                  >
+                </template>
+                <template v-else-if="record.status === 'waiting'">
+                  <!-- <span>等待确认</span> -->
+                  <span>传输完成</span>
+                </template>
+                <template v-else-if="record.status === 'successSend'">
+                  <span>发送成功</span>
+                </template>
+                <template v-else-if="record.status === 'failed'">
+                  <span>任务失败</span>
+                </template>
+                <template v-else-if="record.status === 'pause'">
+                  <span>暂停</span>
+                </template>
+                <template v-else-if="record.status === 'cancel'">
+                  <span>取消</span>
+                </template>
+                <!-- receive -->
+                <template v-else-if="record.status === 'receiving'">
+                  <span class="ant-color-blue-6">
+                    <!-- {{ calcStatusText(record.status) }} -->
+                    {{ formatBytes(record.speed) }}/S
+                  </span>
+                  <span v-if="record.speed > 0">
+                    - {{ calcTimeLeftText(record) }}</span
+                  >
+                </template>
+                <!-- <template v-else-if="record.status === 'successReceive'">
+                  <span>下载成功</span>
+                </template> -->
+                <template v-else>
+                  <span>其他状态</span>
+                </template>
               </template>
             </div>
           </div>
@@ -440,6 +466,9 @@ type PeerFileItem = {
     | "pause" // 暂停
     | "cancel" // 取消
     | "waiting" // 发送完后等待对方确认收到
+    | "downloadUnstarted" // 下载未开始
+    | "downloading" // 下载中
+    | "downloadFinished" // 下载已完成
     | "successSend"
     | "successReceive"
     | "failed";
@@ -518,6 +547,14 @@ const getReadyAnonymousMultiClient = () => {
 };
 /** 创建-确认信息 */
 const makeConfirmMessage = (fileHash: string) => `received-${fileHash}`;
+/** 创建-开始下载信息 */
+const makeDownloadUnstartMessage = (fileHash: string) =>
+  `downloadUnstart-${fileHash}`;
+/** 创建-下载中信息 */
+const makeDownloadingMessage = (fileHash: string) => `downloading-${fileHash}`;
+/** 创建-下载完成信息 */
+const makeDownloadFinishedMessage = (fileHash: string) =>
+  `downloadFinished-${fileHash}`;
 /** 设置个 假的默认的fileHash 填充 */
 const makeFakeFileHash = (fileName: string, fileSize: number) =>
   `${fileName}-${fileSize}`;
@@ -810,19 +847,49 @@ export default defineComponent({
         }
         // 设置进度 end
       }
-      const confirmMessage = makeConfirmMessage(item.fileHash);
-      /** 删除client 里的监听释放内存 */
-      const handleConfirmMessage = (message: TMessageType) => {
-        if (message.payload === confirmMessage) {
-          console.log("收到确认信息", message);
+      const downloadUnstartMessage = makeDownloadUnstartMessage(item.fileHash);
+      const handleDownloadUnstartMessage = (message: TMessageType) => {
+        if (message.payload === downloadUnstartMessage) {
+          console.log("收到下载未开始信息", message);
+          // setTableItemProgressSpeedStatus(item.fileHash, 100, 0, "successSend");
+          setTableItem((v) => v.fileHash === item.fileHash, {
+            progress: 100,
+            speed: 0,
+            status: "downloadUnstarted",
+          });
+          // 写进历史
+          // 清空文件节省内存
+          item.file = undefined;
+          removeNknClientMsgListener(handleDownloadUnstartMessage);
+        }
+      };
+      nknClient.onMessage(handleDownloadUnstartMessage);
+      const downloadingMessage = makeDownloadingMessage(item.fileHash);
+      const handleDownloadingMessage = (message: TMessageType) => {
+        if (message.payload === downloadingMessage) {
+          console.log("收到下载进行中信息", message);
+          // setTableItemProgressSpeedStatus(item.fileHash, 100, 0, "successSend");
+          setTableItem((v) => v.fileHash === item.fileHash, {
+            progress: 100,
+            speed: 0,
+            status: "downloading",
+          });
+          removeNknClientMsgListener(handleDownloadingMessage);
+        }
+      };
+      nknClient.onMessage(handleDownloadUnstartMessage);
+      const downloadFinishedMessage = makeDownloadFinishedMessage(
+        item.fileHash
+      );
+      const handleDownloadFinishedMessage = (message: TMessageType) => {
+        if (message.payload === downloadFinishedMessage) {
+          console.log("收到下载已经完成信息", message);
           // setTableItemProgressSpeedStatus(item.fileHash, 100, 0, "successSend");
           setTableItem((v) => v.fileHash === item.fileHash, {
             progress: 100,
             speed: 0,
             status: "successSend",
           });
-          // 写进历史
-
           // 如果全部都发送完毕就清除状态
           if (tableData.value.every((i) => i.status === "successSend")) {
             onFinishedSendFilesClear();
@@ -833,13 +900,41 @@ export default defineComponent({
               item.fileName,
               item.fileSize
             );
-          // 清空文件节省内存
-          item.file = undefined;
-          removeNknClientMsgListener(handleConfirmMessage);
+          removeNknClientMsgListener(handleDownloadFinishedMessage);
         }
       };
-      nknClient.onMessage(handleConfirmMessage);
-      // removeNknClientMsgListener(errorLenMessageHandler);
+      nknClient.onMessage(handleDownloadFinishedMessage);
+      // handleConfirmMessage --start
+      // const confirmMessage = makeConfirmMessage(item.fileHash);
+      // /** 删除client 里的监听释放内存 */
+      // const handleConfirmMessage = (message: TMessageType) => {
+      //   if (message.payload === confirmMessage) {
+      //     console.log("收到确认信息", message);
+      //     // setTableItemProgressSpeedStatus(item.fileHash, 100, 0, "successSend");
+      //     setTableItem((v) => v.fileHash === item.fileHash, {
+      //       progress: 100,
+      //       speed: 0,
+      //       status: "successSend",
+      //     });
+      //     // 写进历史
+
+      //     // 如果全部都发送完毕就清除状态
+      //     if (tableData.value.every((i) => i.status === "successSend")) {
+      //       onFinishedSendFilesClear();
+      //     }
+      //     if (userStore.isLoggedIn)
+      //       transportStore.makePeerTransferSuccessItem(
+      //         "send",
+      //         item.fileName,
+      //         item.fileSize
+      //       );
+      //     // 清空文件节省内存
+      //     item.file = undefined;
+      //     removeNknClientMsgListener(handleConfirmMessage);
+      //   }
+      // };
+      // nknClient.onMessage(handleConfirmMessage);
+      // handleConfirmMessage --end
     };
     let stopSendChannel: () => void;
     /** 清除发送端channel */
@@ -849,10 +944,11 @@ export default defineComponent({
       }
     };
     initClientStatus.then(() => {
-      console.log("clientReady", nknClient);
+      // console.log("clientReady", nknClient);
     });
     /** 发送完所有文件后重置发送端状态 */
     const onFinishedSendFilesClear = () => {
+      // console.log("onFinishedSendFilesClear was called");
       clearSendChannel();
       stopAddFilesCoutDown();
       clearNknClientEvent();
@@ -862,6 +958,7 @@ export default defineComponent({
     };
     /** 发送完所有文件后重置接收端状态 */
     const onFinishedReceiveFilesClear = () => {
+      // console.log("onFinishedReceiveFilesClear was called");
       clearReceiveChannel();
       clearNknClientEvent();
       peerLink.value = "";
@@ -997,6 +1094,8 @@ export default defineComponent({
       nknClient.eventListeners.connect.length = 0;
       nknClient.eventListeners.message.length = 0;
       nknClient.eventListeners.session.length = 0;
+      // 清除原来的session Map 修复二次发送读取buf错误的bug
+      nknClient.sessions.clear();
     };
     // 如果是一开开页面有缓存,此时是接收端,然后删除了文件, 重置为发送状态
     watch(
@@ -1023,14 +1122,15 @@ export default defineComponent({
           onOk: () => {
             return new Promise<void>((resolve) => {
               remoteAddr = "";
+              clearSendChannel();
               stopAddFilesCoutDown();
               clearNknClientEvent();
               tableData.value.forEach((item) => (item.status = "cancel"));
               tableData.value.length = 0;
-              resolve();
               peerLink.value = "";
               peerCode.value = "";
               isBothConnected.value = false;
+              resolve();
             });
           },
         });
@@ -1364,6 +1464,7 @@ export default defineComponent({
       send(remoteAddr: string) {
         console.log("启动心跳发送");
         // const reply = await nknClient.send(remoteAddr,CHANNEL_MSG.HEART_BEAT,{responseTimeout:10_000})
+        let unReceiveCount = 1;
         globalHeartBeatSendTimer = window.setInterval(() => {
           nknClient
             .send(remoteAddr, CHANNEL_MSG.HEART_BEAT, {
@@ -1374,10 +1475,14 @@ export default defineComponent({
               isBothConnected.value = true;
             })
             .catch(() => {
-              console.log("心跳发送没有回应");
-              // no heartBeat respoonse , remote offline
-              isBothConnected.value = false;
-              clearInterval(globalHeartBeatSendTimer);
+              unReceiveCount++;
+              if (unReceiveCount > 24) {
+                console.log("心跳发送没有回应");
+                // no heartBeat respoonse , remote offline
+                isBothConnected.value = false;
+                clearInterval(globalHeartBeatSendTimer);
+                unReceiveCount = 0;
+              }
             });
         }, 5_000);
       },
@@ -1491,6 +1596,7 @@ export default defineComponent({
           console.log("handleSession-error-noNknClient", nknClient);
           return;
         }
+        // 这里第二次读取会出错
         const headerUint8Array = await readHeaderInSession(session);
         const headerObj = decode(headerUint8Array) as FileHeader;
         console.log("读取文件头部信息", headerObj);
@@ -1651,20 +1757,10 @@ export default defineComponent({
             setTableItem((v) => v.fileHash === fileHash, {
               progress: 100,
               speed: 0,
-              status: "successReceive",
+              // status: "successReceive",
+              status: "downloadUnstarted",
             });
             session.close(); // 接收完这个文件后关闭这个session
-
-            // 如果全部都发送完毕就清除接收端状态
-            if (tableData.value.every((i) => i.status === "successReceive")) {
-              onFinishedReceiveFilesClear();
-            }
-            if (userStore.isLoggedIn)
-              transportStore.makePeerTransferSuccessItem(
-                "receive",
-                headerObj.fileName,
-                headerObj.fileSize
-              );
           }
         }
         // 这里要等待上一个dblimit tick
@@ -1681,13 +1777,53 @@ export default defineComponent({
           // const afterLastUpdate = await get(fileHash);
           console.timeEnd("last-update");
         }
-        // 一个文件接收完成后, 下载这个文件, 然后删除idb缓存
-        onReceiveRecordDownload(itemToPush).then(() => {
-          delIdbFilesByHash(fileHash);
+        // 发送准备下载信息
+        await nknClient.send(
+          session.remoteAddr,
+          makeDownloadUnstartMessage(fileHash)
+        );
+        await useDelay(300);
+        // 发送下载中信息
+        await nknClient.send(
+          session.remoteAddr,
+          makeDownloadingMessage(fileHash)
+        );
+        setTableItem((v) => v.fileHash === fileHash, {
+          progress: 100,
+          speed: 0,
+          // status: "successReceive",
+          status: "downloading",
         });
+        // 一个文件接收完成后, 下载这个文件, 然后删除idb缓存
+        await onReceiveRecordDownload(itemToPush);
+        if (userStore.isLoggedIn)
+          transportStore.makePeerTransferSuccessItem(
+            "receive",
+            headerObj.fileName,
+            headerObj.fileSize
+          );
+        await useDelay(1000);
+        // 发送下载完成信息
+        await nknClient.send(
+          session.remoteAddr,
+          makeDownloadFinishedMessage(fileHash)
+        );
+        setTableItem((v) => v.fileHash === fileHash, {
+          progress: 100,
+          speed: 0,
+          status: "successReceive",
+        });
+        // 如果全部都发送完毕就清除接收端状态
+        if (tableData.value.every((i) => i.status === "successReceive")) {
+          onFinishedReceiveFilesClear();
+        }
+        // .then(() => {
+        //   delIdbFilesByHash(fileHash);
+        // });
+        delIdbFilesByHash(fileHash);
         // TODO 发回去校验hash
         // 发送-确认信息
-        await nknClient.send(session.remoteAddr, makeConfirmMessage(fileHash));
+        // await nknClient.send(session.remoteAddr, makeConfirmMessage(fileHash));
       };
       nknClient.onSession(handleSession);
     };
