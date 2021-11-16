@@ -3,7 +3,7 @@ import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import { useTitle } from "@vueuse/core";
 import { i18n } from "../main";
 import { PRODUCT_NAME } from "@/constants";
-import { useUserStore } from "@/store";
+import { useBaseStore, useUserStore } from "@/store";
 
 import Login from "../pages/Login/index.vue";
 import Register from "../pages/Register/index.vue";
@@ -134,5 +134,10 @@ router.beforeEach((to, from) => {
   const textPath = `${to.meta.title}`;
   useTitle(`${i18n.global.t(textPath)} - ${PRODUCT_NAME}`);
 });
-
+// 守卫-关闭左侧弹出菜单
+router.beforeEach((to, from) => {
+  if (useBaseStore().isShowMobileLeftMenuPopup) {
+    useBaseStore().changeMobileLeftPopupVisible(false);
+  }
+});
 export default router;

@@ -7,3 +7,4 @@ export { default as MPopupLogin } from "./MPopupLogin.vue";
 export { default as MPopupLeftMenu } from "./MPopupLeftMenu.vue";
 export { default as MQrCode } from "./MQrCode.vue";
 export { default as MPhotoSwipe } from "./MPhotoSwipe.vue";
+export { default as MBreadCrump } from "./MBreadCrump.vue";

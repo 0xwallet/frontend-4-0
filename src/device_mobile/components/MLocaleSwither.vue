@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div @click="onShowActionsheet">
+    <div @click="onShowActionsheet" class="flex items-center justify-center">
       <!-- <img class="w-5 h-5" src="~@/assets/svg/mobile-translate.svg" alt="" /> -->
       <MSvgIcon icon="translate" :size="20" />
     </div>
