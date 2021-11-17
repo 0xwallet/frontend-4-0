@@ -49,8 +49,45 @@
           border: '1px solid #f2f2f2',
         }"
       >
-        <van-icon size="16px" class="mr-2.5" name="info-o" color="#404A66" />
-        <div class="flex-1"></div>
+        <van-icon
+          size="16px"
+          class="mr-2.5"
+          name="info-o"
+          color="#404A66"
+          @click="onShowDescriptionPopup"
+        />
+        <!-- 中间的路径信息 -->
+        <div
+          class="
+            flex-1 flex
+            items-center
+            whitespace-nowrap
+            overflow-hidden overflow-x-scroll
+          "
+        >
+          <template v-for="(dir, idx) in historyDir" :key="dir.dirId">
+            <div
+              class="historyDirItem"
+              :class="{
+                'text-gray-400': idx === historyDir.length - 1,
+              }"
+              @click="onUpperLevel(idx)"
+            >
+              {{ dir.dirName }}
+            </div>
+            <span
+              v-if="idx !== historyDir.length - 1"
+              class="px-2 text-gray-400"
+              >></span
+            >
+          </template>
+          <template v-if="isShowDescriptionModalFileNameInAddressBar">
+            <div class="historyDirItem">
+              <span class="px-2 text-gray-400">></span>
+              {{ currentDescriptionModalFileName }}
+            </div>
+          </template>
+        </div>
         <!-- TODO 当前目录是否已经分享 -->
         <van-icon
           v-if="
@@ -130,13 +167,16 @@
             </div>
           </div>
           <div>
-            <div class="flex items-center font-12 mb-1">
+            <!-- <div class="flex items-center font-12 mb-1">
               <van-icon class="text-gray-500" size="14px" name="like" />
               <span>66</span>
             </div>
             <div class="flex items-center font-12">
               <van-icon color="#404A66" size="14px" name="chat-o" />
               <span>66</span>
+            </div> -->
+            <div class="font-12 text-gray-400">
+              {{ record.isDir ? "" : formatBytes(+record.info.size) }}
             </div>
           </div>
           <div class="w-8 flex justify-end">
@@ -154,11 +194,41 @@
         </div>
       </div>
     </section>
+    <!-- 点击的文件的全部描述信息 -->
+    <van-popup
+      round
+      class="rounded p-4 font-14"
+      v-model:show="isShowDescriptionPopup"
+      @close="onCloseDescriptionPopup"
+      :style="{
+        width: '300px',
+      }"
+    >
+      <!-- 标题 -->
+      <div
+        class="font-semibold text-center font-16 mb-2 text-overflow-3"
+        :style="{
+          'margin-top': '-8px',
+        }"
+      >
+        {{ `${currentDescriptionModalFileName}` }}
+      </div>
+      <div
+        :style="{
+          'max-height': 'calc(100vh - 200px)',
+          overflow: 'scroll',
+        }"
+      >
+        <MMdParser v-if="currentDescription" :content="currentDescription" />
+        <div v-else class="text-gray-400 text-center">无描述信息</div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script lang="ts">
 import {
+  apiGetPreviewToken,
   apiLoopQueryFileByDir,
   apiQueryFileByDir,
   ParamsQueryFileByDir,
@@ -172,7 +242,13 @@ import {
   lastOfArray,
   useSvgWhiteLogo,
   cacheFormatDescription,
+  makePreviewImgUrl,
+  transformRawDescription,
+  useDelay,
+  formatBytes,
 } from "@/utils";
+import dayjs from "dayjs";
+import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
 import {
   computed,
   defineComponent,
@@ -180,19 +256,28 @@ import {
   onMounted,
   reactive,
   ref,
+  watch,
 } from "vue";
 import { onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
-import { MBreadCrump, MFileTypeIcon } from "../../components";
+import { MBreadCrump, MFileTypeIcon, MMdParser } from "../../components";
+import pdfjsLib from "pdfjs-dist";
 
 type THistoryDirItem = {
-  name: string;
+  dirName: string;
+  dirId?: string;
   isShared: boolean;
 };
+/** 文件夹详情缓存,dirId作为key */
+const idMapDescriptionCache = new Map<
+  string,
+  { fileName: string; descSource: string }
+>();
 
 export default defineComponent({
   components: {
     MBreadCrump,
     MFileTypeIcon,
+    MMdParser,
   },
   setup() {
     const svgStr = useSvgWhiteLogo();
@@ -224,13 +309,14 @@ export default defineComponent({
     // 记录目录
     const historyDir = ref<THistoryDirItem[]>([
       {
-        name: "~",
+        dirName: "~",
+        dirId: "root",
         isShared: false,
       },
     ]);
     /** 请求的 fullName (排除根目录) */
     const requestDirNameList = computed(() =>
-      historyDir.value.slice(1).map((i) => i.name)
+      historyDir.value.slice(1).map((i) => i.dirName)
     );
     /** 当前目录是否分享 */
     const isCurFolderShared = computed(() => {
@@ -292,12 +378,12 @@ export default defineComponent({
         }
         historyDir.value.push(
           ...pathArr.slice(1).map((item) => ({
-            name: item,
+            dirName: item,
             isShared: false,
           }))
         );
         // ~路径不传后端
-        const dirFullName = historyDir.value.slice(1).map((i) => i.name);
+        const dirFullName = historyDir.value.slice(1).map((i) => i.dirName);
         getAndSetTableDataFn({
           fullName: dirFullName,
         }).catch(() => {
@@ -321,7 +407,7 @@ export default defineComponent({
           historyDir.value.splice(1);
           historyDir.value.push(
             ...pathArr.slice(1).map((item) => ({
-              name: item,
+              dirName: item,
               isShared: false,
             }))
           );
@@ -334,7 +420,6 @@ export default defineComponent({
     let getAndSetTableDataFn = (
       params: Omit<ParamsQueryFileByDir, "pageNumber" | "pageSize">
     ) => {
-      console.log("call getAndSetTableDataFn");
       return new Promise((resolve, reject) => {
         // 重置选中项目
         selectedRows.value.length = 0;
@@ -385,7 +470,7 @@ export default defineComponent({
                   const hArr = historyDir.value;
                   if (
                     hArr.length > 1 &&
-                    lastOfArray(obj.fullName) === hArr[hArr.length - 2].name
+                    lastOfArray(obj.fullName) === hArr[hArr.length - 2].dirName
                   ) {
                     // obj.fullName = ["..."];
                     return null;
@@ -447,33 +532,76 @@ export default defineComponent({
       getAndSetTableDataFn({ fullName: requestDirNameList.value });
     };
     // 返回当前目录的上一级
-    const onUpperLevel = () => {
-      const len = historyDir.value.length;
-      // 1. 如果只有根目录
-      if (len === 1) {
-        // message.info("已经是根目录");
-        return;
+    const onUpperLevel = (dirIdx: number) => {
+      // 1. 如果点的是当前文件夹
+      if (dirIdx === historyDir.value.length - 1) {
+        // 1.1 如果有 描述文件栏
+        if (isShowDescriptionModalFileNameInAddressBar.value) {
+          isShowDescriptionModalFileNameInAddressBar.value = false;
+          const _dirId = historyDir.value[dirIdx].dirId;
+          if (_dirId) setCurrentDescriptionModalDataFromCache(_dirId);
+        } else if (dirIdx === 0) {
+          historyDir.value.splice(1);
+          onRefreshTableData();
+          router.push({
+            name: "MetanetFile",
+            query: {
+              id: "1",
+              path: historyDir.value.map((i) => i.dirName).join("/"),
+            },
+          });
+          setCurrentDescriptionModalDataFromCache("root");
+        }
+      } else {
+        // 2. 如果点的不是当前文件夹
+        // 2.1 如果有 描述文件栏
+        if (isShowDescriptionModalFileNameInAddressBar.value) {
+          isShowDescriptionModalFileNameInAddressBar.value = false;
+          const _dirId = historyDir.value[dirIdx].dirId;
+          if (_dirId) setCurrentDescriptionModalDataFromCache(_dirId);
+        }
+        historyDir.value.splice(dirIdx + 1);
+        const dirId = lastOfArray(historyDir.value).dirId;
+        onRefreshTableData();
+        router.push({
+          name: "MetanetFile",
+          query: {
+            id: "1",
+            path: historyDir.value.map((i) => i.dirName).join("/"),
+          },
+        });
+        if (dirId) setCurrentDescriptionModalDataFromCache(dirId);
       }
-      // 2 跳到上一级
-      const idx = historyDir.value.length - 2;
-      onClickHistoryDirUpperLevel(idx);
     };
-    /** 点击目录历史的面包屑 */
-    const onClickHistoryDirUpperLevel = (idx: number) => {
-      const showInRoutePath = historyDir.value
-        .slice(0, idx + 1)
-        .map((i) => i.name)
-        .join("/");
-      historyDir.value.splice(idx + 1);
-      onRefreshTableData();
-      router.push({
-        name: "MetanetFile",
-        query: {
-          id: "1",
-          path: showInRoutePath,
-        },
-      });
-    };
+
+    // const onUpperLevel = () => {
+    //   const len = historyDir.value.length;
+    //   // 1. 如果只有根目录
+    //   if (len === 1) {
+    //     // message.info("已经是根目录");
+    //     setCurrentDescriptionModalDataFromCache("root");
+    //     return;
+    //   }
+    //   // 2 跳到上一级
+    //   const idx = historyDir.value.length - 2;
+    //   onClickHistoryDirUpperLevel(idx);
+    // };
+    // /** 点击目录历史的面包屑 */
+    // const onClickHistoryDirUpperLevel = (idx: number) => {
+    //   const showInRoutePath = historyDir.value
+    //     .slice(0, idx + 1)
+    //     .map((i) => i.dirName)
+    //     .join("/");
+    //   historyDir.value.splice(idx + 1);
+    //   onRefreshTableData();
+    //   router.push({
+    //     name: "MetanetFile",
+    //     query: {
+    //       id: "1",
+    //       path: showInRoutePath,
+    //     },
+    //   });
+    // };
     const isCanFilePreview = (record: TFileItem) => {
       // 文件或pdf
       const f = record;
@@ -488,12 +616,280 @@ export default defineComponent({
       // 其他类型返回false
       return false;
     };
+    /** 是否正在加载pdf */
+    const isLoadingPdf = ref(false);
+    const isShowBottomPopup = ref(false);
+    /** 当前预览的pdf的文件名 */
+    const currentPreviewPdfName = ref("");
+    const onShowBottomPopup = () => {
+      isShowBottomPopup.value = true;
+    };
+    const onCloseBottomPopup = () => {
+      isShowBottomPopup.value = false;
+      currentPreviewPdfName.value = "";
+    };
+    let destoryPdfLoadingTask: (() => void) | null = null;
+    /** 点击icon */
+    const onItemIconClick = async (record: TFileItem) => {
+      const fileType = getFileType({
+        isDir: record.isDir,
+        fileName: lastOfArray(record.fullName),
+      });
+      if (/folder$/g.test(fileType)) {
+        // 1.是文件夹
+        // 1.1 change historyDir
+        // historyDir.value.push({
+        //   dirId: record.id,
+        //   dirName: lastOfArray(record.fullName),
+        // });
+        // getSetDriveList(record.userFile.id);
+        historyDir.value.push({
+          dirName: lastOfArray(record.fullName),
+          isShared: record.isShared,
+        });
+        onRefreshTableData();
+        router.push({
+          name: "MetanetFile",
+          query: {
+            id: "1",
+            path: historyDir.value.map((i) => i.dirName).join("/"),
+          },
+        });
+        isShowDescriptionModalFileNameInAddressBar.value = false;
+        // 1.2 change fileData
+      } else if (FILE_TYPE_MAP.image.includes(fileType)) {
+        // 2.是图片
+        const { user, space, id: fileId, fullName } = record;
+        // 分享的预览用的token 是该分享数据的token
+        const resultPreviewToken = await apiGetPreviewToken();
+        // console.log("resultPreviewToken", resultPreviewToken);
+        if (resultPreviewToken.err) return;
+        const token = resultPreviewToken.data.drivePreviewToken;
+        const tableImgList = tableData.value.filter(
+          (item) =>
+            item !== null && FILE_TYPE_MAP.image.includes(item.fileType ?? "")
+        );
+        const toPreviewList = tableImgList.map((item) => ({
+          src: makePreviewImgUrl(
+            token,
+            item?.user.id ?? "",
+            item?.space ?? "",
+            item?.id ?? "",
+            item?.fullName.slice(-1)[0] ?? "",
+            item?.updatedAt ?? ""
+          ),
+          w: 0,
+          h: 0,
+          title: item?.info.description
+            ? transformRawDescription(item?.info.description)
+            : "",
+        }));
+        // 找出当前点击的图片的 openIndex
+        const startImgIdx = tableImgList.findIndex((i) => i?.id === record.id);
+        baseStore.setPhotoSwipeAndShow(toPreviewList, { index: startImgIdx });
+      } else if (fileType === "pdf") {
+        // 先清理上一次的任务(如果有)
+        if (destoryPdfLoadingTask) {
+          destoryPdfLoadingTask();
+        }
+        // console.log("pdf-类型");
+        const { user, space, id: fileId, fullName } = record;
+        const resultPreviewToken = await apiGetPreviewToken();
+        // console.log("resultPreviewToken", resultPreviewToken);
+        if (resultPreviewToken.err) return;
+        const token = resultPreviewToken.data.drivePreviewToken;
+        const pdfUrl = `https://drive-s.owaf.io/preview/${
+          user.id
+        }/${space.toLowerCase()}/${fileId}/${
+          fullName.slice(-1)[0]
+        }?token=${token}&t=${dayjs(record.updatedAt).format("YYYYMMDDHHmmss")}`;
+        // console.log("pdfUrl", pdfUrl);
+        isShowBottomPopup.value = true;
+        currentPreviewPdfName.value = lastOfArray(fullName);
+        isLoadingPdf.value = true;
+        //
+        // console.log("window", window);
+        const PDFjs = (window as any).pdfjsLib as typeof pdfjsLib;
+        // console.log("pdfjs", PDFjs);
+        PDFjs.GlobalWorkerOptions.workerSrc =
+          // "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.10.377/build/pdf.worker.min.js";
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.1.266/build/pdf.worker.min.js";
+        let viewer: HTMLElement | null;
+        let thePdf: PDFDocumentProxy;
+        const pdfLoadingTask = PDFjs.getDocument(pdfUrl);
+        destoryPdfLoadingTask = () => {
+          pdfLoadingTask.destroy();
+          destoryPdfLoadingTask = null;
+        };
+        pdfLoadingTask.promise
+          .then((pdf) => {
+            isLoadingPdf.value = false;
+            useDelay(10).then(async () => {
+              viewer = document.getElementById("pdfCanvas");
+              thePdf = pdf;
+              const renderQueue = [];
+              // console.time("全部pdf页面渲染时间");
+              for (let page = 1; page <= pdf.numPages; page++) {
+                const canvas = document.createElement("canvas");
+                canvas.className = "pdf-page-canvas";
+                viewer?.appendChild(canvas);
+                // renderPromiseLimit(() => renderPage(page, canvas));
+                renderQueue.push(() => renderPage(page, canvas));
+              }
+              // let i = 0;
+              // while (i < renderQueue.length) {
+              //   await renderQueue[i]();
+              //   i++;
+              // }
+              renderQueue.reduce((a, b) => a.then(b), Promise.resolve());
+            });
+          })
+          .catch((err) => {
+            isLoadingPdf.value = false;
+            console.log("加载pdf出错", err);
+          });
+        const renderPage = async (pageNumber: number, canvas: any) => {
+          if (!viewer) {
+            // console.log("noViewer");
+            return;
+          }
+          const page = await thePdf.getPage(pageNumber);
+          // const unscaledViewport = page.getViewport({ scale: 1 });
+          // const scale = viewer.clientWidth / unscaledViewport.width;
+          // console.log("calc-scale", scale);
+          // https://stackoverflow.com/questions/35400722/pdf-image-quality-is-bad-using-pdf-js
+          // 清晰度解决,先放大,再缩小
+          const scale = 2;
+          const viewport = page.getViewport({ scale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+          // viewer.style.width = Math.floor(viewport.width / scale) + "pt";
+          // viewer.style.height = Math.floor(viewport.height / scale) + "pt";
+          const renderTask = page.render({
+            canvasContext: canvas.getContext("2d"),
+            viewport: viewport,
+          });
+          // console.time(`${pageNumber}`);
+          return renderTask.promise.then(() => {
+            // console.timeEnd(`${pageNumber}`);
+            // if (pageNumber === thePdf.numPages) {
+            //   console.timeEnd("全部pdf页面渲染时间");
+            // }
+          });
+        };
+        //
+      } else {
+        // 3.其他类型
+        console.log("TODO-其他类型");
+      }
+    };
+    /** 地址栏的最后一个元素滑动进入视图 */
+    const scrollLastAddressItemIntoView = () => {
+      const lastHistoryDirItemElement = [
+        ...document.querySelectorAll(".historyDirItem"), // TODO change class
+      ].pop();
+      // console.log("lastHistoryDirItemElement", lastHistoryDirItemElement);
+      // 地址栏最后一个进入视图
+      if (lastHistoryDirItemElement) {
+        lastHistoryDirItemElement.scrollIntoView({
+          behavior: "smooth",
+        });
+      }
+    };
+    /** 点击名字 */
+    const onItemNameClick = async (record: TFileItem) => {
+      // console.log("onItemNameClick");
+      const e = record;
+      if (!e) return;
+      // 如果是文件夹, 就进入文件夹, 更新地址栏和详情数据
+      if (e.isDir) {
+        // historyDir.value.push({
+        //   dirId: e.id,
+        //   dirName: lastOfArray(e.fullName),
+        // });
+        // getSetDriveList(e.id);
+        historyDir.value.push({
+          dirName: lastOfArray(e.fullName),
+          isShared: e.isShared,
+        });
+        onRefreshTableData();
+        router.push({
+          name: "MetanetFile",
+          query: {
+            id: "1",
+            path: historyDir.value.map((i) => i.dirName).join("/"),
+          },
+        });
+        setCurrentDescriptionModalData(
+          e.id,
+          lastOfArray(e.fullName),
+          e.info.description || ""
+        );
+        isShowDescriptionModalFileNameInAddressBar.value = false;
+      } else {
+        // 如果是文件, 更新到地址栏, 并设置详情
+        setCurrentDescriptionModalData(
+          e.id,
+          lastOfArray(e.fullName),
+          e.info.description || ""
+        );
+        isShowDescriptionModalFileNameInAddressBar.value = true;
+      }
+    };
+    const isShowDescriptionModalFileNameInAddressBar = ref(false);
+    watch(
+      () => isShowDescriptionModalFileNameInAddressBar.value,
+      (newVal) => {
+        if (newVal) {
+          // 如果文件名显示在地址栏, 滑动它进入视图
+          useDelay(0).then(scrollLastAddressItemIntoView);
+        }
+      }
+    );
+    const currentDescriptionModalFileName = ref("");
+    const currentDescription = ref("");
+    const setCurrentDescriptionModalData = (
+      id: string,
+      fileName: string,
+      descSource: string
+    ) => {
+      currentDescriptionModalFileName.value = fileName;
+      currentDescription.value = descSource;
+      if (!idMapDescriptionCache.has(id)) {
+        idMapDescriptionCache.set(id, { fileName, descSource });
+      }
+    };
+    const setCurrentDescriptionModalDataFromCache = (id: string) => {
+      const e = idMapDescriptionCache.get(id);
+      if (!e) {
+        // throw Error(`没有找到改文件id ${id}的缓存`);
+        console.log(`没有找到改文件id ${id}的缓存`);
+        currentDescriptionModalFileName.value = "";
+        currentDescription.value = "";
+        return;
+      }
+      const { fileName, descSource } = e;
+      currentDescriptionModalFileName.value = fileName;
+      currentDescription.value = descSource;
+    };
+    const isShowDescriptionPopup = ref(false);
+    const onShowDescriptionPopup = () => {
+      isShowDescriptionPopup.value = true;
+    };
+    const onCloseDescriptionPopup = () => {
+      isShowDescriptionPopup.value = false;
+    };
+    ///
     return {
       svgStr,
       myInfo,
       titleArr,
       tableData,
+      historyDir,
       onClickLogo,
+      onUpperLevel,
       currentClickItem,
       isCurFolderShared,
       resetCurrentClickItem,
@@ -502,10 +898,25 @@ export default defineComponent({
       lastOfArray,
       cacheFormatDescription,
       TAG_COLOR_LIST,
+      onItemIconClick,
+      onItemNameClick,
+      isShowDescriptionPopup,
+      isShowDescriptionModalFileNameInAddressBar,
+      currentDescription,
+      currentDescriptionModalFileName,
+      onShowDescriptionPopup,
+      onCloseDescriptionPopup,
+      formatBytes,
     };
   },
 });
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+.fileItem {
+  &:active,
+  &:hover {
+    background: #fafafb;
+  }
+}
 </style>
