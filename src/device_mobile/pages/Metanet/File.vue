@@ -103,71 +103,81 @@
       </div>
       <!-- 列表 -->
       <div
-        class="mt-1"
+        class="mt-1 relative"
         :style="{
           overflow: 'hidden',
           'overflow-y': 'scroll',
           height: 'calc(100% - 40px)',
         }"
       >
-        <div
-          class="px-3 py-2 flex items-center fileItem"
-          v-for="record in tableData"
-          :key="record.id"
-        >
-          <div class="mr-2 relative" @click="onItemIconClick(record)">
-            <MFileTypeIcon class="w-9 h-9" :type="record.fileType" />
-            <div
-              v-if="isCanFilePreview(record)"
-              class="
-                absolute
-                text-white
-                bottom-0
-                font-12
-                bg-gray-400
-                opacity-60
-                left-0
-                right-0
-                text-center
-              "
-            >
-              预览
-            </div>
-          </div>
+        <van-loading
+          v-if="tableLoading"
+          class="absolute top-6 listLoading"
+          size="36px"
+        />
+        <template v-if="tableData.length === 0">
+          <!-- <div class="pt-4 pl-4 text-gray-400 text-center">空文件夹</div> -->
+          <van-empty description="空文件夹" />
+        </template>
+        <template v-else>
           <div
-            class="flex-1 text-overflow-3 mr-2"
-            @click="onItemNameClick(record)"
+            class="px-3 py-2 flex items-center fileItem"
+            v-for="record in tableData"
+            :key="record.id"
           >
-            <div class="font-medium text-overflow-2">
-              {{ lastOfArray(record.fullName) }}
+            <div class="mr-2 relative" @click="onItemIconClick(record)">
+              <MFileTypeIcon class="w-9 h-9" :type="record.fileType" />
+              <div
+                v-if="isCanFilePreview(record)"
+                class="
+                  absolute
+                  text-white
+                  bottom-0
+                  font-12
+                  bg-gray-400
+                  opacity-60
+                  left-0
+                  right-0
+                  text-center
+                "
+              >
+                预览
+              </div>
             </div>
-            <div class="font-12 text-gray-400 text-overflow-2">
-              <template v-if="record.info.description">
-                <template
-                  v-if="
-                    cacheFormatDescription(record.info.description).tagArr
-                      .length
-                  "
-                >
+            <div
+              class="flex-1 text-overflow-3 mr-2"
+              @click="onItemNameClick(record)"
+            >
+              <div class="font-medium text-overflow-2">
+                {{ lastOfArray(record.fullName) }}
+              </div>
+              <div class="font-12 text-gray-400 text-overflow-2">
+                <template v-if="record.info.description">
                   <template
-                    v-for="(tag, idx) in cacheFormatDescription(
-                      record.info.description
-                    ).tagArr"
+                    v-if="
+                      cacheFormatDescription(record.info.description).tagArr
+                        .length
+                    "
                   >
-                    <van-tag
-                      v-if="tag"
-                      :key="tag"
-                      :color="TAG_COLOR_LIST[idx]"
-                      class="mr-1"
-                      >{{ tag }}</van-tag
+                    <template
+                      v-for="(tag, idx) in cacheFormatDescription(
+                        record.info.description
+                      ).tagArr"
                     >
+                      <van-tag
+                        v-if="tag"
+                        :key="tag"
+                        :color="TAG_COLOR_LIST[idx]"
+                        class="mr-1"
+                        >{{ tag }}</van-tag
+                      >
+                    </template>
                   </template>
                 </template>
-              </template>
+              </div>
             </div>
-          </div>
-          <div>
-            <!-- <div class="flex items-center font-12 mb-1">
+            <div>
+              <!-- <div class="flex items-center font-12 mb-1">
               <van-icon class="text-gray-500" size="14px" name="like" />
               <span>66</span>
             </div>
@@ -175,23 +185,24 @@
               <van-icon color="#404A66" size="14px" name="chat-o" />
               <span>66</span>
             </div> -->
-            <div class="font-12 text-gray-400">
-              {{ record.isDir ? "" : formatBytes(+record.info.size) }}
+              <div class="font-12 text-gray-400">
+                {{ record.isDir ? "" : formatBytes(+record.info.size) }}
+              </div>
+            </div>
+            <div class="w-8 flex justify-end">
+              <div
+                v-if="!record.checked"
+                class="bg-gray-300 rounded-full w-2 h-2 mr-1.5"
+                @click="record.checked = true"
+              ></div>
+              <van-checkbox
+                v-else
+                checked-color="#404A66"
+                v-model="record.checked"
+              />
             </div>
           </div>
-          <div class="w-8 flex justify-end">
-            <div
-              v-if="!record.checked"
-              class="bg-gray-300 rounded-full w-2 h-2 mr-1.5"
-              @click="record.checked = true"
-            ></div>
-            <van-checkbox
-              v-else
-              checked-color="#404A66"
-              v-model="record.checked"
-            />
-          </div>
-        </div>
+        </template>
       </div>
     </section>
     <!-- 点击的文件的全部描述信息 -->
@@ -464,6 +475,14 @@ export default defineComponent({
                     // 注册当前目录是否已分享
                     historyDir.value[historyDir.value.length - 1].isShared =
                       obj.isShared;
+                    // 这里注册当前文件夹的 dirId 给 historyDir
+                    historyDir.value[historyDir.value.length - 1].dirId =
+                      obj.id;
+                    setCurrentDescriptionModalData(
+                      obj.id,
+                      lastOfArray(obj.fullName),
+                      obj.info.description || ""
+                    );
                     return null;
                   }
                   // 如果是父级目录, 返回null , 下一步把它去除
@@ -892,6 +911,7 @@ export default defineComponent({
       onUpperLevel,
       currentClickItem,
       isCurFolderShared,
+      tableLoading,
       resetCurrentClickItem,
       isCurClickItemShared,
       isCanFilePreview,
