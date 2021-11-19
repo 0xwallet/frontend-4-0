@@ -305,6 +305,7 @@ import {
   transformRawDescription,
   useDelay,
   formatBytes,
+  downloadFileByUrl,
 } from "@/utils";
 import dayjs from "dayjs";
 import { PDFDocumentProxy } from "pdfjs-dist/types/display/api";
@@ -959,8 +960,27 @@ export default defineComponent({
     const onCloseDescriptionPopup = () => {
       isShowDescriptionPopup.value = false;
     };
+    /** 下载 */
     const onDownload = () => {
-      // download 选中的
+      selectedRows.value.forEach((record) => {
+        const { user, fullName, space, id: fileId } = record;
+        // apiGetPreviewToken().then((resultPreviewToken) => {
+        // if (resultPreviewToken.err) return;
+        apiGetPreviewToken().then((resultPreviewToken) => {
+          if (resultPreviewToken.err) return;
+          const downloadToken = resultPreviewToken.data.drivePreviewToken;
+          // const token = resultPreviewToken.data.drivePreviewToken;
+          const url = `https://drive-s.owaf.io/download/${
+            user.id
+          }/${space.toLowerCase()}/${fileId}/${
+            fullName.slice(-1)[0]
+          }?token=${downloadToken}&t=${dayjs(record.updatedAt).format(
+            "YYYYMMDDHHmmss"
+          )}`;
+          downloadFileByUrl(url, fullName.slice(-1)[0]);
+        });
+        // });
+      });
     };
     ///
     return {
@@ -989,6 +1009,7 @@ export default defineComponent({
       currentDescriptionModalFileName,
       onShowDescriptionPopup,
       onCloseDescriptionPopup,
+      onDownload,
       formatBytes,
     };
   },
