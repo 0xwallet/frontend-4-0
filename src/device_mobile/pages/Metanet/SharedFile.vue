@@ -397,24 +397,7 @@
         </div>
         <!-- 工具栏 -->
         <transition name="no-mode-fade">
-          <footer
-            v-if="selectedRows.length"
-            class="
-              absolute
-              py-2
-              px-4
-              flex
-              items-center
-              justify-between
-              bg-white
-              bottom-0
-              left-0
-              right-0
-            "
-            :style="{
-              'box-shadow': '0 2px 6px #404a66',
-            }"
-          >
+          <MFooterBar v-if="selectedRows.length">
             <div class="flex items-center">
               <!-- background-color: #E1F4FF; color: #06A7FF; -->
               <!-- 下载 -->
@@ -451,7 +434,7 @@
               color="#404A66"
               >保存到网盘</van-button
             >
-          </footer>
+          </MFooterBar>
         </transition>
       </template>
     </div>
@@ -618,6 +601,7 @@ import {
   MSvgIcon,
   MMdParser,
   MLocaleSwither,
+  MFooterBar,
 } from "../../components";
 import { useBaseStore, useUserStore } from "@/store";
 import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
@@ -690,6 +674,7 @@ export default defineComponent({
     MSvgIcon,
     MMdParser,
     MLocaleSwither,
+    MFooterBar,
   },
   setup() {
     // 登录和未登录的

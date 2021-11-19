@@ -207,24 +207,7 @@
     </section>
     <!-- 工具栏 -->
     <transition name="no-mode-fade">
-      <footer
-        v-if="selectedRows.length"
-        class="
-          absolute
-          py-2
-          px-4
-          flex
-          items-center
-          justify-between
-          bg-white
-          bottom-0
-          left-0
-          right-0
-        "
-        :style="{
-          'box-shadow': '0 2px 6px #404a66',
-        }"
-      >
+      <MFooterBar v-if="selectedRows.length">
         <div class="flex items-center">
           <!-- background-color: #E1F4FF; color: #06A7FF; -->
           <!-- 下载 -->
@@ -250,7 +233,7 @@
             <MSvgIcon icon="zip" :size="24" />
           </div>
         </div>
-      </footer>
+      </MFooterBar>
     </transition>
     <!-- 点击的文件的全部描述信息 -->
     <van-popup
@@ -324,6 +307,7 @@ import {
   MFileTypeIcon,
   MMdParser,
   MSvgIcon,
+  MFooterBar,
 } from "../../components";
 import pdfjsLib from "pdfjs-dist";
 
@@ -346,6 +330,7 @@ export default defineComponent({
     MFileTypeIcon,
     MMdParser,
     MSvgIcon,
+    MFooterBar,
   },
   setup() {
     const svgStr = useSvgWhiteLogo();
