@@ -205,6 +205,53 @@
         </template>
       </div>
     </section>
+    <!-- 工具栏 -->
+    <transition name="no-mode-fade">
+      <footer
+        v-if="selectedRows.length"
+        class="
+          absolute
+          py-2
+          px-4
+          flex
+          items-center
+          justify-between
+          bg-white
+          bottom-0
+          left-0
+          right-0
+        "
+        :style="{
+          'box-shadow': '0 2px 6px #404a66',
+        }"
+      >
+        <div class="flex items-center">
+          <!-- background-color: #E1F4FF; color: #06A7FF; -->
+          <!-- 下载 -->
+          <div
+            class="rounded-full w-12 h-12 flex-center mr-4"
+            :style="{
+              'background-color': 'rgba(64, 74, 102,.2)',
+              color: '#404A66',
+            }"
+            @click="onDownload"
+          >
+            <MSvgIcon icon="download" :size="24" />
+          </div>
+          <!-- background-color: #E1F4FF; color: #06A7FF; -->
+          <!-- 压缩下载 -->
+          <div
+            class="rounded-full w-12 h-12 flex-center"
+            :style="{
+              'background-color': 'rgba(64, 74, 102,.2)',
+              color: '#404A66',
+            }"
+          >
+            <MSvgIcon icon="zip" :size="24" />
+          </div>
+        </div>
+      </footer>
+    </transition>
     <!-- 点击的文件的全部描述信息 -->
     <van-popup
       round
@@ -245,6 +292,7 @@ import {
   ParamsQueryFileByDir,
   TFileItem,
   TFileList,
+  // TFileList,
 } from "@/apollo/api";
 import { FILE_TYPE_MAP, TAG_COLOR_LIST } from "@/constants";
 import { useBaseStore, useUserStore } from "@/store";
@@ -270,7 +318,12 @@ import {
   watch,
 } from "vue";
 import { onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
-import { MBreadCrump, MFileTypeIcon, MMdParser } from "../../components";
+import {
+  MBreadCrump,
+  MFileTypeIcon,
+  MMdParser,
+  MSvgIcon,
+} from "../../components";
 import pdfjsLib from "pdfjs-dist";
 
 type THistoryDirItem = {
@@ -284,11 +337,14 @@ const idMapDescriptionCache = new Map<
   { fileName: string; descSource: string }
 >();
 
+type TableList = Array<TFileItem & { checked: boolean }>;
+
 export default defineComponent({
   components: {
     MBreadCrump,
     MFileTypeIcon,
     MMdParser,
+    MSvgIcon,
   },
   setup() {
     const svgStr = useSvgWhiteLogo();
@@ -301,7 +357,7 @@ export default defineComponent({
       const userName = userStore.username;
       return { userName };
     });
-    const tableData = ref<TFileList>([]);
+    const tableData = ref<TableList>([]);
     const titleArr = reactive<string[]>([]);
     titleArr.push("网盘");
     titleArr.push("文件");
@@ -350,8 +406,10 @@ export default defineComponent({
       return tableData.value.find((item) => item?.id === currentClickItem.id)
         ?.isShared;
     });
-    const selectedRows = ref<TFileItem[]>([]);
-    const selectedRowKeys = ref<string[]>([]);
+    // const selectedRows = ref<TFileItem[]>([]);
+    const selectedRows = computed(() =>
+      tableData.value.filter((record) => record.checked)
+    );
     const tableLoading = ref(false);
     const isLoadingAllTableData = ref(false);
     /** 路由params里的name */
@@ -432,9 +490,6 @@ export default defineComponent({
       params: Omit<ParamsQueryFileByDir, "pageNumber" | "pageSize">
     ) => {
       return new Promise((resolve, reject) => {
-        // 重置选中项目
-        selectedRows.value.length = 0;
-        selectedRowKeys.value.length = 0;
         // 重置当前点击表格项
         resetCurrentClickItem();
         tableLoading.value = true;
@@ -509,13 +564,15 @@ export default defineComponent({
             // .sort(sortByDirType);
             tableData.value = filterDriveListFiles(
               resultQueryFile.data.driveListFiles
-            );
+            ).map((i) => ({ ...i, checked: false }));
             if (resultQueryFile.data.driveListFiles.length) {
               // 这里从第二页开始, 因为上面请求了第一页
               apiLoopQueryFileByDir({ ...params, startPage: 2 }).then(
                 (loopRes) => {
                   tableData.value.push(
-                    ...filterDriveListFiles(loopRes.data?.driveListFiles ?? [])
+                    ...filterDriveListFiles(
+                      loopRes.data?.driveListFiles ?? []
+                    ).map((i) => ({ ...i, checked: false }))
                   );
                   isLoadingAllTableData.value = false;
                 }
@@ -530,12 +587,14 @@ export default defineComponent({
                 (item) =>
                   item && lastOfArray(item.fullName) === paramsFileName.value
               );
-              if (found) {
-                selectedRows.value.push(found);
-                selectedRowKeys.value.push(found.id);
-                // currentClickItem.id = found.id;
-                // currentClickItem.name = lastOfArray(found.fullName);
-              }
+              if (found) found.checked = true;
+              // TODO 从分享跳转到这里的时候
+              // if (found) {
+              //   selectedRows.value.push(found);
+              //   selectedRowKeys.value.push(found.id);
+              //   // currentClickItem.id = found.id;
+              //   // currentClickItem.name = lastOfArray(found.fullName);
+              // }
               paramsFileName.value = "";
             }
             tableLoading.value = false;
@@ -900,6 +959,9 @@ export default defineComponent({
     const onCloseDescriptionPopup = () => {
       isShowDescriptionPopup.value = false;
     };
+    const onDownload = () => {
+      // download 选中的
+    };
     ///
     return {
       svgStr,
@@ -907,6 +969,7 @@ export default defineComponent({
       titleArr,
       tableData,
       historyDir,
+      selectedRows,
       onClickLogo,
       onUpperLevel,
       currentClickItem,
