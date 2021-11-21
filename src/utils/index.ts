@@ -5,6 +5,8 @@ import {
   PRODUCT_NAME,
   TAG_COLOR_LIST,
 } from "@/constants";
+import streamSaver from "streamsaver";
+import { saveAs } from "file-saver";
 import duration from "dayjs/plugin/duration";
 import dayjs from "dayjs";
 dayjs.extend(duration);
@@ -219,26 +221,73 @@ export const downloadFileByBlob = (blob: Blob, fileName: string) => {
     (window.navigator as any).msSaveBlob(blob, fileName);
   } else {
     const url = window.URL.createObjectURL(blob);
-    downloadFileByUrl(url, fileName);
+    downloadFileByUrl({
+      url,
+      fileName,
+    });
   }
 };
-
+const emptyFn = () => void 0;
 /** 通过url 创建a标签下载文件 */
-export const downloadFileByUrl = (
-  url: string,
-  fileName: string,
-  target = "_blank"
-) => {
-  const link = document.createElement("a");
-  link.style.visibility = "hidden";
-  // fireFox 要求el 在body中
-  document.body.appendChild(link);
-  link.setAttribute("href", url);
-  link.setAttribute("download", fileName);
-  link.setAttribute("target", target);
-  link.click();
-  link.remove();
-};
+export const downloadFileByUrl = ({
+  url,
+  fileName,
+  onBeforeFetch = emptyFn,
+  onAfterFetch = emptyFn,
+  onBeforeWrite = emptyFn,
+  onAfterWrite = emptyFn,
+}: {
+  url: string;
+  fileName: string;
+  onBeforeFetch?: () => void;
+  onAfterFetch?: () => void;
+  onBeforeWrite?: () => void;
+  onAfterWrite?: () => void;
+}) =>
+  // target = "_blank"
+  {
+    // fetch(url)
+    //   .then((res) => res.blob())
+    //   .then((blob) => saveAs(blob, fileName));
+    // https://jimmywarting.github.io/StreamSaver.js/
+    // onBeforeFetch();
+    // const fileStream = streamSaver.createWriteStream(fileName);
+    // fetch(url).then((res) => {
+    //   onAfterFetch();
+    //   if (!res.body) return;
+    //   const readableStream = res.body;
+    //   onBeforeWrite();
+    //   // more optimized
+    //   if (window.WritableStream && readableStream?.pipeTo) {
+    //     return readableStream.pipeTo(fileStream).then(() => {
+    //       console.log(`${fileName} - done writing`);
+    //       onAfterWrite();
+    //     });
+    //   }
+    //   const writer = fileStream.getWriter();
+    //   const reader = res.body.getReader();
+    //   const pump = () =>
+    //     reader.read().then((res) => {
+    //       // res.done ? writer.close() : writer.write(res.value).then(pump);
+    //       if (res.done) {
+    //         writer.close();
+    //         onAfterWrite();
+    //       } else {
+    //         writer.write(res.value).then(pump);
+    //       }
+    //     });
+    //   pump();
+    // });
+    const link = document.createElement("a");
+    link.style.display = "none";
+    // fireFox 要求el 在body中
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    link.setAttribute("target", "_blank");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
 /** 创建n位数的随机数字字符串 */
 export const getRandomNumStr = (n = 6): string => {
@@ -334,19 +383,35 @@ let zIndex = 100000;
 export const XToast = (msg = "default", size = 14, durationSecond = 2) => {
   let div: HTMLDivElement | null;
   div = document.createElement("div");
-  div.style.position = "fixed";
-  div.style.left = "50%";
-  div.style.top = "50%";
-  div.style.transform = "translate(-50%,-50%)";
-  div.style.backgroundColor = "rgba(0,0,0,.8)";
-  div.style.borderRadius = "4px";
-  div.style.fontSize = `${size}px`;
-  div.style.textAlign = "center";
-  div.style.color = "#fff";
-  div.style.padding = "10px 14px";
-  div.style.zIndex = `${zIndex++}`;
-  div.style.opacity = ".9";
-  div.style.backfaceVisibility = "hidden";
+  const styleObj: Partial<CSSStyleDeclaration> = {
+    position: "fixed",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%,-50%)",
+    backgroundColor: "rgba(0,0,0,.8)",
+    borderRadius: "4px",
+    fontSize: `${size}px`,
+    textAlign: "center",
+    color: "#fff",
+    padding: "10px 14px",
+    zIndex: `${zIndex++}`,
+    opacity: ".9",
+    backfaceVisibility: "hidden",
+  };
+  Object.assign(div.style, styleObj);
+  // div.style.position = "fixed";
+  // div.style.left = "50%";
+  // div.style.top = "50%";
+  // div.style.transform = "translate(-50%,-50%)";
+  // div.style.backgroundColor = "rgba(0,0,0,.8)";
+  // div.style.borderRadius = "4px";
+  // div.style.fontSize = `${size}px`;
+  // div.style.textAlign = "center";
+  // div.style.color = "#fff";
+  // div.style.padding = "10px 14px";
+  // div.style.zIndex = `${zIndex++}`;
+  // div.style.opacity = ".9";
+  // div.style.backfaceVisibility = "hidden";
   div.innerText = msg;
   document.body.appendChild(div);
   setTimeout(() => {
@@ -406,16 +471,25 @@ export const transformRawDescription = (rawStr: string) => {
   );
 };
 
-/** 获取预览图片 url */
-export const makePreviewImgUrl = (
-  token: string,
-  userId: string,
-  space: string,
-  fileId: string,
-  fileName: string,
-  updateAt: string
-) => {
-  return `https://drive-s.owaf.io/preview/${userId}/${space.toLowerCase()}/${fileId}/${fileName}?token=${token}&t=${dayjs(
+/** 获取文件下载/预览路径 url */
+export const makeFileUrl = ({
+  urlType,
+  token,
+  userId,
+  space,
+  fileId,
+  fileName,
+  updateAt,
+}: {
+  urlType: "preview" | "download";
+  token: string;
+  userId: string;
+  space: string;
+  fileId: string;
+  fileName: string;
+  updateAt: string;
+}) => {
+  return `https://drive-s.owaf.io/${urlType}/${userId}/${space.toLowerCase()}/${fileId}/${fileName}?token=${token}&t=${dayjs(
     updateAt
   ).format("YYYYMMDDHHmmss")}`;
 };

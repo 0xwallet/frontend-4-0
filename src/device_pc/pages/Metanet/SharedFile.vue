@@ -560,7 +560,7 @@ import {
   cacheFn,
   useDelay,
   transformRawDescription,
-  makePreviewImgUrl,
+  makeFileUrl,
 } from "@/utils";
 import {
   ExportOutlined,
@@ -848,14 +848,15 @@ export default defineComponent({
             FILE_TYPE_MAP.image.includes(item.userFile.fileType ?? "")
         );
         const toPreviewList = tableImgList.map((item) => ({
-          src: makePreviewImgUrl(
-            token,
-            item.userFile?.user.id ?? "",
-            item.userFile?.space ?? "",
-            item.userFile?.id ?? "",
-            item.userFile?.fullName.slice(-1)[0] ?? "",
-            item.userFile?.updatedAt ?? ""
-          ),
+          src: makeFileUrl({
+            urlType: "preview",
+            token: token,
+            userId: item.userFile?.user.id ?? "",
+            space: item.userFile?.space ?? "",
+            fileId: item.userFile?.id ?? "",
+            fileName: item.userFile?.fullName.slice(-1)[0] ?? "",
+            updateAt: item.userFile?.updatedAt ?? "",
+          }),
           w: 0,
           h: 0,
           title: item.userFile?.info.description
@@ -876,13 +877,22 @@ export default defineComponent({
         // console.log("pdf");
         const token = record.token;
         const { user, space, id: fileId, fullName } = record.userFile;
-        const pdfUrl = `https://drive-s.owaf.io/preview/${
-          user.id
-        }/${space.toLowerCase()}/${fileId}/${
-          fullName.slice(-1)[0]
-        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
-          "YYYYMMDDHHmmss"
-        )}`;
+        // const pdfUrl = `https://drive-s.owaf.io/preview/${
+        //   user.id
+        // }/${space.toLowerCase()}/${fileId}/${
+        //   fullName.slice(-1)[0]
+        // }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
+        //   "YYYYMMDDHHmmss"
+        // )}`;
+        const pdfUrl = makeFileUrl({
+          urlType: "preview",
+          token,
+          userId: user.id,
+          space: space.toLowerCase(),
+          fileId,
+          fileName: fullName.slice(-1)[0],
+          updateAt: record.userFile.updatedAt,
+        });
         window.open(pdfUrl, "_blank");
       } else {
         console.log("other-type");
@@ -1081,14 +1091,27 @@ export default defineComponent({
       if (!record.userFile) return;
       // if (resultPreviewToken.err) return;
       // const token = resultPreviewToken.data.drivePreviewToken;
-      const url = `https://drive-s.owaf.io/download/${
-        user.id
-      }/${space.toLowerCase()}/${fileId}/${
-        fullName.slice(-1)[0]
-      }?token=${downloadToken}&t=${dayjs(record.userFile.updatedAt).format(
-        "YYYYMMDDHHmmss"
-      )}`;
-      downloadFileByUrl(url, fullName.slice(-1)[0]);
+      // const url = `https://drive-s.owaf.io/download/${
+      //   user.id
+      // }/${space.toLowerCase()}/${fileId}/${
+      //   fullName.slice(-1)[0]
+      // }?token=${downloadToken}&t=${dayjs(record.userFile.updatedAt).format(
+      //   "YYYYMMDDHHmmss"
+      // )}`;
+
+      const url = makeFileUrl({
+        urlType: "download",
+        token: downloadToken,
+        userId: user.id,
+        space: space.toLowerCase(),
+        fileId,
+        fileName: fullName.slice(-1)[0],
+        updateAt: record.userFile.updatedAt,
+      });
+      downloadFileByUrl({
+        url,
+        fileName: fullName.slice(-1)[0],
+      });
       // });
     };
     /** shortcut -评价 */

@@ -227,6 +227,7 @@
     ></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.10.377/build/pdf.min.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.1.266/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web-streams-polyfill@2.0.2/dist/ponyfill.min.js"></script>
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/vconsole@3.9.1/dist/vconsole.min.js"
@@ -239,9 +240,9 @@
         () => {
           // if(window.__isMobile__) {}
           // 生产环境才调用
-          if (location.protocol.includes("https")) {
+          // if (location.protocol.includes("https")) {
             var vConsole = new window.VConsole();
-          }
+          // }
         },
         { once: true }
       );

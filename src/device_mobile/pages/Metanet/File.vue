@@ -284,7 +284,7 @@ import {
   lastOfArray,
   useSvgWhiteLogo,
   cacheFormatDescription,
-  makePreviewImgUrl,
+  makeFileUrl,
   transformRawDescription,
   useDelay,
   formatBytes,
@@ -734,14 +734,15 @@ export default defineComponent({
             item !== null && FILE_TYPE_MAP.image.includes(item.fileType ?? "")
         );
         const toPreviewList = tableImgList.map((item) => ({
-          src: makePreviewImgUrl(
-            token,
-            item?.user.id ?? "",
-            item?.space ?? "",
-            item?.id ?? "",
-            item?.fullName.slice(-1)[0] ?? "",
-            item?.updatedAt ?? ""
-          ),
+          src: makeFileUrl({
+            urlType: "preview",
+            token: token,
+            userId: item?.user.id ?? "",
+            space: item?.space ?? "",
+            fileId: item?.id ?? "",
+            fileName: item?.fullName.slice(-1)[0] ?? "",
+            updateAt: item?.updatedAt ?? "",
+          }),
           w: 0,
           h: 0,
           title: item?.info.description
@@ -762,11 +763,20 @@ export default defineComponent({
         // console.log("resultPreviewToken", resultPreviewToken);
         if (resultPreviewToken.err) return;
         const token = resultPreviewToken.data.drivePreviewToken;
-        const pdfUrl = `https://drive-s.owaf.io/preview/${
-          user.id
-        }/${space.toLowerCase()}/${fileId}/${
-          fullName.slice(-1)[0]
-        }?token=${token}&t=${dayjs(record.updatedAt).format("YYYYMMDDHHmmss")}`;
+        // const pdfUrl = `https://drive-s.owaf.io/preview/${
+        //   user.id
+        // }/${space.toLowerCase()}/${fileId}/${
+        //   fullName.slice(-1)[0]
+        // }?token=${token}&t=${dayjs(record.updatedAt).format("YYYYMMDDHHmmss")}`;
+        const pdfUrl = makeFileUrl({
+          urlType: "preview",
+          token,
+          userId: user.id,
+          space: space.toLowerCase(),
+          fileId,
+          fileName: fullName.slice(-1)[0],
+          updateAt: record.updatedAt,
+        });
         // console.log("pdfUrl", pdfUrl);
         isShowBottomPopup.value = true;
         currentPreviewPdfName.value = lastOfArray(fullName);
@@ -953,16 +963,28 @@ export default defineComponent({
         // if (resultPreviewToken.err) return;
         apiGetPreviewToken().then((resultPreviewToken) => {
           if (resultPreviewToken.err) return;
-          const downloadToken = resultPreviewToken.data.drivePreviewToken;
+          const token = resultPreviewToken.data.drivePreviewToken;
           // const token = resultPreviewToken.data.drivePreviewToken;
-          const url = `https://drive-s.owaf.io/download/${
-            user.id
-          }/${space.toLowerCase()}/${fileId}/${
-            fullName.slice(-1)[0]
-          }?token=${downloadToken}&t=${dayjs(record.updatedAt).format(
-            "YYYYMMDDHHmmss"
-          )}`;
-          downloadFileByUrl(url, fullName.slice(-1)[0]);
+          // const url = `https://drive-s.owaf.io/download/${
+          //   user.id
+          // }/${space.toLowerCase()}/${fileId}/${
+          //   fullName.slice(-1)[0]
+          // }?token=${downloadToken}&t=${dayjs(record.updatedAt).format(
+          //   "YYYYMMDDHHmmss"
+          // )}`;
+          const url = makeFileUrl({
+            urlType: "download",
+            token,
+            userId: user.id,
+            space: space.toLowerCase(),
+            fileId,
+            fileName: fullName.slice(-1)[0],
+            updateAt: record.updatedAt,
+          });
+          downloadFileByUrl({
+            url,
+            fileName: fullName.slice(-1)[0],
+          });
         });
         // });
       });

@@ -245,6 +245,7 @@ export const apiQueryMe = async (): TApiRes<ResponseQureyMe> => {
 type ResponseMeAvatar = {
   me: {
     avatar: null | string;
+    id: string;
   };
 };
 /** 查询用户头像 */
@@ -263,6 +264,7 @@ export const apiQueryMeAvatar = async (): TApiRes<ResponseMeAvatar> => {
 
 type ResponseQueryMeSpace = {
   me: {
+    id: string;
     driveSetting: DriveUserSetting;
   };
 };
@@ -652,6 +654,7 @@ export const apiUploadSingle = async (
     clientSession.close();
     return { err: Error(UPLOAD_MSG.err_pauseByUser) };
   }
+  // TODO 这里可以不用整个文件都load 进来,像空投那样分段;防止选择大文件时占用过多内存
   // 第二步，发文件
   const fileBuffer = await params.file.arrayBuffer();
   // console.log("fileBuffer", fileBuffer);

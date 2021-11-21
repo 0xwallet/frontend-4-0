@@ -401,7 +401,7 @@
             <div class="flex items-center">
               <!-- background-color: #E1F4FF; color: #06A7FF; -->
               <!-- 下载 -->
-              <div
+              <!-- <div
                 class="rounded-full w-12 h-12 flex-center mr-4"
                 :style="{
                   'background-color': 'rgba(64, 74, 102,.2)',
@@ -410,7 +410,21 @@
                 @click="onDownload"
               >
                 <MSvgIcon icon="download" :size="24" />
-              </div>
+              </div> -->
+              <van-button
+                round
+                :style="{
+                  'background-color': 'rgba(64, 74, 102,.2)',
+                  color: '#404A66',
+                  border: 'none',
+                }"
+                class="h-12 w-12 mr-4 rounded-full"
+                @click="onDownload"
+                :loading="isLoadingDownloadData"
+                color="#404A66"
+              >
+                <MSvgIcon icon="download" :size="24" />
+              </van-button>
               <!-- background-color: #E1F4FF; color: #06A7FF; -->
               <!-- 压缩下载 -->
               <div
@@ -581,7 +595,7 @@ import {
   downloadFileByUrl,
   useDelay,
   transformRawDescription,
-  makePreviewImgUrl,
+  makeFileUrl,
 } from "@/utils";
 import dayjs from "dayjs";
 import { Dialog, Toast } from "vant";
@@ -798,7 +812,7 @@ export default defineComponent({
         Toast("收藏成功!");
       }
     };
-
+    const isLoadingDownloadData = ref(false);
     /** 下载 */
     const onDownload = () => {
       // if (checkLoginStatusThenOpenPopupLogin()) {
@@ -807,21 +821,46 @@ export default defineComponent({
       // console.log("onDownload");
       selectedRows.value.forEach((record) => {
         if (!record.userFile) return;
-        const { user, fullName, space, id: fileId } = record.userFile;
+        const {
+          user,
+          fullName,
+          space,
+          id: fileId,
+          updatedAt,
+        } = record.userFile;
         const downloadToken = record.token;
         // apiGetPreviewToken().then((resultPreviewToken) => {
         // if (resultPreviewToken.err) return;
         useDelay(100).then(() => {
           if (!record.userFile) return;
           // const token = resultPreviewToken.data.drivePreviewToken;
-          const url = `https://drive-s.owaf.io/download/${
-            user.id
-          }/${space.toLowerCase()}/${fileId}/${
-            fullName.slice(-1)[0]
-          }?token=${downloadToken}&t=${dayjs(record.userFile.updatedAt).format(
-            "YYYYMMDDHHmmss"
-          )}`;
-          downloadFileByUrl(url, fullName.slice(-1)[0]);
+          // const url = `https://drive-s.owaf.io/download/${
+          //   user.id
+          // }/${space.toLowerCase()}/${fileId}/${
+          //   fullName.slice(-1)[0]
+          // }?token=${downloadToken}&t=${dayjs(record.userFile.updatedAt).format(
+          //   "YYYYMMDDHHmmss"
+          // )}`;
+          const url = makeFileUrl({
+            urlType: "download",
+            token: downloadToken,
+            userId: user.id,
+            space: space.toLowerCase(),
+            fileId,
+            fileName: fullName.slice(-1)[0],
+            updateAt: updatedAt,
+          });
+
+          downloadFileByUrl({
+            url,
+            fileName: fullName.slice(-1)[0],
+            onBeforeFetch: () => {
+              isLoadingDownloadData.value = true;
+            },
+            onAfterFetch: () => {
+              isLoadingDownloadData.value = false;
+            },
+          });
         });
         // });
       });
@@ -1284,14 +1323,15 @@ export default defineComponent({
             FILE_TYPE_MAP.image.includes(item.userFile.fileType ?? "")
         );
         const toPreviewList = tableImgList.map((item) => ({
-          src: makePreviewImgUrl(
-            token,
-            item.userFile?.user.id ?? "",
-            item.userFile?.space ?? "",
-            item.userFile?.id ?? "",
-            item.userFile?.fullName.slice(-1)[0] ?? "",
-            item.userFile?.updatedAt ?? ""
-          ),
+          src: makeFileUrl({
+            urlType: "preview",
+            token: token,
+            userId: item.userFile?.user.id ?? "",
+            space: item.userFile?.space ?? "",
+            fileId: item.userFile?.id ?? "",
+            fileName: item.userFile?.fullName.slice(-1)[0] ?? "",
+            updateAt: item.userFile?.updatedAt ?? "",
+          }),
           w: 0,
           h: 0,
           title: item.userFile?.info.description
@@ -1309,13 +1349,22 @@ export default defineComponent({
         // console.log("pdf-类型");
         const { user, space, id: fileId, fullName } = record.userFile;
         const token = record.token;
-        const pdfUrl = `https://drive-s.owaf.io/preview/${
-          user.id
-        }/${space.toLowerCase()}/${fileId}/${
-          fullName.slice(-1)[0]
-        }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
-          "YYYYMMDDHHmmss"
-        )}`;
+        // const pdfUrl = `https://drive-s.owaf.io/preview/${
+        //   user.id
+        // }/${space.toLowerCase()}/${fileId}/${
+        //   fullName.slice(-1)[0]
+        // }?token=${token}&t=${dayjs(record.userFile.updatedAt).format(
+        //   "YYYYMMDDHHmmss"
+        // )}`;
+        const pdfUrl = makeFileUrl({
+          urlType: "preview",
+          token,
+          userId: user.id,
+          space: space.toLowerCase(),
+          fileId,
+          fileName: fullName.slice(-1)[0],
+          updateAt: record.userFile.updatedAt,
+        });
         // console.log("pdfUrl", pdfUrl);
         isShowBottomPopup.value = true;
         currentPreviewPdfName.value = lastOfArray(fullName);
@@ -1531,6 +1580,7 @@ export default defineComponent({
       isLoadingConfirmCode,
       isCurrentShareCollected,
       isUserLoggedIn,
+      isLoadingDownloadData,
       myInfo,
       onClickLogo,
       onUserIconClick,

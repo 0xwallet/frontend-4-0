@@ -192,6 +192,7 @@ export const driveFileUploaded = gql`
 export const queryMeSpace = gql`
   query {
     me {
+      id
       driveSetting {
         availableSpace
         totalSpace
@@ -204,6 +205,7 @@ export const queryMeSpace = gql`
 export const queryMeAvatar = gql`
   query {
     me {
+      id
       avatar
     }
   }
