@@ -82,7 +82,6 @@ export const formatDescription = (sourceDesc: string | null): DescObj => {
   const tagArr = [...sourceDesc.matchAll(/#(.*?)#/g)]
     .map((i) => i[1].trim())
     .filter((i) => i.length);
-  console.log("tagArr", tagArr);
   const text = sourceDesc.replace(/#(.*?)#/g, "");
   return { tagArr, text };
 };
