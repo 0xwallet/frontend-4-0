@@ -79,7 +79,10 @@ export type DescObj = {
 export const formatDescription = (sourceDesc: string | null): DescObj => {
   if (!sourceDesc) return { tagArr: [], text: "" };
   // maybe length = 0
-  const tagArr = [...sourceDesc.matchAll(/#(.*?)#/g)].map((i) => i[1].trim());
+  const tagArr = [...sourceDesc.matchAll(/#(.*?)#/g)]
+    .map((i) => i[1].trim())
+    .filter((i) => i.length);
+  console.log("tagArr", tagArr);
   const text = sourceDesc.replace(/#(.*?)#/g, "");
   return { tagArr, text };
 };
@@ -224,6 +227,7 @@ export const downloadFileByBlob = (blob: Blob, fileName: string) => {
     downloadFileByUrl({
       url,
       fileName,
+      onAfterFetch: () => window.URL.revokeObjectURL(url),
     });
   }
 };

@@ -358,12 +358,14 @@
                             'line-height': '16px',
                           }"
                           class="inline-block"
-                          color="orange"
-                          v-for="item in getFileWindowTips(item, 'desc').tagArr"
+                          v-for="(item, idx) in getFileWindowTips(item, 'desc')
+                            .tagArr"
+                          :color="TAG_COLOR_LIST[idx]"
                           :key="item"
                           >{{ item }}</a-tag
                         ></template
-                      >{{ getFileWindowTips(item, "desc").text }}
+                      >
+                      <!-- {{ getFileWindowTips(item, "desc").text }} -->
                     </template>
                     <div class="flex items-center">
                       <span class="text-xs pr-2 cursor-pointer">
@@ -490,7 +492,11 @@ import {
 } from "@ant-design/icons-vue";
 import { remove } from "lodash-es";
 import { useRoute, useRouter } from "vue-router";
-import { PRODUCT_NAME, NKN_SUB_CLIENT_COUNT } from "@/constants";
+import {
+  PRODUCT_NAME,
+  NKN_SUB_CLIENT_COUNT,
+  TAG_COLOR_LIST,
+} from "@/constants";
 import { XLocaleSwither, XUserAvatar } from "../components";
 import { useBaseStore, useTransportStore, useUserStore } from "@/store";
 import { message, Modal } from "ant-design-vue";
@@ -858,6 +864,7 @@ export default defineComponent({
         uploadingCount,
         uploadSuccessCount,
         keepAliveList,
+        TAG_COLOR_LIST,
       };
     }
     /** nkn client 连接状态 */
