@@ -246,47 +246,61 @@ export const downloadFileByUrl = ({
 }) =>
   // target = "_blank"
   {
-    // fetch(url)
-    //   .then((res) => res.blob())
-    //   .then((blob) => saveAs(blob, fileName));
-    // https://jimmywarting.github.io/StreamSaver.js/
-    // onBeforeFetch();
-    // const fileStream = streamSaver.createWriteStream(fileName);
-    // fetch(url).then((res) => {
-    //   onAfterFetch();
-    //   if (!res.body) return;
-    //   const readableStream = res.body;
-    //   onBeforeWrite();
-    //   // more optimized
-    //   if (window.WritableStream && readableStream?.pipeTo) {
-    //     return readableStream.pipeTo(fileStream).then(() => {
-    //       console.log(`${fileName} - done writing`);
-    //       onAfterWrite();
-    //     });
-    //   }
-    //   const writer = fileStream.getWriter();
-    //   const reader = res.body.getReader();
-    //   const pump = () =>
-    //     reader.read().then((res) => {
-    //       // res.done ? writer.close() : writer.write(res.value).then(pump);
-    //       if (res.done) {
-    //         writer.close();
-    //         onAfterWrite();
-    //       } else {
-    //         writer.write(res.value).then(pump);
-    //       }
-    //     });
-    //   pump();
-    // });
-    const link = document.createElement("a");
-    link.style.display = "none";
-    // fireFox 要求el 在body中
-    link.setAttribute("href", url);
-    link.setAttribute("download", fileName);
-    link.setAttribute("target", "_blank");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    if (isMobile()) {
+      // 1. 整个文件数据都加载完再下载, 对移动端支持良好
+      onBeforeFetch();
+      fetch(url)
+        .then((res) => {
+          onAfterFetch();
+          onBeforeWrite();
+          return res.blob();
+        })
+        .then((blob) => {
+          saveAs(blob, fileName);
+          onAfterWrite();
+        });
+    } else {
+      // 2. 边加载边下载(流式)
+      // https://jimmywarting.github.io/StreamSaver.js/
+      onBeforeFetch();
+      const fileStream = streamSaver.createWriteStream(fileName);
+      fetch(url).then((res) => {
+        onAfterFetch();
+        if (!res.body) return;
+        const readableStream = res.body;
+        onBeforeWrite();
+        // more optimized
+        if (window.WritableStream && readableStream?.pipeTo) {
+          return readableStream.pipeTo(fileStream).then(() => {
+            console.log(`${fileName} - done writing`);
+            onAfterWrite();
+          });
+        }
+        const writer = fileStream.getWriter();
+        const reader = res.body.getReader();
+        const pump = () =>
+          reader.read().then((res) => {
+            // res.done ? writer.close() : writer.write(res.value).then(pump);
+            if (res.done) {
+              writer.close();
+              onAfterWrite();
+            } else {
+              writer.write(res.value).then(pump);
+            }
+          });
+        pump();
+      });
+    }
+
+    // const link = document.createElement("a");
+    // link.style.display = "none";
+    // // fireFox 要求el 在body中
+    // link.setAttribute("href", url);
+    // link.setAttribute("download", fileName);
+    // link.setAttribute("target", "_blank");
+    // document.body.appendChild(link);
+    // link.click();
+    // link.remove();
   };
 
 /** 创建n位数的随机数字字符串 */

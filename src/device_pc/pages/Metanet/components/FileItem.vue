@@ -2854,33 +2854,33 @@ export default defineComponent({
         // TODO
         // Content-Disposition: attachment
         const hideLoadingMsg = message.loading("连接服务器中...", 0);
-        apiGetPreviewToken()
-          .then((resultPreviewToken) => {
-            if (resultPreviewToken.err) return;
-            const token = resultPreviewToken.data.drivePreviewToken;
-            // const url = `https://drive-s.owaf.io/download/${
-            //   user.id
-            // }/${space.toLowerCase()}/${fileId}/${
-            //   fullName.slice(-1)[0]
-            // }?token=${token}&t=${dayjs(record.updatedAt).format(
-            //   "YYYYMMDDHHmmss"
-            // )}`;
-            const downloadUrl = makeFileUrl({
-              urlType: "download",
-              token,
-              userId: user.id,
-              space: space.toLowerCase(),
-              fileId,
-              fileName: fullName.slice(-1)[0],
-              updateAt: record.updatedAt,
-            });
-            console.log("downloadUrl", downloadUrl);
-            downloadFileByUrl({
-              url: downloadUrl,
-              fileName: fullName.slice(-1)[0],
-            });
-          })
-          .finally(hideLoadingMsg);
+        apiGetPreviewToken().then((resultPreviewToken) => {
+          if (resultPreviewToken.err) return;
+          const token = resultPreviewToken.data.drivePreviewToken;
+          // const url = `https://drive-s.owaf.io/download/${
+          //   user.id
+          // }/${space.toLowerCase()}/${fileId}/${
+          //   fullName.slice(-1)[0]
+          // }?token=${token}&t=${dayjs(record.updatedAt).format(
+          //   "YYYYMMDDHHmmss"
+          // )}`;
+          const downloadUrl = makeFileUrl({
+            urlType: "download",
+            token,
+            userId: user.id,
+            space: space.toLowerCase(),
+            fileId,
+            fileName: fullName.slice(-1)[0],
+            updateAt: record.updatedAt,
+          });
+          console.log("downloadUrl", downloadUrl);
+          downloadFileByUrl({
+            url: downloadUrl,
+            fileName: fullName.slice(-1)[0],
+            onAfterFetch: () => hideLoadingMsg(),
+          });
+        });
+        // .finally(hideLoadingMsg);
       };
       return {
         historyDir,
