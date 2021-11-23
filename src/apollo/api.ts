@@ -441,6 +441,7 @@ export type ParamsUploadSingle = {
   action: "drive" | "update";
   toUpdateFileId?: string;
   setSecondUpload?: () => void;
+  setNfrAddr?: (addr: string) => void;
   setProgressSpeedStatus?: (
     uniqueId: string,
     progress: number,
@@ -573,6 +574,10 @@ export const apiUploadSingle = async (
     return isCurrentUploadStatusPause()
       ? { err: Error(UPLOAD_MSG.err_pauseByUser) }
       : { err: Error(UPLOAD_MSG.err_noClientSession) };
+  }
+  // 设置nfr地址
+  if (params.setNfrAddr) {
+    params.setNfrAddr(clientSession.remoteAddr);
   }
   // console.log("session握手成功", clientSession);
   console.log("session握手成功");

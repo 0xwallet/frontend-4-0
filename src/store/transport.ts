@@ -31,6 +31,7 @@ export type UploadStatus =
 
 export type UploadItem = {
   file?: File; //文件本身
+  nfrAddr: string;
   uniqueId: string; // 标记该文件唯一的id fileHash + fullName.join('./') 组成
   fileHash: string; // 文件的id
   fullName: string[]; // 文件名称
@@ -141,6 +142,7 @@ export default defineStore({
         description: "",
         speed: 1,
         action: "drive",
+        nfrAddr: "",
       };
       // console.log("call-makePeerTransferSuccessItem", this.uploadHashMap);
       this.timeOutSetStorageFinishedList();
@@ -293,6 +295,7 @@ export default defineStore({
           status: "queueing",
           speed: 0,
           action,
+          nfrAddr: "",
         };
         if (toUpdateFileId) {
           this.uploadHashMap[uniqueId].toUpdateFileId = toUpdateFileId;
@@ -316,6 +319,8 @@ export default defineStore({
           setSecondUpload: this.setUploadItemByAssign.bind(this, uniqueId, {
             isSecondUpload: true,
           }),
+          setNfrAddr: (inputAddr: string) =>
+            this.setUploadItemByAssign(uniqueId, { nfrAddr: inputAddr }),
           // 中间状态(0-99) 传递给api 函数调用
           setProgressSpeedStatus:
             this.setUploadItemProgressSpeedStatus.bind(this),

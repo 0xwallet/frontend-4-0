@@ -168,6 +168,60 @@
                 'margin-top': '-4px',
               }"
             >
+              <!-- 指示灯 -->
+              <a-tooltip>
+                <template #title>
+                  <div
+                    class="flex items-center tdHash"
+                    v-if="calcRecordStatusTooltip(record).length > 5"
+                  >
+                    NFR 地址 :
+                    <div class="pl-1">
+                      {{
+                        calcRecordStatusTooltip(record)
+                          .replace(/file-jpgkdpid\./g, "")
+                          .slice(0, 5)
+                      }}
+                    </div>
+                    <div class="flex items-center">
+                      <i
+                        v-for="color in ['#2170FF', '#FF0078', '#FF9F00']"
+                        :key="color"
+                        class="
+                          tdHashDot
+                          relative
+                          align-middle
+                          ml-0.5
+                          inline-block
+                        "
+                        :style="{
+                          'background-color': color,
+                          'font-size': 0,
+                        }"
+                      ></i>
+                    </div>
+                    <div class="ml-0.5">
+                      {{ calcRecordStatusTooltip(record).slice(-5) }}
+                    </div>
+                  </div>
+                  <template v-else>
+                    {{ calcRecordStatusTooltip(record) }}
+                  </template>
+                </template>
+                <span
+                  class="
+                    inline-block
+                    w-1.5
+                    h-1.5
+                    rounded-full
+                    mr-1
+                    align-middle
+                  "
+                  :style="{
+                    'background-color': calcRecordStatusColor(record),
+                  }"
+                ></span>
+              </a-tooltip>
               <template v-if="isLoadingNknMulticlient">
                 <span> 等待 NKN节点中,请稍后手动开始 </span>
               </template>
@@ -369,16 +423,22 @@ export default defineComponent({
     //   status: "uploading",
     //   description: "sdfs",
     //   speed: 1000,
+    //   nfrAddr: "333333333dddd3333333333333dddd",
     // };
     // transportStore.uploadHashMap["23"] = {
-    //   fileHash: "23",
-    //   fullName: ["fake.jpg"],
+    //   uniqueId: "22",
+    //   action: "drive",
+    //   roundId: 1,
+    //   file: new File([], "t.txt"),
+    //   fileHash: "22",
+    //   fullName: ["fak222e.jpg"],
     //   fileType: "jpg",
     //   fileSize: 2000,
-    //   progress: 0,
+    //   progress: 50,
     //   status: "uploading",
     //   description: "sdfs",
-    //   speed: 1028,
+    //   speed: 0,
+    //   nfrAddr: "333333333dddd3333333333333dddd",
     // };
     // 测试用插入假数据 end
     const userStore = useUserStore();
@@ -822,6 +882,31 @@ export default defineComponent({
           startCount = 0;
         }
       });
+      const calcRecordStatusTooltip = (record: UploadItem) => {
+        if (
+          ["calculating", "queueing", "pause", "cancel", "failed"].includes(
+            record.status
+          )
+        ) {
+          return "未连接";
+        }
+        // 剩下的状态是 sending receiving waiting successSend successReceive
+        if (record.speed === 0 && record.status !== "waiting") return "连接中";
+        // 连接的话返回对方浏览器信息
+        return record.nfrAddr;
+      };
+      const calcRecordStatusColor = (record: UploadItem) => {
+        if (
+          ["calculating", "queueing", "pause", "cancel", "failed"].includes(
+            record.status
+          )
+        ) {
+          return "#ff4d4f"; //red
+        }
+        if (record.speed === 0 && record.status !== "waiting") return "#fadb14"; //yellow
+        // 连接的话返回对方浏览器信息
+        return "#52c41a"; //green
+      };
       return {
         emptyLocale,
         tableLoading,
@@ -838,6 +923,8 @@ export default defineComponent({
         onBatchPause,
         onBatchCancel,
         calcStatusText,
+        calcRecordStatusTooltip,
+        calcRecordStatusColor,
       };
     }
 
