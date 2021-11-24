@@ -895,7 +895,8 @@ export default defineComponent({
         });
         window.open(pdfUrl, "_blank");
       } else {
-        console.log("other-type");
+        // console.log("other-type");
+        message.info("不支持预览该文件");
       }
     };
     /** 文件是否可预览 */

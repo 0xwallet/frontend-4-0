@@ -56,13 +56,13 @@
       </a-button-group> -->
       <!-- 刷新按钮 -->
       <a-tooltip title="上一级目录">
-        <a
-          href="javascript:;"
+        <XLink
           class="inline-block mr-2 px-1"
           @click="onUpperLevel"
+          :disabled="historyDir.length === 1"
         >
           <ArrowLeftOutlined />
-        </a>
+        </XLink>
       </a-tooltip>
       <a-tooltip :title="$t('metanet.refresh')">
         <a
@@ -2448,12 +2448,16 @@ export default defineComponent({
           // });
           // $viewer.show();
         } else if (FILE_TYPE_MAP.text.includes(e)) {
+          message.info("不支持预览该文件");
           console.log("todo type-text");
         } else if (FILE_TYPE_MAP.archive.includes(e)) {
+          message.info("不支持预览该文件");
           console.log("todo type-archive");
         } else if (FILE_TYPE_MAP.audio.includes(e)) {
+          message.info("不支持预览该文件");
           console.log("todo type-audio");
         } else if (FILE_TYPE_MAP.video.includes(e)) {
+          message.info("不支持预览该文件");
           console.log("todo type-video");
         } else if (e === "pdf") {
           // console.log("pdf");

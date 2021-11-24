@@ -29,22 +29,22 @@
             >
           </transition> -->
         <a-tooltip v-if="isShowBatchStartBtn" title="开始选中的任务">
-          <a
-            href="javascript:;"
+          <XLink
             class="inline-block px-1 mr-2"
             @click="onBatchStart()"
+            :disabled="selectedRows.length === 0"
           >
             <RightCircleOutlined />
-          </a>
+          </XLink>
         </a-tooltip>
         <a-tooltip v-else title="暂停选中的任务">
-          <a
-            href="javascript:;"
+          <XLink
             class="inline-block px-1 mr-2"
             @click="onBatchPause()"
+            :disabled="selectedRows.length === 0"
           >
             <PauseOutlined />
-          </a>
+          </XLink>
         </a-tooltip>
         <!-- <a-button
           shape="round"
@@ -55,13 +55,13 @@
           取消</a-button
         > -->
         <a-tooltip title="取消选中的任务">
-          <a
-            href="javascript:;"
+          <XLink
             class="inline-block px-1 mr-2"
             @click="onBatchCancel()"
+            :disabled="selectedRows.length === 0"
           >
             <CloseCircleOutlined />
-          </a>
+          </XLink>
         </a-tooltip>
       </div>
       <!-- 进度区 -->

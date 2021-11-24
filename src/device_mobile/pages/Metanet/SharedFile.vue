@@ -1444,7 +1444,8 @@ export default defineComponent({
         //
       } else {
         // 3.其他类型
-        console.log("TODO-其他类型");
+        // console.log("TODO-其他类型");
+        Toast("不支持预览该文件");
       }
     };
     /** 点击名字 */
