@@ -590,6 +590,7 @@ const cacheCalcChunkSize = (size: number) => {
   return cache[size] || (cache[size] = calcChunkSize(size));
 };
 export default defineComponent({
+  name: "TransportPeerTransfer", // 加name 才能缓存
   components: {
     XLink,
     XTableFiles,

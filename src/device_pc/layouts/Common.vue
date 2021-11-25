@@ -822,8 +822,9 @@ export default defineComponent({
         if (path.includes("/metanet/recycle")) return "MetanetRecycle";
         if (path.includes("/metanet/sharedFile")) return "MetanetSharedFile";
         if (path.includes("/transport/uploading")) return "TransportUpLoading";
-        if (path.includes("/metanet/uploadHistory")) return "TransportHistory";
-        if (path.includes("/metanet/peerTransfer"))
+        if (path.includes("/transport/uploadHistory"))
+          return "TransportHistory";
+        if (path.includes("/transport/peerTransfer"))
           return "TransportPeerTransfer";
         else return "";
       };
