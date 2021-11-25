@@ -59,6 +59,7 @@ import {
   Spin,
   Result,
   Popover,
+  Alert,
   Layout,
 } from "ant-design-vue";
 app
@@ -89,6 +90,7 @@ app
   .use(Spin)
   .use(Result)
   .use(Popover)
+  .use(Alert)
   .use(Layout);
 // ant-design-vue --end
 

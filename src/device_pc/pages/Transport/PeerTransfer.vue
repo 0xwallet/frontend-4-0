@@ -369,6 +369,19 @@
         </template>
       </XTableFiles>
     </section>
+    <!-- 不支持的浏览器/过期的版本 提示 -->
+    <XAlert
+      v-if="isShowAlertUnsupported"
+      :title="$t('browser.unsupportedBrowserToastTitle')"
+      :content="$t('browser.unsupportedBrowserToastDescription')"
+      @close="onCloseAlert('unsupported')"
+    />
+    <XAlert
+      v-if="isShowAlertOutdated"
+      :title="$t('browser.oldBrowserToastTitle')"
+      :content="$t('browser.oldBrowserToastDescription')"
+      @close="onCloseAlert('outdated')"
+    />
   </div>
 </template>
 
@@ -388,6 +401,7 @@ import {
   XFileTypeIcon,
   XSvgIcon,
   XQrCode,
+  XAlert,
 } from "../../components";
 import {
   LeftCircleOutlined,
@@ -423,6 +437,7 @@ import {
   downloadFileByBlob,
   calcPercent,
   cacheFn,
+  browserDetect,
 } from "@/utils";
 import { classMultiClient, TMessageType, TSession } from "nkn";
 import { getAnonymousMultiClient } from "@/apollo/nknConfig";
@@ -597,6 +612,7 @@ export default defineComponent({
     XFileTypeIcon,
     XSvgIcon,
     XQrCode,
+    XAlert,
     //
     LeftCircleOutlined,
     PlusSquareOutlined,
@@ -611,6 +627,7 @@ export default defineComponent({
     CopyOutlined,
     DeleteOutlined,
     QrcodeOutlined,
+    ExclamationCircleOutlined,
   },
   setup() {
     const { t } = useI18n();
@@ -1922,6 +1939,32 @@ export default defineComponent({
           message.warning("接收码错误");
         });
     };
+    // 不支持的浏览器/过期提示 --start
+    function useAlert() {
+      const isShowAlertUnsupported = ref(false);
+      const isShowAlertOutdated = ref(false);
+      const { isUnsupported, isOutdated } = browserDetect();
+      if (isUnsupported) {
+        isShowAlertUnsupported.value = true;
+      } else if (isOutdated) {
+        isShowAlertOutdated.value = true;
+      }
+      const onCloseAlert = (type: "unsupported" | "outdated") => {
+        if (type === "unsupported") {
+          isShowAlertUnsupported.value = false;
+        } else {
+          isShowAlertOutdated.value = false;
+        }
+      };
+
+      return {
+        isShowAlertUnsupported,
+        isShowAlertOutdated,
+        onCloseAlert,
+      };
+    }
+
+    // 不支持的浏览器/过期提示 --end
     return {
       columns,
       isUserLoggedIn,
@@ -1950,6 +1993,7 @@ export default defineComponent({
       //
       formatBytes,
       calcTimeLeftText,
+      ...useAlert(),
     };
   },
 });

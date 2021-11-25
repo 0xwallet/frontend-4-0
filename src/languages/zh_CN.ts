@@ -1,4 +1,10 @@
 export default {
+  browser: {
+    unsupportedBrowserToastTitle: "不支持您的浏览器",
+    unsupportedBrowserToastDescription: "使用另一个浏览器，获取最佳体验。",
+    oldBrowserToastTitle: "您的浏览器是落伍的。",
+    oldBrowserToastDescription: "为了最好的体验，请更新您的浏览器。",
+  },
   common: {
     token: "通证",
     issuer: "发行",

@@ -1,4 +1,12 @@
 export default {
+  browser: {
+    unsupportedBrowserToastTitle: "Your web browser is unsupported",
+    unsupportedBrowserToastDescription:
+      "Use another browser for the best experience.",
+    oldBrowserToastTitle: "Your web browser is outdated",
+    oldBrowserToastDescription:
+      "Update your browser to the latest version for the best experience.",
+  },
   common: {
     token: "Token",
     issuer: "Issuer",

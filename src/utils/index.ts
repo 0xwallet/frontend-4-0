@@ -7,6 +7,7 @@ import {
 } from "@/constants";
 import streamSaver from "streamsaver";
 import { saveAs } from "file-saver";
+export { browserDetect } from "./browser-detect";
 import duration from "dayjs/plugin/duration";
 import dayjs from "dayjs";
 dayjs.extend(duration);
