@@ -464,6 +464,7 @@ import pLimit from "p-limit";
 import { useRoute, useRouter } from "vue-router";
 import Bowser from "bowser";
 import streamSaver from "streamsaver";
+import saveAs from "file-saver";
 
 type PeerFileItem = {
   file?: File;
@@ -986,6 +987,10 @@ export default defineComponent({
       peerLink.value = "";
       peerCode.value = "";
       isBothConnected.value = false;
+      // 清除发送端列表
+      setTimeout(() => {
+        tableData.value.length = 0;
+      }, 300);
     };
     /** 发送完所有文件后重置接收端状态 */
     const onFinishedReceiveFilesClear = () => {
@@ -1332,18 +1337,27 @@ export default defineComponent({
         message.warning("文件未接收完整");
         return;
       }
+      // const { fileHash, fileName, fileSize } = record;
+      // const totalChunks = Math.ceil(fileSize / cacheCalcChunkSize(fileSize));
+      // const fileStream = streamSaver.createWriteStream(fileName, {
+      //   size: fileSize, // (optional filesize) Will show progress
+      // });
+      // let startCounter = 1;
+      // const writer = fileStream.getWriter();
+      // while (startCounter <= totalChunks) {
+      //   const buf = await get(`${totalChunks}*${startCounter++}*${fileHash}`);
+      //   await writer.write(buf);
+      // }
+      // await writer.close();
       const { fileHash, fileName, fileSize } = record;
       const totalChunks = Math.ceil(fileSize / cacheCalcChunkSize(fileSize));
-      const fileStream = streamSaver.createWriteStream(fileName, {
-        size: fileSize, // (optional filesize) Will show progress
-      });
       let startCounter = 1;
-      const writer = fileStream.getWriter();
+      let totalbuf = new Uint8Array(0);
       while (startCounter <= totalChunks) {
         const buf = await get(`${totalChunks}*${startCounter++}*${fileHash}`);
-        await writer.write(buf);
+        totalbuf = mergeUint8Array(totalbuf, buf);
       }
-      await writer.close();
+      saveAs(new Blob([totalbuf.buffer]), fileName);
       // const fileBuffer = await get(fileHash);
       // if (fileBuffer) {
       //   downloadFileByBlob(
@@ -1833,7 +1847,7 @@ export default defineComponent({
             headerObj.fileName,
             headerObj.fileSize
           );
-        await useDelay(1000);
+        // await useDelay(1000);
         // 发送下载完成信息
         await nknClient.send(
           session.remoteAddr,
@@ -1851,7 +1865,8 @@ export default defineComponent({
         // .then(() => {
         //   delIdbFilesByHash(fileHash);
         // });
-        delIdbFilesByHash(fileHash);
+        // TODO 放出来这个 del 的
+        // delIdbFilesByHash(fileHash);
         // TODO 发回去校验hash
         // 发送-确认信息
         // await nknClient.send(session.remoteAddr, makeConfirmMessage(fileHash));
