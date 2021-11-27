@@ -2857,7 +2857,7 @@ export default defineComponent({
         const { user, space, id: fileId, fullName } = record;
         // TODO
         // Content-Disposition: attachment
-        const hideLoadingMsg = message.loading("连接服务器中...", 0);
+        const hideLoadingMsg = message.loading("请求数据中...", 0);
         apiGetPreviewToken().then((resultPreviewToken) => {
           if (resultPreviewToken.err) return;
           const token = resultPreviewToken.data.drivePreviewToken;

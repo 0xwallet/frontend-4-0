@@ -1099,7 +1099,7 @@ export default defineComponent({
       // }?token=${downloadToken}&t=${dayjs(record.userFile.updatedAt).format(
       //   "YYYYMMDDHHmmss"
       // )}`;
-
+      const hideLoadingMsg = message.loading("请求数据中...", 0);
       const url = makeFileUrl({
         urlType: "download",
         token: downloadToken,
@@ -1112,6 +1112,7 @@ export default defineComponent({
       downloadFileByUrl({
         url,
         fileName: fullName.slice(-1)[0],
+        onAfterFetch: () => hideLoadingMsg(),
       });
       // });
     };
