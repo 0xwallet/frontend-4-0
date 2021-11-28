@@ -26,8 +26,8 @@ export default defineComponent({
   setup(props) {
     const elCanvas = ref<HTMLDivElement>();
     onMounted(() => {
-      console.log("elCanvas", elCanvas);
-      console.log("props.width", props.width);
+      // console.log("elCanvas", elCanvas);
+      // console.log("props.width", props.width);
       QRCode.toCanvas(
         elCanvas.value,
         props.url,
