@@ -232,7 +232,7 @@
           }"
         >
           <div class="font-semibold font-16">钱包</div>
-          <a-button @click="onAddAsset">
+          <a-button @click="onClickAddAsset">
             <PlusOutlined class="align-middle" />
             添加
           </a-button>
@@ -263,6 +263,97 @@
     >
       <XQrCode :url="modalQrCodeAddr" :width="180" />
     </a-modal>
+    <!-- 添加资产弹窗 -->
+    <a-modal
+      destroyOnClose
+      centered
+      v-model:visible="modalAddAssetVisible"
+      @afterClose="onModalAssetClose"
+      :title="modalAssetTitle"
+      :width="480"
+    >
+      <!-- 第一步 -->
+      <div v-if="modalAssetStage === 1">
+        <a-row align="middle" justify="center">
+          <a-col :span="6"> 收款货币: </a-col>
+          <a-col :span="14">
+            <a-radio-group v-model:value="modalAssetStageOneType">
+              <a-radio :value="1">数字货币</a-radio>
+              <a-radio :value="2">法定货币</a-radio>
+            </a-radio-group>
+          </a-col>
+        </a-row>
+      </div>
+      <!-- 第二步 -->
+      <div v-if="modalAssetStage === 2">
+        <a-row align="middle" class="pb-4" justify="center">
+          <a-col :span="6"> 代币类型: </a-col>
+          <a-col v-if="modalAssetStageOneType === 1" :span="16">
+            <a-radio-group
+              class="flex items-center"
+              v-model:value="modalAssetStageTwoCryptoType"
+            >
+              <a-radio class="flex items-center" value="bsv">
+                <div class="relative ml-2">
+                  <img
+                    class="w-16 h-16"
+                    src="~@/assets/images/cryptos/bsv.png"
+                    alt="bsv"
+                  />
+                  <div
+                    class="absolute font-14 left-0 right-0 text-center pt-0.5"
+                  >
+                    BSV
+                  </div>
+                </div>
+              </a-radio>
+              <a-radio class="flex items-center" value="nkn">
+                <div class="relative ml-2">
+                  <img
+                    class="w-16 h-16"
+                    src="~@/assets/images/cryptos/nkn.png"
+                    alt="nkn"
+                  />
+                  <div
+                    class="absolute font-14 left-0 right-0 text-center pt-0.5"
+                  >
+                    NKN
+                  </div>
+                </div>
+              </a-radio>
+            </a-radio-group>
+          </a-col>
+          <a-col v-if="modalAssetStageOneType === 2" :span="14">
+            <a-radio-group v-model:value="modalAssetStageTwoLegalType">
+              <a-radio value="dollar">美元稳定币</a-radio>
+              <a-radio value="cny">数字人民币</a-radio>
+            </a-radio-group>
+          </a-col>
+        </a-row>
+      </div>
+      <!-- 第三步 -->
+      <div v-if="modalAssetStage === 3">3步</div>
+      <template #footer>
+        <div v-if="modalAssetStage === 1">
+          <a-button @click="onCloseModalAsset">1取消</a-button>
+          <a-button type="primary" @click="onConfirmModalAssetStage(1)"
+            >下一步</a-button
+          >
+        </div>
+        <div v-if="modalAssetStage === 2">
+          <a-button @click="onBackToModalAssetStage(1)">上一步</a-button>
+          <a-button type="primary" @click="onConfirmModalAssetStage(2)"
+            >下一步</a-button
+          >
+        </div>
+        <div v-if="modalAssetStage === 3">
+          <a-button @click="onBackToModalAssetStage(2)">3取消</a-button>
+          <a-button type="primary" @click="onConfirmModalAssetStage(3)"
+            >下一步</a-button
+          >
+        </div>
+      </template>
+    </a-modal>
   </div>
 </template>
 
@@ -282,6 +373,14 @@ import { apiGetBsvExchangeRate } from "@/apollo/api";
 import { XStatusDot, XQrCode } from "../../components";
 import { useClipboard } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
+
+type ModalAssetStage = 1 | 2 | 3;
+/** 1是数字货币,2是法定货币 */
+type ModalAssetSageOneType = 1 | 2;
+/** 第二步中的数字货币类型 */
+type ModalAssetCryptoType = "bsv" | "nkn";
+/** 第二步中的法定货币类型 */
+type ModalAssetLegalType = "dollar" | "cny";
 
 export default defineComponent({
   components: {
@@ -370,10 +469,72 @@ export default defineComponent({
     const onWithDraw = () => {
       message.info("TODO");
     };
-    /** 添加资产 */
-    const onAddAsset = () => {
-      message.info("TODO");
-    };
+
+    function useAsset() {
+      const modalAssetTitle = ref("");
+      const modalAssetStage = ref<ModalAssetStage>();
+      const modalAddAssetVisible = ref(false);
+      const modalAssetStageOneType = ref<ModalAssetSageOneType>();
+      /** 第二部的数字代币类型 */
+      const modalAssetStageTwoCryptoType = ref<ModalAssetCryptoType>();
+      /** 第二部的法定代币类型 */
+      const modalAssetStageTwoLegalType = ref<ModalAssetLegalType>();
+      /** 添加资产 */
+      const onClickAddAsset = () => {
+        modalAssetStage.value = 1;
+        modalAssetTitle.value = "第一步";
+        modalAddAssetVisible.value = true;
+      };
+      const onBackToModalAssetStage = (s: ModalAssetStage) => {
+        // 1. 去到 stage1
+        if (s === 1) {
+          // 2. 去到 stage2
+          modalAssetTitle.value = "第一步";
+          modalAssetStage.value = 1;
+        } else if (s === 2) {
+          modalAssetTitle.value = "第二步";
+          modalAssetStage.value = 2;
+        }
+      };
+      const onConfirmModalAssetStage = (s: ModalAssetStage) => {
+        if (s === 1) {
+          console.log("stage 1");
+          if (!modalAssetStageOneType.value) {
+            message.info("请选择收款货币");
+            return;
+          }
+          modalAssetTitle.value = "第二步";
+          modalAssetStage.value = 2;
+        } else if (s === 2) {
+          console.log("stage 2");
+          // TODO 检查空值
+
+          modalAssetTitle.value = "第三步";
+          modalAssetStage.value = 3;
+        } else if (s === 3) {
+          console.log("stage 3");
+        }
+      };
+      const onCloseModalAsset = () => {
+        modalAddAssetVisible.value = false;
+      };
+      const onModalAssetClose = () => {
+        modalAssetStage.value = 1;
+      };
+      return {
+        modalAssetTitle,
+        modalAssetStage,
+        modalAddAssetVisible,
+        modalAssetStageOneType,
+        modalAssetStageTwoCryptoType,
+        modalAssetStageTwoLegalType,
+        onClickAddAsset,
+        onBackToModalAssetStage,
+        onConfirmModalAssetStage,
+        onCloseModalAsset,
+        onModalAssetClose,
+      };
+    }
     const modalQrCodeAddr = ref("");
     const modalQrCodeVisible = ref(false);
     /** 二维码弹窗控制 */
@@ -395,7 +556,7 @@ export default defineComponent({
       onShow0xIDAddressQrcode,
       onRecharge,
       onWithDraw,
-      onAddAsset,
+      ...useAsset(),
       ...useModalQrCode(),
     };
   },
