@@ -13,3 +13,8 @@ declare module "*.svg" {
 declare module "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.9.359/build/pdf.js" {
   export * from "pdfjs-dist";
 }
+
+declare module "*.png" {
+  const value: string;
+  export default value;
+}

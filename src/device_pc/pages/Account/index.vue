@@ -286,38 +286,35 @@
       </div>
       <!-- 第二步 -->
       <div v-if="modalAssetStage === 2">
-        <a-row align="middle" class="pb-4" justify="center">
+        <a-row
+          align="middle"
+          :class="{
+            'pb-4': modalAssetStageOneType === 1,
+          }"
+          justify="center"
+        >
           <a-col :span="6"> 代币类型: </a-col>
           <a-col v-if="modalAssetStageOneType === 1" :span="16">
             <a-radio-group
               class="flex items-center"
               v-model:value="modalAssetStageTwoCryptoType"
             >
-              <a-radio class="flex items-center" value="bsv">
+              <a-radio
+                v-for="item in modalAssetStageTwoCryptoRadioOptions"
+                :key="item"
+                class="flex items-center"
+                :value="item"
+              >
                 <div class="relative ml-2">
                   <img
                     class="w-16 h-16"
-                    src="~@/assets/images/cryptos/bsv.png"
-                    alt="bsv"
+                    :src="require(`@/assets/images/cryptos/${item}.png`)"
+                    :alt="item"
                   />
                   <div
                     class="absolute font-14 left-0 right-0 text-center pt-0.5"
                   >
-                    BSV
-                  </div>
-                </div>
-              </a-radio>
-              <a-radio class="flex items-center" value="nkn">
-                <div class="relative ml-2">
-                  <img
-                    class="w-16 h-16"
-                    src="~@/assets/images/cryptos/nkn.png"
-                    alt="nkn"
-                  />
-                  <div
-                    class="absolute font-14 left-0 right-0 text-center pt-0.5"
-                  >
-                    NKN
+                    {{ item.toUpperCase() }}
                   </div>
                 </div>
               </a-radio>
@@ -335,7 +332,7 @@
       <div v-if="modalAssetStage === 3">3步</div>
       <template #footer>
         <div v-if="modalAssetStage === 1">
-          <a-button @click="onCloseModalAsset">1取消</a-button>
+          <a-button @click="onCloseModalAsset">取消</a-button>
           <a-button type="primary" @click="onConfirmModalAssetStage(1)"
             >下一步</a-button
           >
@@ -358,7 +355,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref } from "vue";
+import { defineComponent, onMounted, reactive, ref } from "vue";
 import {
   FormOutlined,
   InfoCircleOutlined,
@@ -477,6 +474,10 @@ export default defineComponent({
       const modalAssetStageOneType = ref<ModalAssetSageOneType>();
       /** 第二部的数字代币类型 */
       const modalAssetStageTwoCryptoType = ref<ModalAssetCryptoType>();
+      const modalAssetStageTwoCryptoRadioOptions: ModalAssetCryptoType[] = [
+        "bsv",
+        "nkn",
+      ];
       /** 第二部的法定代币类型 */
       const modalAssetStageTwoLegalType = ref<ModalAssetLegalType>();
       /** 添加资产 */
@@ -527,6 +528,7 @@ export default defineComponent({
         modalAddAssetVisible,
         modalAssetStageOneType,
         modalAssetStageTwoCryptoType,
+        modalAssetStageTwoCryptoRadioOptions,
         modalAssetStageTwoLegalType,
         onClickAddAsset,
         onBackToModalAssetStage,
