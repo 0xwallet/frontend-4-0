@@ -8,12 +8,13 @@
           filter: 'drop-shadow(0px 0px 8px #231F20)',
         }"
       >
-        <div
-          v-html="svgStr"
+        <MSvgIcon
+          icon="logoWhiteBorder"
+          :size="22.1"
           :style="{
             transform: 'scale(3)',
           }"
-        ></div>
+        />
       </div>
       <div
         :style="{
@@ -133,25 +134,19 @@
 <script lang="ts">
 import { apiEmailLogin } from "@/apollo/api";
 import { useUserStore } from "@/store";
-import { useSvgWhiteLogo } from "@/utils";
 import { Toast } from "vant";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { MLocaleSwither } from "../../components";
+import { MLocaleSwither, MSvgIcon } from "../../components";
 
 export default defineComponent({
   components: {
     MLocaleSwither,
+    MSvgIcon,
   },
   setup() {
     const { t, locale: currentLocale } = useI18n();
-    /** logo和名称tips */
-    function useLogoSvgAndName() {
-      return {
-        svgStr: useSvgWhiteLogo(),
-      };
-    }
     const route = useRoute();
     const router = useRouter();
     const formLogin = reactive({
@@ -196,7 +191,6 @@ export default defineComponent({
       (isPasswordVisible.value = !isPasswordVisible.value);
     return {
       currentLocale,
-      ...useLogoSvgAndName(),
       formLogin,
       isFormUnfinished,
       isRememberMe,

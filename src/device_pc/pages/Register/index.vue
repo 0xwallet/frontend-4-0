@@ -15,12 +15,13 @@
             filter: 'drop-shadow(0px 0px 8px #231F20)',
           }"
         >
-          <div
-            v-html="svgStr"
+          <XSvgIcon
+            icon="logoWhiteBorder"
+            :size="22.1"
             :style="{
               transform: 'scale(3)',
             }"
-          ></div>
+          />
         </div>
       </div>
       <div
@@ -225,7 +226,7 @@
 <script lang="ts">
 import { apiSendSignUpEmailCaptcha, apiSignUp } from "@/apollo/api";
 import { REG_OBJ } from "@/constants";
-import { useDelay, useSvgWhiteLogo } from "@/utils";
+import { useDelay } from "@/utils";
 import { message, notification } from "ant-design-vue";
 import {
   computed,
@@ -237,6 +238,7 @@ import {
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { XSvgIcon } from "../../components";
 
 const strongReg = new RegExp(
   "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{8,})"
@@ -256,15 +258,12 @@ const pwsStrengthChecker = (pws: string): 2 | 1 | 0 => {
 };
 
 export default defineComponent({
+  components: {
+    XSvgIcon,
+  },
   setup() {
     const { t } = useI18n();
     const router = useRouter();
-    /** logo和名称tips */
-    function useLogoSvgAndName() {
-      return {
-        svgStr: useSvgWhiteLogo(),
-      };
-    }
     function useRegisterForm() {
       const form = reactive({
         email: "",
@@ -366,7 +365,6 @@ export default defineComponent({
       };
     }
     return {
-      ...useLogoSvgAndName(),
       ...useRegisterForm(),
     };
   },

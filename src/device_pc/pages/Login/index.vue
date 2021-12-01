@@ -22,12 +22,13 @@
               filter: 'drop-shadow(0px 0px 8px #231F20)',
             }"
           >
-            <div
-              v-html="svgStr"
+            <XSvgIcon
+              icon="logoWhiteBorder"
+              :size="22.1"
               :style="{
                 transform: 'scale(3)',
               }"
-            ></div>
+            />
           </div>
         </div>
         <div
@@ -256,7 +257,6 @@
 </template>
 
 <script lang="ts">
-import { useSvgWhiteLogo } from "@/utils";
 import { defineComponent, reactive, ref, toRaw } from "vue";
 import {
   SafetyOutlined,
@@ -272,10 +272,12 @@ import { useI18n } from "vue-i18n";
 import { useUserStore } from "@/store";
 import { useRoute, useRouter } from "vue-router";
 import { useClipboard } from "@vueuse/core";
-import { XLocaleSwither } from "../../components";
+import { XSvgIcon, XLocaleSwither } from "../../components";
 
 export default defineComponent({
   components: {
+    XSvgIcon,
+    //
     SafetyOutlined,
     WalletOutlined,
     DeploymentUnitOutlined,
@@ -289,12 +291,6 @@ export default defineComponent({
     const userStore = useUserStore();
     const router = useRouter();
     const route = useRoute();
-    /** logo和名称tips */
-    function useLogoSvgAndName() {
-      return {
-        svgStr: useSvgWhiteLogo(),
-      };
-    }
     /** 名言api */
     function useQuotes() {
       const quotes = reactive({ content: "", author: "" });
@@ -394,7 +390,6 @@ export default defineComponent({
     }
     return {
       currentLocale,
-      ...useLogoSvgAndName(),
       ...useQuotes(),
       ...useLoginForm(),
       ...useTopHash(),

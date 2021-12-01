@@ -18,7 +18,10 @@
       >
         <!-- logo -->
         <div id="siderLogoBox" class="flex h-12 items-center justify-center">
-          <div id="siderLogoSvg" v-html="svgLogoStr"></div>
+          <!-- v-html="svgLogoStr" -->
+          <div id="siderLogoSvg">
+            <XSvgIcon icon="logoWhiteBorder" :size="22.1" />
+          </div>
           <!-- <div id="siderLogoText" class="text-white text-lg font-bold pl-3">
             {{ PRODUCT_NAME }}
           </div> -->
@@ -497,13 +500,13 @@ import {
   NKN_SUB_CLIENT_COUNT,
   TAG_COLOR_LIST,
 } from "@/constants";
-import { XLocaleSwither, XUserAvatar } from "../components";
+import { XLocaleSwither, XUserAvatar, XSvgIcon } from "../components";
 import { useBaseStore, useTransportStore, useUserStore } from "@/store";
 import { message, Modal } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import { useLocalStorage } from "@vueuse/core";
 import Sortable from "sortablejs";
-import { exactUniqueTabId, useSvgWhiteLogo } from "@/utils";
+import { exactUniqueTabId } from "@/utils";
 
 type TMenuSelect = {
   domEvent: Event;
@@ -556,6 +559,7 @@ export default defineComponent({
     // ExclamationCircleOutlined,
     XLocaleSwither,
     XUserAvatar,
+    XSvgIcon,
   },
   setup() {
     const router = useRouter();
@@ -567,7 +571,7 @@ export default defineComponent({
     // console.log("router", router);
     /** logo区域 */
     function useSvgLogo() {
-      return { PRODUCT_NAME, svgLogoStr: useSvgWhiteLogo() };
+      return { PRODUCT_NAME };
     }
 
     /** 菜单数据 */

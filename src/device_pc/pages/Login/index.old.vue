@@ -108,7 +108,6 @@ export type ICurrentFormKey =
   | "nMobile"
   | "webauthn";
 
-import { useSvgWhiteLogo } from "@/utils";
 export default defineComponent({
   components: {
     XLocaleSwither,
@@ -119,15 +118,6 @@ export default defineComponent({
     FormWebauthn,
   },
   setup() {
-    // const svgWidth = 50;
-    // const svgHeight = 50;
-    /** 获取logo 部分的svg和名称 */
-    function useLogoSvgAndName() {
-      return {
-        PRODUCT_NAME,
-        svgStr: useSvgWhiteLogo(),
-      };
-    }
     function useCurrentForm() {
       const currentFormKey = ref<ICurrentFormKey>("email");
       const setCurrentFormKey = (key: ICurrentFormKey) => {
@@ -153,7 +143,6 @@ export default defineComponent({
       };
     }
     return {
-      ...useLogoSvgAndName(),
       ...useCurrentForm(),
     };
   },

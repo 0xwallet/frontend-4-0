@@ -14,7 +14,10 @@
     <div v-else class="w-full h-full relative">
       <header class="h-11 px-4 flex items-center text-white">
         <div @click="onClickLogo">
-          <div v-html="svgStr"></div>
+          <!-- v-html="svgStr" -->
+          <div>
+            <MSvgIcon icon="logoWhiteBorder" :size="22.1" />
+          </div>
         </div>
         <div
           class="
@@ -588,7 +591,6 @@ import {
   getFileType,
   lastOfArray,
   formatBytes,
-  useSvgWhiteLogo,
   cacheFormatDescription,
   DescObj,
   cacheFn,
@@ -693,7 +695,6 @@ export default defineComponent({
   setup() {
     // 登录和未登录的
     // 未登录的是可以看的,但是点击功能后导航去登录页,登录完再返回来
-    const svgStr = useSvgWhiteLogo();
     const baseStore = useBaseStore();
     const lockPageLoading = ref(true);
     const route = useRoute();
@@ -1568,7 +1569,6 @@ export default defineComponent({
     return {
       TAG_COLOR_LIST,
       isCanFilePreview,
-      svgStr,
       lockPageLoading,
       selectedRows,
       inputCode,

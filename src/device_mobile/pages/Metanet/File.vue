@@ -7,7 +7,10 @@
   >
     <header class="h-11 px-4 flex items-center text-white mb-4">
       <div @click="onClickLogo">
-        <div v-html="svgStr"></div>
+        <!-- v-html="svgStr" -->
+        <div>
+          <MSvgIcon icon="logoWhiteBorder" :size="22.1" />
+        </div>
       </div>
       <!-- 中间的面包屑 -->
       <div class="flex-1">
@@ -282,7 +285,6 @@ import { useBaseStore, useUserStore } from "@/store";
 import {
   getFileType,
   lastOfArray,
-  useSvgWhiteLogo,
   cacheFormatDescription,
   makeFileUrl,
   transformRawDescription,
@@ -333,7 +335,6 @@ export default defineComponent({
     MFooterBar,
   },
   setup() {
-    const svgStr = useSvgWhiteLogo();
     const [route, router] = [useRoute(), useRouter()];
     const userStore = useUserStore();
     const baseStore = useBaseStore();
@@ -991,7 +992,6 @@ export default defineComponent({
     };
     ///
     return {
-      svgStr,
       myInfo,
       titleArr,
       tableData,

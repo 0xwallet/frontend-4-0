@@ -43,12 +43,13 @@
           filter: 'drop-shadow(0px 0px 8px #231F20)',
         }"
       >
-        <div
-          v-html="svgStr"
+        <MSvgIcon
+          icon="logoWhiteBorder"
+          :size="22.1"
           :style="{
             transform: 'scale(3)',
           }"
-        ></div>
+        />
       </div>
       <!-- 登录模式 -->
       <div
@@ -282,7 +283,7 @@ import {
 } from "@/apollo/api";
 import { REG_OBJ } from "@/constants";
 import { useBaseStore, useUserStore } from "@/store";
-import { getRandomNumAndStr, useSvgWhiteLogo } from "@/utils";
+import { getRandomNumAndStr } from "@/utils";
 import { Dialog, Toast } from "vant";
 import {
   computed,
@@ -322,12 +323,6 @@ export default defineComponent({
     const updateVisible = (v: boolean) => {
       emit("update:visible", v);
     };
-    /** logo和名称tips */
-    function useLogoSvgAndName() {
-      return {
-        svgStr: useSvgWhiteLogo(),
-      };
-    }
     const [route, router] = [useRoute(), useRouter()];
     const loginType = ref<LoginType>("password");
     const otherLoginType = computed(() => {
@@ -524,7 +519,6 @@ export default defineComponent({
       window.open(router.resolve({ name: "ResetPwd" }).href, "_blank");
     };
     return {
-      ...useLogoSvgAndName(),
       updateVisible,
       onClosePopup,
       loginType,

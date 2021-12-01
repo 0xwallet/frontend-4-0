@@ -46,12 +46,13 @@
         filter: 'drop-shadow(0px 0px 8px #231F20)',
       }"
     >
-      <div
-        v-html="svgStr"
+      <XSvgIcon
+        icon="logoWhiteBorder"
+        :size="22.1"
         :style="{
           transform: 'scale(3)',
         }"
-      ></div>
+      />
     </div>
 
     <!-- 登录模式 -->
@@ -319,7 +320,7 @@ import {
   apiSignUp,
 } from "@/apollo/api";
 import { useBaseStore, useUserStore } from "@/store";
-import { getRandomNumAndStr, useSvgWhiteLogo, XToast } from "@/utils";
+import { getRandomNumAndStr, XToast } from "@/utils";
 import {
   computed,
   createVNode,
@@ -370,12 +371,6 @@ export default defineComponent({
     const updateVisible = (v: boolean) => {
       emit("update:visible", v);
     };
-    /** logo和名称tips */
-    function useLogoSvgAndName() {
-      return {
-        svgStr: useSvgWhiteLogo(),
-      };
-    }
     const onModalCancel = () => {
       console.log("onModalCancel");
       // 重置 表单值 和 表单类型
@@ -387,9 +382,9 @@ export default defineComponent({
     };
     const loginType = ref<LoginType>("password");
     const otherLoginType = computed(() => {
-     const all: LoginType[] = ["password", "nMobile", "webAuthn"];
+      const all: LoginType[] = ["password", "nMobile", "webAuthn"];
       return all.filter((i) => i !== loginType.value);
-    }); 
+    });
     const onChangeLoginType = (s: LoginType) => (loginType.value = s);
     const formType = ref<FormType>("signIn");
     const form = reactive({
@@ -559,7 +554,6 @@ export default defineComponent({
       window.open(router.resolve({ name: "ResetPwd" }).href, "_blank");
     };
     return {
-      ...useLogoSvgAndName(),
       onModalCancel,
       updateVisible,
       loginType,

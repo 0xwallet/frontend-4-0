@@ -7,12 +7,13 @@
         filter: 'drop-shadow(0px 0px 8px #231F20)',
       }"
     >
-      <div
-        v-html="svgStr"
+      <MSvgIcon
+        icon="logoWhiteBorder"
+        :size="22.1"
         :style="{
           transform: 'scale(3)',
         }"
-      ></div>
+      />
     </div>
     <!-- form -->
     <main class="px-3">
@@ -130,7 +131,7 @@
 <script lang="ts">
 import { apiSendSignUpEmailCaptcha, apiSignUp } from "@/apollo/api";
 import { REG_OBJ } from "@/constants";
-import { useDelay, useSvgWhiteLogo } from "@/utils";
+import { useDelay } from "@/utils";
 import { Toast } from "vant";
 import {
   computed,
@@ -142,15 +143,13 @@ import {
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { MSvgIcon } from "../../components";
 
 export default defineComponent({
+  components: {
+    MSvgIcon,
+  },
   setup() {
-    /** logo和名称tips */
-    function useLogoSvgAndName() {
-      return {
-        svgStr: useSvgWhiteLogo(),
-      };
-    }
     const { t } = useI18n();
     const router = useRouter();
     const isAgree = ref(false);
@@ -261,7 +260,6 @@ export default defineComponent({
       useDelay().then(() => router.replace({ name: "Login" }));
     };
     return {
-      ...useLogoSvgAndName(),
       isAgree,
       onToggleAgree,
       formRegister,

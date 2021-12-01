@@ -6,11 +6,9 @@ import { createPinia } from "pinia";
 import languages from "../languages";
 import { useLocalStorage } from "@vueuse/core";
 import { lastOfArray } from "../utils";
-import { XLink } from "./components";
 import "photoswipe/dist/photoswipe.css";
 import "photoswipe/dist/default-skin/default-skin.css";
 const app = createApp(App);
-app.component("XLink", XLink);
 // 注册全局属性
 // 专门给模板中调试事件用的 @click="$log"
 app.config.globalProperties.$log = console.log;

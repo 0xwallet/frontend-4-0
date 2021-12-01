@@ -895,6 +895,7 @@ import {
   XTdHash,
   XModalDir,
   XMdParser,
+  XLink,
 } from "../../../components";
 import { useI18n } from "vue-i18n";
 import {
@@ -1046,6 +1047,7 @@ export default defineComponent({
     XTdHash,
     XModalDir,
     XMdParser,
+    XLink,
     ModalDetail,
   },
   setup() {

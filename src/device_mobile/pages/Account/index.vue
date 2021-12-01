@@ -8,7 +8,7 @@
     >
       <div class="h-11 relative">
         <div @click="onClickLogo" class="absolute-center-y top-0 bottom-0">
-          <div v-html="svgStr"></div>
+          <MSvgIcon icon="logoWhiteBorder" :size="22.1" />
         </div>
         <div
           class="text-white text-center h-full flex items-center justify-center"
@@ -267,7 +267,6 @@
 <script lang="ts">
 import { apiGetBsvExchangeRate } from "@/apollo/api";
 import { useBaseStore, useUserStore } from "@/store";
-import { useSvgWhiteLogo } from "@/utils";
 import { useClipboard } from "@vueuse/core";
 import { Toast } from "vant";
 import { defineComponent, ref } from "vue";
@@ -286,7 +285,6 @@ export default defineComponent({
     const { t } = useI18n();
     const userStore = useUserStore();
     const baseStore = useBaseStore();
-    const svgStr = useSvgWhiteLogo();
     const bsvUsdExchangeRate = ref("");
     apiGetBsvExchangeRate().then(
       (res) => (bsvUsdExchangeRate.value = res.data?.rate.substring(0, 7) ?? "")
@@ -334,7 +332,6 @@ export default defineComponent({
       };
     }
     return {
-      svgStr,
       onClickLogo,
       userStore,
       bsvUsdExchangeRate,
