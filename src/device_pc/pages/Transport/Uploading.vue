@@ -339,7 +339,7 @@ import {
   PlusSquareOutlined,
 } from "@ant-design/icons-vue";
 import { useI18n } from "vue-i18n";
-import { XFileTypeIcon, XTableFiles, XModalDir } from "../../components";
+import { XFileTypeIcon, XTableFiles, XModalDir, XLink } from "../../components";
 import {
   formatBytes,
   getFileSHA256,
@@ -397,6 +397,7 @@ export default defineComponent({
     XTableFiles,
     XModalDir,
     XFileTypeIcon,
+    XLink,
     RightSquareOutlined,
     PauseOutlined,
     CloseOutlined,
