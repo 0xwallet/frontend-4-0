@@ -329,24 +329,37 @@
         </a-row>
       </div>
       <!-- 第三步 -->
-      <div v-if="modalAssetStage === 3">3步</div>
+      <div v-if="modalAssetStage === 3">
+        <a-row align="middle" class="mb-4">
+          <a-col :span="6"> 货币地址: </a-col>
+          <a-col :span="16">
+            <a-input v-model:value="modalAssetStageThreeForm.address" />
+          </a-col>
+        </a-row>
+        <a-row align="middle">
+          <a-col :span="6"> 地址备注(选填): </a-col>
+          <a-col :span="16">
+            <a-input v-model:value="modalAssetStageThreeForm.remark" />
+          </a-col>
+        </a-row>
+      </div>
       <template #footer>
         <div v-if="modalAssetStage === 1">
-          <a-button @click="onCloseModalAsset">取消</a-button>
-          <a-button type="primary" @click="onConfirmModalAssetStage(1)"
+          <a-button class="w-20" @click="onCloseModalAsset">取消</a-button>
+          <a-button class="w-20" type="primary" @click="onConfirmModalAssetStage(1)"
             >下一步</a-button
           >
         </div>
         <div v-if="modalAssetStage === 2">
-          <a-button @click="onBackToModalAssetStage(1)">上一步</a-button>
-          <a-button type="primary" @click="onConfirmModalAssetStage(2)"
+          <a-button class="w-20" @click="onBackToModalAssetStage(1)">上一步</a-button>
+          <a-button class="w-20" type="primary" @click="onConfirmModalAssetStage(2)"
             >下一步</a-button
           >
         </div>
         <div v-if="modalAssetStage === 3">
-          <a-button @click="onBackToModalAssetStage(2)">3取消</a-button>
-          <a-button type="primary" @click="onConfirmModalAssetStage(3)"
-            >下一步</a-button
+          <a-button class="w-20" @click="onBackToModalAssetStage(2)">上一步</a-button>
+          <a-button class="w-20" type="primary" @click="onConfirmModalAssetStage(3)"
+            >确认</a-button
           >
         </div>
       </template>
@@ -480,6 +493,10 @@ export default defineComponent({
       ];
       /** 第二部的法定代币类型 */
       const modalAssetStageTwoLegalType = ref<ModalAssetLegalType>();
+      const modalAssetStageThreeForm = reactive({
+        address: "",
+        remark: "",
+      });
       /** 添加资产 */
       const onClickAddAsset = () => {
         modalAssetStage.value = 1;
@@ -513,6 +530,10 @@ export default defineComponent({
           modalAssetTitle.value = "第三步";
           modalAssetStage.value = 3;
         } else if (s === 3) {
+          if (!modalAssetStageThreeForm.address) {
+            message.info("请输入货币地址");
+            return;
+          }
           console.log("stage 3");
         }
       };
@@ -530,6 +551,7 @@ export default defineComponent({
         modalAssetStageTwoCryptoType,
         modalAssetStageTwoCryptoRadioOptions,
         modalAssetStageTwoLegalType,
+        modalAssetStageThreeForm,
         onClickAddAsset,
         onBackToModalAssetStage,
         onConfirmModalAssetStage,
