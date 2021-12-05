@@ -422,7 +422,6 @@ import {
 import { message, Modal } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import {
-  countDown,
   countDownSeconds,
   getFileDigest,
   getFileType,
@@ -434,26 +433,17 @@ import {
   useDelay,
   writeHeaderInSession,
   formatBytes,
-  downloadFileByBlob,
   calcPercent,
-  cacheFn,
   browserDetect,
 } from "@/utils";
 import { classMultiClient, TMessageType, TSession } from "nkn";
 import { getAnonymousMultiClient } from "@/apollo/nknConfig";
 import { useTransportStore, useUserStore } from "@/store";
-import { once, pick, remove, throttle } from "lodash-es";
+import { pick, remove } from "lodash-es";
 import {
   get,
   set,
-  update,
-  getMany,
-  setMany,
-  del,
   delMany,
-  entries,
-  values,
-  clear,
   keys,
 } from "idb-keyval";
 import { decode, encode } from "@msgpack/msgpack";
@@ -463,7 +453,6 @@ import dayjs from "dayjs";
 import pLimit from "p-limit";
 import { useRoute, useRouter } from "vue-router";
 import Bowser from "bowser";
-import streamSaver from "streamsaver";
 import saveAs from "file-saver";
 
 type PeerFileItem = {
@@ -1865,8 +1854,7 @@ export default defineComponent({
         // .then(() => {
         //   delIdbFilesByHash(fileHash);
         // });
-        // TODO 放出来这个 del 的
-        // delIdbFilesByHash(fileHash);
+        delIdbFilesByHash(fileHash);
         // TODO 发回去校验hash
         // 发送-确认信息
         // await nknClient.send(session.remoteAddr, makeConfirmMessage(fileHash));
