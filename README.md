@@ -95,6 +95,12 @@ import { ApolloClient, InMemoryCache } from "@apollo/client/core";
 - ant-design-vue@2 https://2x.antdv.com/components/button-cn/
 - vant@v3 https://youzan.github.io/vant/v3/#/zh-CN
 
+### 设计参考
+
+- mega 网盘 https://mega.nz/ 源代码 https://github.com/meganz/webclient
+- P2P 文件传输： https://instant.io/ 源代码 https://github.com/webtorrent/instant.io  
+- Wormhole  https://wormhole.app/
+
 ### 难点:
 
 1. 多窗口文件的需求: 点一下左菜单的文件就打开一个新的 tab, 然后不同的文件 tab 是单独开来的,分别可以打开不同的文件夹
