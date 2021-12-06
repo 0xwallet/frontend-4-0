@@ -64,7 +64,7 @@
       v-model:selectedRowKeys="selectedRowKeys"
     >
       <template #name="{ record }">
-        <div class="relative">
+        <div class="truncate relative">
           <!-- 空白就是blank 文件夹就是folder -->
           <XFileTypeIcon
             class="w-6 h-6"

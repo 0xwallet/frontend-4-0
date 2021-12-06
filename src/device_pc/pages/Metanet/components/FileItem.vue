@@ -241,7 +241,7 @@
     >
       <!-- :loading="tableLoading" -->
       <template #name="{ record }">
-        <div class="tdName relative">
+        <div class="tdName relative truncate">
           <!-- 空白就是blank 文件夹就是folder -->
           <XFileTypeIcon class="w-6 h-6" :type="record.fileType" />
           <a
