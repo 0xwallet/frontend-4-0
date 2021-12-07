@@ -55,11 +55,11 @@
       </div>
     </div>
     <!-- 表格 -->
+    <!-- :loading="tableLoading" -->
     <XTableFiles
       rowKey="id"
       :columns="columns"
       :data="tableData"
-      :loading="tableLoading"
       v-model:selectedRows="selectedRows"
       v-model:selectedRowKeys="selectedRowKeys"
     >
